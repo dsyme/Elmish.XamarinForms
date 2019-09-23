@@ -5,6 +5,7 @@ open Fabulous
 open Fabulous.XamarinForms
 open Fabulous.XamarinForms.LiveUpdate
 open Xamarin.Forms
+open FSharp.Data.Adaptive
 open System.Diagnostics
 
 module App = 
@@ -37,30 +38,69 @@ module App =
 
     let init () = initModel () , []
 
-    let update msg model =
-        match msg with
-        | Increment -> { model with Count = model.Count + model.Step }, []
-        | Decrement -> { model with Count = model.Count - model.Step }, []
-        | Reset -> init ()
-        | SetStep n -> { model with Step = n }, []
-        | TimerToggled on -> { model with TimerOn = on }, (if on then [ TickTimer ] else [])
-        | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
+    let update msg (model: aref<Model>) =
+        adaptive {
+           let! model = model
+           match msg with
+            | Increment -> { model with Count = model.Count + model.Step }, []
+            | Decrement -> { model with Count = model.Count - model.Step }, []
+            | Reset -> init ()
+            | SetStep n -> { model with Step = n }, []
+            | TimerToggled on -> { model with TimerOn = on }, (if on then [ TickTimer ] else [])
+            | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
-    let view (model: Model) dispatch =  
-        View.ContentPage(
-          content=View.StackLayout(padding=30.0,verticalOptions = LayoutOptions.Center,
-            children=[
-              View.Label(automationId="CountLabel", text=sprintf "%d" model.Count, horizontalOptions=LayoutOptions.Center, widthRequest=200.0, horizontalTextAlignment=TextAlignment.Center)
-              View.Button(automationId="IncrementButton", text="Increment", command= (fun () -> dispatch Increment))
-              View.Button(automationId="DecrementButton", text="Decrement", command= (fun () -> dispatch Decrement)) 
-              View.StackLayout(padding=20.0, orientation=StackOrientation.Horizontal, horizontalOptions=LayoutOptions.Center,
-                              children = [ View.Label(text="Timer")
-                                           View.Switch(automationId="TimerSwitch", isToggled=model.TimerOn, toggled=(fun on -> dispatch (TimerToggled on.Value))) ])
-              View.Slider(automationId="StepSlider", minimumMaximum=(0.0, 10.0), value= double model.Step, valueChanged=(fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
-              View.Label(automationId="StepSizeLabel", text=sprintf "Step size: %d" model.Step, horizontalOptions=LayoutOptions.Center)
-              View.Button(text="Reset", horizontalOptions=LayoutOptions.Center, command=(fun () -> dispatch Reset), canExecute = (model <> initModel () ))
-            ]))
-             
+    let view (model: aref<Model>) dispatch =  
+        adaptiveView { 
+            View.ContentPage(
+              content=View.StackLayout(padding=30.0,verticalOptions = LayoutOptions.Center,
+                children=[
+                  View.Label(automationId="CountLabel", text=sprintf "%d" (dep model).Count, horizontalOptions=LayoutOptions.Center, widthRequest=200.0, horizontalTextAlignment=TextAlignment.Center)
+                  View.Button(automationId="IncrementButton", text="Increment", command= (fun () -> dispatch Increment))
+                  View.Button(automationId="DecrementButton", text="Decrement", command= (fun () -> dispatch Decrement)) 
+                  View.StackLayout(padding=20.0, orientation=StackOrientation.Horizontal, horizontalOptions=LayoutOptions.Center,
+                                  children = [ View.Label(text="Timer")
+                                               View.Switch(automationId="TimerSwitch", isToggled=(dep model).TimerOn, toggled=(fun on -> dispatch (TimerToggled on.Value))) ])
+                  View.Slider(automationId="StepSlider", minimumMaximum=(0.0, 10.0), value= double (dep model).Step, valueChanged=(fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
+                  View.Label(automationId="StepSizeLabel", text=sprintf "Step size: %d" (dep model).Step, horizontalOptions=LayoutOptions.Center)
+                  View.Button(text="Reset", horizontalOptions=LayoutOptions.Center, command=(fun () -> dispatch Reset), canExecute = (dep model <> initModel () ))
+                ]))
+        }
+(*
+        View.ContentPageA(
+            contentA=
+              View.StackLayoutA(
+                paddingA=ARef.constant 30.0,
+                verticalOptionsA = ARef.constant LayoutOptions.Center,
+                childrenA= alist [
+                    View.Label(automationId="CountLabel", text=sprintf "%d" (dep model).Count, horizontalOptions=LayoutOptions.Center, widthRequest=200.0, horizontalTextAlignment=TextAlignment.Center)
+                    ARef.constant (View.Button(automationId="IncrementButton", text="Increment", command= (fun () -> dispatch Increment)))
+                    ARef.constant (View.Button(automationId="DecrementButton", 
+                                        text="Decrement", 
+                                        command= (fun () -> dispatch Decrement))) 
+                    View.StackLayout(
+                        padding=20.0,
+                        orientation=StackOrientation.Horizontal,
+                        horizontalOptions=LayoutOptions.Center,
+                        children = [ 
+                          View.Label(text="Timer")
+                          View.Switch(automationId="TimerSwitch", isToggled=(dep model).TimerOn, toggled=(fun on -> dispatch (TimerToggled on.Value))) ])
+
+                    View.Slider(automationId="StepSlider", 
+                        minimumMaximum=(0.0, 10.0),
+                        value= double (dep model).Step,
+                        valueChanged=(fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
+
+                    View.Label(automationId="StepSizeLabel", 
+                        text=sprintf "Step size: %d" (dep model).Step, 
+                        horizontalOptions=LayoutOptions.Center)
+
+                    View.Button(text="Reset", 
+                        horizontalOptions=LayoutOptions.Center, 
+                        command=(fun () -> dispatch Reset), 
+                        canExecute = (dep model <> initModel () ))
+                ]))
+  *)
+  
     let program = 
         Program.mkProgramWithCmdMsg init update view mapCmdMsgToCmd
 
