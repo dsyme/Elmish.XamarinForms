@@ -8,6 +8,9 @@ jobs:
   pool:
     vmImage: 'windows-2019'
   steps:
+  - task: UseDotNet@2
+    inputs:
+      version: 2.2.105
   - script: .\build.cmd
   - task: PublishTestResults@2
     inputs:
@@ -19,6 +22,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UseDotNet@2
+    inputs:
+      version: 2.2.105
   - script: ./azure-pipeline-osx-setup.sh
   - script: ./build.sh Test
   - task: PublishTestResults@2

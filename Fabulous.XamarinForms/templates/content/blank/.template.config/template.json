@@ -7,7 +7,7 @@
     "Elmish",
     "Cross-platform"
   ],
-  "name": "Fabulous Xamarin.Forms App v0.42.0",
+  "name": "Fabulous Xamarin.Forms App v0.50.0-alpha.7",
   "groupIdentity": "Fabulous.XamarinForms.App",
   "identity": "Fabulous.XamarinForms.FSharp",
   "shortName": "fabulous-xf-app",
@@ -156,13 +156,13 @@
       "type": "parameter",
       "dataType": "string",
       "replaces": "XamarinFormsSdk",
-      "defaultValue": "4.2.0.709249"
+      "defaultValue": "4.3.0.908675"
     },
     "FabulousPkgsVersion": {
       "type": "parameter",
       "dataType": "string",
       "replaces": "FabulousPkgsVersion",
-      "defaultValue": "0.42.0"
+      "defaultValue": "0.50.0-alpha.7"
     },
     "NewtonsoftJsonPkg": {
       "type": "parameter",

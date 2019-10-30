@@ -11,25 +11,25 @@ module Templates =
         dependsOn animal (fun _ animal ->
             View.Grid(
                 tag=animal,
-                padding=Thickness(10.),
-                coldefs=["auto"; "auto"],
-                rowdefs=["auto"; "auto"],
+                padding=Thickness 10.,
+                coldefs=[ Auto; Auto],
+                rowdefs=[ Auto; Auto ],
                 children=[
                     View.Image(
-                        source=animal.ImageUrl,
+                        source=Image.Path animal.ImageUrl,
                         aspect=Aspect.AspectFill,
-                        heightRequest=40.,
-                        widthRequest=40.
-                    ).GridRowSpan(2)
+                        height=40.,
+                        width=40.
+                    ).RowSpan(2)
                     View.Label(
                         text=animal.Name,
                         fontAttributes=FontAttributes.Bold
-                    ).GridColumn(1)
+                    ).Column(1)
                     View.Label(
                         text=animal.Location,
                         fontAttributes=FontAttributes.Italic,
                         verticalOptions=LayoutOptions.End
-                    ).GridRow(1).GridColumn(1)
+                    ).Row(1).Column(1)
                 ]
             )
         )

@@ -2,9 +2,10 @@
     <ItemGroup>
         <PackageReference Update="FSharp.Core" Version="4.6.2" />
         <PackageReference Update="FSharp.Data" Version="3.0.0" />
-        <PackageReference Update="Xamarin.Forms" Version="4.2.0.709249" />
-        <PackageReference Update="Xamarin.Forms.Platform.WPF" Version="4.2.0.709249" />
-        <PackageReference Update="Xamarin.Forms.Maps" Version="4.2.0.709249" />
+        <PackageReference Update="Xamarin.Forms" Version="4.3.0.908675" />
+        <PackageReference Update="Xamarin.Forms.Platform.WPF" Version="4.3.0.908675" />
+        <PackageReference Update="Xamarin.Forms.Maps" Version="4.3.0.908675" />
+        <PackageReference Update="Xamarin.Essentials" Version="1.3.1" />
         <PackageReference Update="Newtonsoft.Json" Version="11.0.2" />
         <PackageReference Update="FSharp.Compiler.Service" Version="25.0.1" />
         <PackageReference Update="Dotnet.ProjInfo" Version="0.9.0" />
@@ -15,7 +16,7 @@
         <PackageReference Update="Plugin.MediaManager.Forms" Version="0.6.2" />
         <PackageReference Update="Mono.Cecil" Version="0.10.0" />
         <PackageReference Update="Microsoft.NET.Test.Sdk" Version="15.7.0" />
-        <PackageReference Update="Microsoft.SourceLink.Github" Version="1.0.0-beta-63127-02" PrivateAssets="All" />
+        <PackageReference Update="Microsoft.SourceLink.Github" Version="1.0.0-beta2-19367-01" PrivateAssets="All" />
         <PackageReference Update="Microsoft.CSharp" Version="4.5.0" />
         <PackageReference Update="NETStandard.Library" Version="2.0.3" />
         <PackageReference Update="System.Reflection.Emit.ILGeneration" Version="4.3.0" />
@@ -23,6 +24,8 @@
         <PackageReference Update="FsUnit" Version="3.4.0" />
         <PackageReference Update="NUnit3TestAdapter" Version="3.11.2" />
         <PackageReference Update="Microsoft.NETCore.UniversalWindowsPlatform" Version="6.1.9" />
+        <PackageReference Update="Microsoft.FSharpLu.Json" Version="0.11.2" />
+        <PackageReference Update="CommandLineParser.FSharp" Version="2.5.0" />
     </ItemGroup>
     <PropertyGroup>
         <RestoreSources>

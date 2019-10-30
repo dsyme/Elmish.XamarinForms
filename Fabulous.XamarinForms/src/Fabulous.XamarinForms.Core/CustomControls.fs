@@ -1,239 +1,207 @@
-﻿// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license.
+// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license.
 namespace Fabulous.XamarinForms
 
 open Fabulous
 open Xamarin.Forms
 open System
+open System.Collections.Generic
+open System.Collections.ObjectModel
 open System.ComponentModel
 
-/// A custom control used to implement the 'textChanged' attribute on the EntryCell view element 
-type CustomEntryCell() as self =
-    inherit EntryCell()
+/////////////////
+/// DataTemplate
+/////////////////
 
-    let mutable oldValue = ""
-    let textChanged = Event<EventHandler<TextChangedEventArgs>, TextChangedEventArgs>()
-
-    do self.PropertyChanging.Add(
-        fun args ->
-            if args.PropertyName = "Text" then
-                oldValue <- self.Text)
-
-    do self.PropertyChanged.Add(
-        fun args ->
-            if args.PropertyName = "Text" then
-                textChanged.Trigger(self, TextChangedEventArgs(oldValue, self.Text)))
-
-    [<CLIEvent>] member __.TextChanged = textChanged.Publish
-
-/// EventArgs for the SizeChanged event
-type SizeChangedEventArgs(width: float, height: float) =
-    inherit EventArgs()
-
-    member __.Width = width
-    member __.Height = height
-
-/// Defines if the action should be animated or not
-type AnimationKind =
-    | Animated
-    | NotAnimated
-
-/// A custom data element for the ListView view element
 [<AllowNullLiteral>]
-type IListElement = 
+type IViewElementHolder =
     inherit INotifyPropertyChanged
-    abstract Key : ViewElement
+    abstract ViewElement : ViewElement
 
 [<AllowNullLiteral>]
-type IItemListElement = 
-    inherit INotifyPropertyChanged
-    abstract Key : ViewElement
-
-/// A custom data element for the ListView view element
-[<AllowNullLiteral>]
-type ListElementData(key) = 
+type ViewElementHolder(viewElement: ViewElement) =
     let ev = new Event<_,_>()
-    let mutable data = key
+    let mutable data = viewElement
     
-    interface IListElement with
-        member x.Key = data
+    interface IViewElementHolder with
+        member x.ViewElement = data
         [<CLIEvent>] member x.PropertyChanged = ev.Publish
         
-    member x.Key
+    member x.ViewElement
         with get() = data
         and set(value) =
             data <- value
-            ev.Trigger(x, PropertyChangedEventArgs "Key")
+            ev.Trigger(x, PropertyChangedEventArgs "ViewElement")
 
 [<AllowNullLiteral>]
-type ItemListElementData(key) = 
-    let ev = new Event<_,_>()
-    let mutable data = key
-    
-    interface IItemListElement with
-        member x.Key = data
-        [<CLIEvent>] member x.PropertyChanged = ev.Publish
+type ViewElementHolderGroup(shortName: string, viewElement: ViewElement, items: ViewElement[]) =
+    inherit ObservableCollection<ViewElementHolder>(Seq.map ViewElementHolder items)
         
-    member x.Key
-        with get() = data
-        and set(value) =
-            data <- value
-            ev.Trigger(x, PropertyChangedEventArgs "Key")        
-
-/// A custom data element for the GroupedListView view element
-[<AllowNullLiteral>]
-type ListGroupData(shortName: string, key, coll: ViewElement[]) = 
-    inherit System.Collections.ObjectModel.ObservableCollection<ListElementData>(Seq.map ListElementData coll)
-    
     let ev = new Event<_,_>()
     let mutable shortNameData = shortName
-    let mutable keyData = key
+    let mutable data = viewElement
     
-    interface IListElement with
-        member x.Key = keyData
+    interface IViewElementHolder with
+        member x.ViewElement = data
         [<CLIEvent>] member x.PropertyChanged = ev.Publish
         
-    member x.Key
-        with get() = keyData
+    member x.ViewElement
+        with get() = data
         and set(value) =
-            keyData <- value
-            ev.Trigger(x, PropertyChangedEventArgs "Key")
+            data <- value
+            ev.Trigger(x, PropertyChangedEventArgs "ViewElement")
             
     member x.ShortName
-        with get() = shortName
+        with get() = shortNameData
         and set(value) =
             shortNameData <- value
             ev.Trigger(x, PropertyChangedEventArgs "ShortName")
             
-    member __.Items = coll
+    member __.Items = items
 
-/// A custom control for cells in the ListView view element
-type ViewElementCell() = 
-    inherit ViewCell()
+module BindableHelpers =
+    let createOnBindingContextChanged (bindableObject: BindableObject) =
+        let mutable holderOpt : IViewElementHolder voption = ValueNone
+        let mutable prevModelOpt : ViewElement voption = ValueNone
 
-    let mutable listElementOpt : IListElement option = None
-    let mutable modelOpt : ViewElement option = None
-    
-    let createView (newModel: ViewElement) =
-        match newModel.Create () with 
-        | :? View as v -> v
-        | x -> failwithf "The cells of a ListView must each be some kind of 'View' and not a '%A'" (x.GetType())
-
-    member x.OnDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
-        match args.PropertyName, listElementOpt, modelOpt with
-        | "Key", Some curr, Some prevModel ->
-            curr.Key.UpdateIncremental (prevModel, x.View)
-            modelOpt <- Some curr.Key
-        | _ -> ()
+        let onDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
+            match args.PropertyName, holderOpt, prevModelOpt with
+            | "ViewElement", ValueSome holder, ValueSome prevModel ->
+                holder.ViewElement.UpdateIncremental (prevModel, bindableObject)
+                prevModelOpt <- ValueSome holder.ViewElement
+            | _ -> ()
+        )
+        
+        let onBindingContextChanged () =
+            match holderOpt with
+            | ValueNone -> ()
+            | ValueSome prevHolder -> prevHolder.PropertyChanged.RemoveHandler onDataPropertyChanged
+            
+            match bindableObject.BindingContext with
+            | :? IViewElementHolder as newHolder ->
+                newHolder.PropertyChanged.AddHandler onDataPropertyChanged
+                newHolder.ViewElement.UpdateInherited(prevModelOpt, newHolder.ViewElement, bindableObject)
+                holderOpt <- ValueSome newHolder
+                prevModelOpt <- ValueSome newHolder.ViewElement
+            | _ ->
+                holderOpt <- ValueNone
+                prevModelOpt <- ValueNone
+            
+        onBindingContextChanged
+        
+type ViewElementDataTemplate(``type``) =
+    inherit DataTemplate(fun () ->
+        let bindableObject = (Activator.CreateInstance ``type``) :?> BindableObject
+        let onBindingContextChanged = BindableHelpers.createOnBindingContextChanged bindableObject
+        bindableObject.BindingContextChanged.Add (fun _ -> onBindingContextChanged ())
+        bindableObject :> obj
     )
 
-    override x.OnBindingContextChanged () =
-        base.OnBindingContextChanged ()
-        match x.BindingContext with
-        | :? IListElement as curr -> 
-            let newModel = curr.Key
-            match listElementOpt with 
-            | Some prev ->
-                prev.PropertyChanged.RemoveHandler x.OnDataPropertyChanged
-                curr.PropertyChanged.AddHandler x.OnDataPropertyChanged
-                newModel.UpdateIncremental (prev.Key, x.View)
-            | None -> 
-                curr.PropertyChanged.AddHandler x.OnDataPropertyChanged
-                x.View <- createView newModel
+type ViewElementDataTemplateSelector() =
+    inherit DataTemplateSelector()
+    let cache = Dictionary<Type, ViewElementDataTemplate>()
+    override this.OnSelectTemplate(item, _) =
+        let holder = item :?> IViewElementHolder
+        let targetType = holder.ViewElement.TargetType
+        
+        match cache.TryGetValue targetType with
+        | false, _ ->
+            let template = ViewElementDataTemplate(targetType)
+            cache.[targetType] <- template
+            template :> DataTemplate
+        | true, template ->
+            template :> DataTemplate
+            
+type DirectViewElementDataTemplate(viewElement: ViewElement) =
+    inherit DataTemplate(Func<obj>(viewElement.Create))
+        
+/////////////////
+/// Cells
+/////////////////
 
-            listElementOpt <- Some curr
-            modelOpt <- Some curr.Key
-        | _ ->
-            match listElementOpt with
-            | Some prev -> 
-                prev.PropertyChanged.RemoveHandler x.OnDataPropertyChanged
-                listElementOpt <- None
-                modelOpt <- None
-            | None -> ()
+type CustomEntryCell() as self = 
+    inherit EntryCell()
+    let textChanged = Event<EventHandler<TextChangedEventArgs>, TextChangedEventArgs>()
+    let mutable oldTextValue = ""
 
-type ContentViewElement() = 
-    inherit ContentView()
+    do self.PropertyChanging.Add(
+        fun args ->
+            if args.PropertyName = "Text" then
+                oldTextValue <- self.Text)
 
-    let mutable listElementOpt : IItemListElement option = None
-    let mutable modelOpt : ViewElement option = None
+    do self.PropertyChanged.Add(
+        fun args ->
+            if args.PropertyName = "Text" then
+                textChanged.Trigger(self, TextChangedEventArgs(oldTextValue, self.Text)))
+
+    [<CLIEvent>] member __.TextChanged = textChanged.Publish
+
+/////////////////
+/// Collections
+/////////////////
+
+type CustomListView() =
+    inherit ListView(ListViewCachingStrategy.RecycleElement, ItemTemplate = ViewElementDataTemplateSelector())
     
-    let createView (newModel: ViewElement) =
-        match newModel.Create () with 
-        | :? View as v -> v
-        | x -> failwithf "The cells of a CollectionView must each be some kind of 'View' and not a '%A'" (x.GetType())
-
-    member x.OnDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
-        match args.PropertyName, listElementOpt, modelOpt with
-        | "Key", Some curr, Some prevModel ->
-            curr.Key.UpdateIncremental (prevModel, x.Content)
-            modelOpt <- Some curr.Key
-        | _ -> ()
-    )
-
-    override x.OnBindingContextChanged () =
-        base.OnBindingContextChanged ()
-        match x.BindingContext with
-        | :? IItemListElement as curr -> 
-            let newModel = curr.Key
-            match listElementOpt with 
-            | Some prev ->
-                prev.PropertyChanged.RemoveHandler x.OnDataPropertyChanged
-                curr.PropertyChanged.AddHandler x.OnDataPropertyChanged
-                newModel.UpdateIncremental (prev.Key, x.Content)
-            | None -> 
-                curr.PropertyChanged.AddHandler x.OnDataPropertyChanged
-                x.Content <- createView newModel
-
-            listElementOpt <- Some curr
-            modelOpt <- Some curr.Key
-        | _ ->
-            match listElementOpt with
-            | Some prev -> 
-                prev.PropertyChanged.RemoveHandler x.OnDataPropertyChanged
-                listElementOpt <- None
-                modelOpt <- None
-            | None -> ()
-
-/// A custom control for the ListView view element
-type CustomListView() = 
-    inherit ListView(ItemTemplate=DataTemplate(typeof<ViewElementCell>))
-
-type CustomCollectionListView() = 
-    inherit CollectionView(ItemTemplate=DataTemplate(typeof<ContentViewElement>))
-
-type CustomCarouselView() = 
-    inherit CarouselView(ItemTemplate=DataTemplate(typeof<ContentViewElement>))
-
-/// A custom control for the ListViewGrouped view element
 type CustomGroupListView() = 
-    inherit ListView(ItemTemplate=DataTemplate(typeof<ViewElementCell>), GroupHeaderTemplate=DataTemplate(typeof<ViewElementCell>), IsGroupingEnabled=true)
+    inherit ListView(ListViewCachingStrategy.RecycleElement, IsGroupingEnabled = true, ItemTemplate = ViewElementDataTemplateSelector(), GroupHeaderTemplate = ViewElementDataTemplateSelector())
+
+type CustomCollectionView() = 
+    inherit CollectionView(ItemTemplate = ViewElementDataTemplateSelector(), EmptyViewTemplate = ViewElementDataTemplateSelector())
+
+type CustomCarouselView() =
+    inherit CarouselView(ItemTemplate = ViewElementDataTemplateSelector(), EmptyViewTemplate = ViewElementDataTemplateSelector())
+
+/////////////////
+/// Controls
+/////////////////
+    
+/// A name holder for effects that don't require to create a cross-platform type to use them
+type CustomEffect() =
+    inherit BindableObject()
+    member val Name = "" with get, set
+
+/// A custom SearchHandler which exposes the overridable methods OnQueryChanged, OnQueryConfirmed and OnItemSelected as events
+type CustomSearchHandler() =
+    inherit SearchHandler(ItemTemplate = ViewElementDataTemplateSelector())
+    
+    let queryChanged = Event<EventHandler<string * string>, _>()
+    let queryConfirmed = Event<EventHandler, _>()
+    let itemSelected = Event<EventHandler<obj>, _>()
+    
+    [<CLIEvent>] member __.QueryChanged = queryChanged.Publish
+    [<CLIEvent>] member __.QueryConfirmed = queryConfirmed.Publish
+    [<CLIEvent>] member __.ItemSelected = itemSelected.Publish
+
+    override this.OnQueryChanged(oldValue, newValue) = queryChanged.Trigger(this, (oldValue, newValue))
+    override this.OnQueryConfirmed() = queryConfirmed.Trigger(this, null)
+    override this.OnItemSelected(item) = itemSelected.Trigger(this, item)
+    
+/// A custom TimePicker which exposes a TimeChanged event to notify when the user has selected a new time from the picker
+type CustomTimePicker() =
+    inherit TimePicker()
+    
+    let timeChanged = Event<EventHandler<TimeSpan>, _>()
+    
+    [<CLIEvent>] member __.TimeChanged = timeChanged.Publish
+
+    override this.OnPropertyChanged(propertyName) =
+        base.OnPropertyChanged(propertyName)
+        if propertyName = "Time" then
+            timeChanged.Trigger(this, this.Time)
+
+/////////////////
+/// Pages
+/////////////////
 
 /// The underlying page type for the ContentPage view element
 type CustomContentPage() as self = 
     inherit ContentPage()
     do Xamarin.Forms.PlatformConfiguration.iOSSpecific.Page.SetUseSafeArea(self, true)
-    let sizeAllocated: Event<double * double> = Event<_>() 
+    
+    let sizeAllocated = Event<EventHandler<double * double>, _>()
 
-    member __.SizeAllocated = sizeAllocated.Publish
+    [<CLIEvent>] member __.SizeAllocated = sizeAllocated.Publish
 
-    override __.OnSizeAllocated(width, height) =
+    override this.OnSizeAllocated(width, height) =
         base.OnSizeAllocated(width, height)
-        sizeAllocated.Trigger(width, height)
-
-/// DataTemplate that can inflate a View from a ViewElement instead of a Type
-type ViewElementDataTemplate(viewElement: ViewElement) =
-    inherit DataTemplate(Func<obj>(viewElement.Create))
-
-/// A custom SearchHandler which exposes the overridable methods OnQueryChanged, OnQueryConfirmed and OnItemSelected as events
-type CustomSearchHandler() =
-    inherit SearchHandler(ItemTemplate=DataTemplate(typeof<ContentViewElement>))
-
-    member val QueryChanged = ignore with get, set
-    member val QueryConfirmed = ignore with get, set
-    member val ItemSelected: obj -> unit = ignore with get, set
-
-    override this.OnQueryChanged(oldValue, newValue) = this.QueryChanged (oldValue, newValue)
-    override this.OnQueryConfirmed() = this.QueryConfirmed ()
-    override this.OnItemSelected(item) = this.ItemSelected item
-
-type CustomEffect() =
-    member val Name = "" with get, set
+        sizeAllocated.Trigger(this, (width, height))

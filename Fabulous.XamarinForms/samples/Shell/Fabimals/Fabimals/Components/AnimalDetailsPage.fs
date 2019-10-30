@@ -25,7 +25,7 @@ module AnimalDetails =
 
             View.ScrollView(
                 View.StackLayout(
-                    margin=Thickness(20.),
+                    margin=Thickness 20.,
                     children=[
                         View.Label(
                             text=animal.Name,
@@ -38,9 +38,9 @@ module AnimalDetails =
                             horizontalOptions=LayoutOptions.Center
                         )
                         View.Image(
-                            source=animal.ImageUrl,
-                            widthRequest=200.,
-                            heightRequest=200.,
+                            source=Image.Path animal.ImageUrl,
+                            width=200.,
+                            height=200.,
                             horizontalOptions=LayoutOptions.CenterAndExpand
                         )
                         View.Label(

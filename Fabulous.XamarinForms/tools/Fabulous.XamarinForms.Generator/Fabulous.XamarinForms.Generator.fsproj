@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="Mono.Cecil" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Xamarin.Forms" />
+    <PackageReference Include="CommandLineParser.FSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Helpers.fs" />
+    <Compile Include="Reflection.fs" />
+    <Compile Include="XFConverters.fs" />
+    <Compile Include="XFOptimizer.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Fabulous.CodeGen\src\Fabulous.CodeGen\Fabulous.CodeGen.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\..\Packages.targets" />
+</Project>

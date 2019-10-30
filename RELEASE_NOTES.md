@@ -1,3 +1,68 @@
+#### 0.50.0-alpha.7
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] Fix issue for NavigationPage reuse
+
+#### 0.50.0-alpha.6
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] TableView now uses TableRoot and TableSections
+* [Fabulous.XamarinForms] Property methods now have a similar name than before.
+
+#### 0.50.0-alpha.5
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] Fixed bug preventing use of events on ListView
+* [Fabulous.CodeGen] Added helpers for Optimizers
+* [Fabulous.CodeGen] Added missing converters for Double.NaN and Single.NaN
+
+#### 0.50.0-alpha.4
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] ListView now only accepts Cell types as items
+
+#### 0.50.0-alpha.3
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] Fixed an issue where an IndexOutOfRangeException could occur
+* [Fabulous.XamarinForms] Made `View` a real static class (can no longer be instantiated)
+* [Fabulous.XamarinForms] Removed some read-only properties
+* [Fabulous.XamarinForms] Fixed member ordering for ListView and ListViewGrouped
+* [Fabulous.CodeGen] Changed the way properties are resolved, to rely less on BindableProperty fields.
+
+#### 0.50.0-alpha.2
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] Fixed an issue where events could be subscribed to several times in a row.
+* [Fabulous.XamarinForms] Fixed naming/ordering issues in some exposed properties
+
+#### 0.50.0-alpha
+
+This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  
+Please only use this version with a backup of your solution.
+
+* [Fabulous.XamarinForms] Fabulous is no longer triggering property-related events when internally updating the value. This fixes the really annoying infinite looping issue on Android once and for all!
+* [Fabulous.XamarinForms] Properties asking for an `obj` value are now requesting a proper type
+* [Fabulous.XamarinForms] Missing controls and properties have been added. Some existing properties have changed names.
+* [Fabulous.CodeGen] Created this new library from the Generator that was private to Fabulous. This library allows creating your own Generator for your framework. It has been created with extensibility and overridability in mind.
+* [Fabulous.XamarinForms] [Generator] A new .NET console app (will be a .NET CLI tool in the future) that uses the new Fabulous.CodeGen lib to replace the existing Generator of Fabulous
+
+#### 0.43.0
+
+* [Fabulous.XamarinForms] Recompiled to resolve the compile errors preventing to upgrade to Xamarin.Forms 4.3, due to breaking changes. Proper support for new stuff in Xamarin.Forms 4.3 will be added later. (https://github.com/fsprojects/Fabulous/pull/574)
+
 #### 0.42.0
 
 * [Fabulous.XamarinForms] Added support for Xamarin.Forms 4.2 (https://github.com/fsprojects/Fabulous/pull/559)

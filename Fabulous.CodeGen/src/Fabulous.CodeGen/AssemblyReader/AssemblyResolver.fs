@@ -1,8 +1,8 @@
-// Copyright 2018 Fabulous contributors. See LICENSE.md for license.
-namespace Fabulous.Generator
+// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license.
+namespace Fabulous.CodeGen.AssemblyReader
 
-open Mono.Cecil
 open System.Collections.Generic
+open Mono.Cecil
 
 module AssemblyResolver =
     type RegistrableResolver() =
@@ -17,19 +17,26 @@ module AssemblyResolver =
                 cache.[name.FullName] <- assembly
                 assembly
 
-        member this.RegisterAssembly(assembly : AssemblyDefinition) : unit =
+        member this.RegisterAssembly(assembly: AssemblyDefinition) : unit =
             match cache.ContainsKey(assembly.Name.FullName) with
             | true -> ()
             | false -> cache.[assembly.Name.FullName] <- assembly
 
-        member this.Dispose(disposing) =
-            cache.Values |> Seq.iter (fun asm -> asm.Dispose())
-            cache.Clear()
-            base.Dispose()
+        override this.Dispose(disposing) =
+            base.Dispose(disposing)
+            
+            if disposing then
+                cache.Values |> Seq.iter (fun asm -> asm.Dispose())
+                cache.Clear()
 
-    let loadAssembly (resolver : RegistrableResolver) (path : string) =
+    let loadAssembly (resolver: RegistrableResolver) (path: string) =
         let readerParameters = ReaderParameters()
         readerParameters.AssemblyResolver <- resolver
         let assembly = AssemblyDefinition.ReadAssembly(path, readerParameters)
         resolver.RegisterAssembly assembly
         assembly
+
+    let loadAllAssemblies (paths: seq<string>) =
+        use resolver = new RegistrableResolver()
+        let loadAssembly = loadAssembly resolver
+        paths |> Seq.toArray |> Array.map loadAssembly

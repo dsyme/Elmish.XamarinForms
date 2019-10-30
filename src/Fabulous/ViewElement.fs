@@ -46,10 +46,10 @@ type ViewElement internal (targetType: Type, create: (unit -> obj), update: (Vie
         ViewElement(typeof<'T>, (create >> box), (fun prev curr target -> update prev curr (unbox target)), attribsBuilder.Close())
 
     [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
-    static member val _CreatedAttribKey : AttributeKey<obj -> unit> = AttributeKey<_>("ElementCreated")
+    static member val _CreatedAttribKey : AttributeKey<obj -> unit> = AttributeKey<_>("Created")
 
     [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
-    static member val _ViewRefAttribKey : AttributeKey<ViewRef> = AttributeKey<_>("ElementViewRef")
+    static member val _RefAttribKey : AttributeKey<ViewRef> = AttributeKey<_>("Ref")
 
     /// Get the type created by the visual element
     member x.TargetType = targetType
@@ -95,18 +95,27 @@ type ViewElement internal (targetType: Type, create: (unit -> obj), update: (Vie
         match x.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
         | ValueSome f -> f target
         | ValueNone -> ()
-        match x.TryGetAttributeKeyed(ViewElement._ViewRefAttribKey) with
+        match x.TryGetAttributeKeyed(ViewElement._RefAttribKey) with
         | ValueSome f -> f.Set (box target)
         | ValueNone -> ()
         target
 
     /// Produce a new visual element with an adjusted attribute
-    member __.WithAttribute(key: AttributeKey<'T>, value: 'T) = 
+    member __.WithAttribute(key: AttributeKey<'T>, value: 'T) =
+        let duplicateViewElement newAttribsLength attribIndex =
+            let attribs2 = Array.zeroCreate newAttribsLength
+            Array.blit attribs 0 attribs2 0 attribs.Length
+            attribs2.[attribIndex] <- KeyValuePair(key.KeyValue, box value)
+            ViewElement(targetType, create, update, attribs2)
+        
         let n = attribs.Length
-        let attribs2 = Array.zeroCreate (n + 1)
-        Array.blit attribs 0 attribs2 0 n
-        attribs2.[n] <- KeyValuePair(key.KeyValue, box value)
-        ViewElement(targetType, create, update, attribs2)
+        
+        let existingAttrIndexOpt = attribs |> Array.tryFindIndex (fun attr -> attr.Key = key.KeyValue)
+        match existingAttrIndexOpt with
+        | Some i ->
+            duplicateViewElement n i // duplicate and replace existing attribute
+        | None ->
+            duplicateViewElement (n + 1) n // duplicate and add new attribute
 
     override x.ToString() = sprintf "%s(...)@%d" x.TargetType.Name (x.GetHashCode())
 

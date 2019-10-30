@@ -16,26 +16,26 @@ module SearchHandlers =
             showsResults=true,
             queryChanged=(fun (_, newValue) -> dispatch (QueryChanged newValue)),
             itemSelected=(fun item ->
-                let data = item :?> ItemListElementData
-                let animal = data.Key.GetAttributeKeyed(ViewAttributes.TagAttribKey) :?> Animal
+                let data = item :?> ViewElementHolder
+                let animal = data.ViewElement.GetAttributeKeyed(ViewAttributes.TagAttribKey) :?> Animal
                 dispatch (AnimalSelected animal)),
             items=[
                 for animal in animals do
                     yield View.Grid(
                         tag=animal,
-                        padding=Thickness(10.),
-                        coldefs=["0.15*"; "0.85*"],
+                        padding=Thickness 10.,
+                        coldefs=[ Stars 0.15; Stars 0.85],
                         children=[
                             View.Image(
-                                source=animal.ImageUrl,
+                                source=Image.Path animal.ImageUrl,
                                 aspect=Aspect.AspectFill,
-                                heightRequest=40.,
-                                widthRequest=40.
+                                height=40.,
+                                width=40.
                             )
                             View.Label(
                                 text=animal.Name,
                                 fontAttributes=FontAttributes.Bold
-                            ).GridColumn(1)
+                            ).Column(1)
                         ]
                     )
             ]

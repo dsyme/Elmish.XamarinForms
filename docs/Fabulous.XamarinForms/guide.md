@@ -8,7 +8,7 @@ specific to the Fabulous programming model.
 
 > NOTE: A comprehensive guide to Xamarin.Forms programming is available for free
 in the [Creating Mobile Apps with Xamarin.Forms](https://docs.microsoft.com/xamarin/xamarin-forms/creating-mobile-apps-xamarin-forms/) ebook.
-The book deals with C# MMVM programming but many details are relevant here.
+The book deals with C# MVVM programming but many details are relevant here.
 
 
 Structure of an App

@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+      <TargetFramework>netstandard2.0</TargetFramework>
+      <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
     </PropertyGroup>
     <ItemGroup>
+      <Compile Include="Helper.fs" />
       <Compile Include="Models\Animal.fs" />
       <Compile Include="Data\BearData.fs" />
       <Compile Include="Data\CatData.fs" />
@@ -26,6 +27,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj" />
       <ProjectReference Include="..\..\..\..\src\Fabulous.XamarinForms.LiveUpdate\Fabulous.XamarinForms.LiveUpdate.fsproj" />
+      <PackageReference Include="Xamarin.Essentials" />
     </ItemGroup>
     <Import Project="..\..\..\..\..\Packages.targets" />
 </Project>

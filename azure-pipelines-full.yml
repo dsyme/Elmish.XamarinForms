@@ -13,9 +13,7 @@ jobs:
   - task: UseDotNet@2
     displayName: Stick with .NET Core SDK version compatible to Mono toolchain
     inputs:
-      packageType: sdk
       version: 2.2.301  # See also: https://github.com/mono/mono/issues/13537
-      installationPath: $(Agent.ToolsDirectory)/dotnet
   - script: ./build.sh Test
   - task: CopyFiles@1
     inputs:
@@ -36,6 +34,9 @@ jobs:
   pool:
     vmImage: 'macOS-10.14'
   steps:
+  - task: UseDotNet@2
+    inputs:
+      version: 2.2.105
   - script: ./azure-pipeline-osx-setup.sh
   - script: ./build.sh Test
   - task: CopyFiles@1
@@ -57,6 +58,9 @@ jobs:
   pool:
     vmImage: 'windows-2019'
   steps:
+  - task: UseDotNet@2
+    inputs:
+      version: 2.2.105
   - script: choco install gtksharp
 
   # Run Build with Test target when not merging a release branch into master

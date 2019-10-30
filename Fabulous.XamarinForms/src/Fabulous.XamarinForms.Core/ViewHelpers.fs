@@ -9,6 +9,9 @@ open System.Threading
 
 [<AutoOpen>]
 module ViewHelpers =
+    /// Checks whether two objects are reference-equal
+    let identical (x: 'T) (y:'T) = System.Object.ReferenceEquals(x, y)
+    
     /// Checks whether an underlying control can be reused given the previous and new view elements
     let rec canReuseView (prevChild:ViewElement) (newChild:ViewElement) =
         if prevChild.TargetType = newChild.TargetType && canReuseAutomationId prevChild newChild then
@@ -34,7 +37,7 @@ module ViewHelpers =
         | _, _ -> true
 
     /// Checks whether the control can be reused given the previous and the new AutomationId.
-    /// Xamarin.Forms can't change an already setted AutomationId
+    /// Xamarin.Forms can't change an already set AutomationId
     and internal canReuseAutomationId (prevChild: ViewElement) (newChild: ViewElement) =
         let prevAutomationId = prevChild.TryGetAttribute<string>("AutomationId")
         let newAutomationId = newChild.TryGetAttribute<string>("AutomationId")
@@ -53,24 +56,23 @@ module ViewHelpers =
         | ValueSome _ when prevName <> newName -> false
         | _ -> true
         
-
     /// Debounce multiple calls to a single function
     let debounce<'T> =
-        let memoizations = ConcurrentDictionary<obj, CancellationTokenSource>(HashIdentity.Structural)
+        let memoization = ConcurrentDictionary<obj, CancellationTokenSource>(HashIdentity.Structural)
         fun (timeout: int) (fn: 'T -> unit) value ->
             let key = fn.GetType()
-            match memoizations.TryGetValue(key) with
+            match memoization.TryGetValue(key) with
             | true, previousCts -> previousCts.Cancel()
             | _ -> ()
 
             let cts = new CancellationTokenSource()
-            memoizations.[key] <- cts
+            memoization.[key] <- cts
 
             Device.StartTimer(TimeSpan.FromMilliseconds(float timeout), (fun () ->
                 match cts.IsCancellationRequested with
                 | true -> ()
                 | false ->
-                    memoizations.TryRemove(key) |> ignore
+                    memoization.TryRemove(key) |> ignore
                     fn value
                 false // Do not let the timer trigger a second time
             ))

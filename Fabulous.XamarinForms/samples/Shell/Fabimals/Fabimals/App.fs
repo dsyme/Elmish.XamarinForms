@@ -5,6 +5,7 @@ open Fabulous
 open Fabulous.XamarinForms
 open Fabulous.XamarinForms.LiveUpdate
 open Xamarin.Forms
+open Xamarin.Essentials
 open System
 open Fabimals.Views
 open Fabimals.Data
@@ -54,7 +55,7 @@ module App =
     let shellRef = ViewRef<Shell>()
 
     let goToHelpWebsite () =
-        Device.OpenUri(new Uri("https://docs.microsoft.com/xamarin/xamarin-forms/app-fundamentals/shell"))
+        Fabimals.Helper.openUri("https://docs.microsoft.com/xamarin/xamarin-forms/app-fundamentals/shell")
         Cmd.none
         
     let navigateToAnimal (animal: Animal) =
@@ -128,13 +129,13 @@ module App =
             ref=shellRef,
             flyoutHeaderBehavior=FlyoutHeaderBehavior.CollapseOnScroll,
             flyoutHeader=View.ContentView(
-                heightRequest=200.,
+                height=200.,
                 content=View.Grid(
                     backgroundColor=Color.Black,
                     children=[
                         View.Image(
                             aspect=Aspect.AspectFill,
-                            source="xamarinstore.jpg",
+                            source=Image.Path "xamarinstore.jpg",
                             opacity=0.6
                         )
                         View.Label(
@@ -151,24 +152,24 @@ module App =
                 View.FlyoutItem(
                     title="Animals",
                     route="animals",
-                    icon="cat.png",
+                    icon=Image.Path "cat.png",
                     flyoutDisplayOptions=FlyoutDisplayOptions.AsMultipleItems,
                     items=[
                         View.Tab(
                             title="Domestic",
                             route="domestic",
-                            icon="paw.png",
+                            icon=Image.Path "paw.png",
                             items=[
                                 View.ShellContent(
                                     title="Cats",
                                     route="cats",
-                                    icon="cat.png",
+                                    icon=Image.Path "cat.png",
                                     content=Cats.view model.CatsPageModel (CatsPageMsg >> dispatch)
                                 )
                                 View.ShellContent(
                                     title="Dogs",
                                     route="dogs",
-                                    icon="dog.png",
+                                    icon=Image.Path "dog.png",
                                     content=Dogs.view model.DogsPageModel (DogsPageMsg >> dispatch)
                                 )
                             ]
@@ -176,19 +177,19 @@ module App =
                         View.ShellContent(
                             title="Monkeys",
                             route="monkeys",
-                            icon="monkey.png",
+                            icon=Image.Path "monkey.png",
                             content=Monkeys.view model.MonkeysPageModel (MonkeysPageMsg >> dispatch)
                         ) |> AppStyles.applyMonkeysItemStyle
                         View.ShellContent(
                             title="Elephants",
                             route="elephants",
-                            icon="elephant.png",
+                            icon=Image.Path "elephant.png",
                             content=Elephants.view model.ElephantsPageModel (ElephantsPageMsg >> dispatch)
                         ) |> AppStyles.applyElephantsItemStyle
                         View.ShellContent(
                             title="Bears",
                             route="bears",
-                            icon="bear.png",
+                            icon=Image.Path "bear.png",
                             content=Bears.view model.BearsPageModel (BearsPageMsg >> dispatch)
                         ) |> AppStyles.applyBearsItemStyle
                     ]
@@ -197,13 +198,13 @@ module App =
                 View.ShellContent(
                     title="About",
                     route="about",
-                    icon="info.png",
+                    icon=Image.Path "info.png",
                     content=About.view (AboutPageMsg >> dispatch)
                 ) |> AppStyles.applyAboutItemStyle
 
                 View.MenuItem(
                     text="Random",
-                    icon="random.png",
+                    icon=Image.Path "random.png",
                     command=(fun () ->
                         let random = Random()
                         let categories = [ Cats.data; Dogs.data; Monkeys.data; Elephants.data; Bears.data ]
@@ -214,7 +215,7 @@ module App =
                 )
                 View.MenuItem(
                     text="Help",
-                    icon="help.png",
+                    icon=Image.Path "help.png",
                     command=(fun () -> dispatch ShowHelp)
                 )
             ]
