@@ -15,5 +15,10 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Data.Adaptive">
+      <HintPath>..\..\..\FSharp.Data.Adaptive\bin\Debug\netstandard2.0\FSharp.Data.Adaptive.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="..\..\Packages.targets" />
 </Project>
