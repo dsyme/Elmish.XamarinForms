@@ -178,7 +178,10 @@ and ViewRef<'T when 'T : not struct>() =
 
 
 /// A description of a visual element
-type AdaptiveViewElement internal (targetType: Type, create: (unit -> obj), update: (AdaptiveToken * obj -> unit), attribs: AdaptiveViewAttributes) = 
+type AdaptiveViewElement internal (targetType: Type, 
+        create: (unit -> obj),
+        update: (AdaptiveToken * obj -> unit),
+        attribs: AdaptiveViewAttributes) = 
     
     static member Create<'T> (create: (unit -> 'T), update: (AdaptiveToken * 'T -> unit), attribs: AdaptiveViewAttributes) =
         AdaptiveViewElement(typeof<'T>, (create >> box), (fun (tok, target) -> update (tok, unbox target)), attribs)
