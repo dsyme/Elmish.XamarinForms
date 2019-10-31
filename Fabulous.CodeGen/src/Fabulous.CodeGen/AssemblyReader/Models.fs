@@ -40,8 +40,8 @@ module Models =
     
     /// A type extracted by the Assembly Reader
     type AssemblyType =
-        { /// The name of the type
-          Name: string
+        { /// The full name of the type
+          FullName: string
           
           /// The name of the assembly containing the type
           AssemblyName: string

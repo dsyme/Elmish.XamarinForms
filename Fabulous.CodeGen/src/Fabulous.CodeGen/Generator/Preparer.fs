@@ -40,10 +40,10 @@ module Preparer =
 
     let toCreateData (boundType: BoundType) =
         { Name = boundType.Name
-          FullName = boundType.Type
+          FullName = boundType.FullName
           TypeToInstantiate = boundType.TypeToInstantiate }
 
-    let toUpdateData (boundType: BoundType) =
+    let toUpdateData (boundType: BoundType) (buildData: BuildData) =
         let immediateEvents = boundType.Events |> Array.filter (fun e -> not e.IsInherited && e.CanBeUpdated)
         let immediateProperties = boundType.Properties |> Array.filter (fun p -> not p.IsInherited && p.CanBeUpdated)
         
@@ -88,11 +88,13 @@ module Preparer =
                                       UpdateCode = ap.UpdateCode }) }) })
         
         { Name = boundType.Name
-          FullName = boundType.Type
+          FullName = boundType.FullName
           BaseName = boundType.BaseTypeName
+          BaseFullName = boundType.BaseTypeFullName
           ImmediateMembers = immediateMembers
           Events = updateEvents
-          Properties = updateProperties }
+          Properties = updateProperties
+          BuildData = buildData }
 
     let toConstructData (boundType: BoundType) : ConstructData =
         let properties = boundType.Properties |> Array.map (fun p -> { Name = p.ShortName; InputType = p.InputType } : ConstructType)
@@ -100,13 +102,14 @@ module Preparer =
         let members = Array.concat [ properties; events ]
         
         { Name = boundType.Name
-          FullName = boundType.Type
+          FullName = boundType.FullName
           Members = members }
     
     let toBuilderData (boundType: BoundType) =
+        let buildData = toBuildData boundType
         { Build = toBuildData boundType
           Create = if boundType.CanBeInstantiated then Some (toCreateData boundType) else None
-          Update = toUpdateData boundType
+          Update = toUpdateData boundType buildData
           Construct = if boundType.CanBeInstantiated then Some (toConstructData boundType) else None }
 
     let toViewerData (boundType: BoundType) : ViewerData =
@@ -115,7 +118,7 @@ module Preparer =
         let members = Array.concat [ properties; events ]
             
         { Name = boundType.Name
-          FullName = boundType.Type
+          FullName = boundType.FullName
           ViewerName = sprintf "%sViewer" boundType.Name
           GenericConstraint = boundType.GenericConstraint
           InheritedViewerName = boundType.BaseTypeName |> Option.map (sprintf "%sViewer")
@@ -145,7 +148,7 @@ module Preparer =
             |> Array.map (fun p -> { Name = p.ShortName; InputType = p.InputType })
         
         { Name = boundType.Name
-          FullName = boundType.Type
+          FullName = boundType.FullName
           Members = members }
 
     let getViewExtensionsData (types: BoundType array) =
@@ -153,7 +156,7 @@ module Preparer =
             { LowerUniqueName = Text.toLowerPascalCase m.UniqueName
               UniqueName = m.UniqueName
               InputType = m.InputType
-              ConvToModel = m.ConvertInputToModel }
+              ConvertInputToModel = m.ConvertInputToModel }
             
         [| for typ in types do
                for e in typ.Events do

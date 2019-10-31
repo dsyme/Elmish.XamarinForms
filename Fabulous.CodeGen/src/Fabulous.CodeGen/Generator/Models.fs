@@ -67,9 +67,11 @@ module Models =
         { Name: string
           FullName: string
           BaseName: string option
+          BaseFullName: string option
           ImmediateMembers : UpdateMember array
           Events: UpdateEvent array
-          Properties: UpdateProperty array }
+          Properties: UpdateProperty array
+          BuildData: BuildData }
 
     type ConstructData =
         { Name: string
@@ -104,7 +106,7 @@ module Models =
         { LowerUniqueName: string
           UniqueName: string
           InputType: string
-          ConvToModel: string }
+          ConvertInputToModel: string }
         
     type GeneratorData =
         { Namespace: string

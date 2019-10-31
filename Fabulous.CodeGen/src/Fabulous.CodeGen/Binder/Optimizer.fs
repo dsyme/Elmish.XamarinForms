@@ -75,7 +75,7 @@ module Optimizer =
             { boundType with Properties = properties }
         
         let apply (boundModel: BoundModel) =
-            let knownTypes = boundModel.Types |> Array.map (fun t -> t.Type)
+            let knownTypes = boundModel.Types |> Array.map (fun t -> t.FullName)
             typeOptimizer (fun _ -> true) (fun typ -> [| optimizeBoundType knownTypes typ |]) boundModel
             
     /// Optimizes storing list of data for efficiency
@@ -109,7 +109,7 @@ module Optimizer =
     module OptimizeGenerics =
         let private optimizeBoundType (boundType: BoundType) =
            { boundType with
-                Type = boundType.Type.Replace("`1", "<'T>")
+                FullName = boundType.FullName.Replace("`1", "<'T>")
                 TypeToInstantiate = boundType.TypeToInstantiate.Replace("`1", "<'T>") }
         
         let apply = typeOptimizer (fun _ -> true) (fun typ -> [| optimizeBoundType typ |])

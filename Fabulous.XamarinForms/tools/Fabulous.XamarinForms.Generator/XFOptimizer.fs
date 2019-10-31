@@ -33,7 +33,7 @@ module XFOptimizer =
                   ModelType = "bool"
                   ConvertInputToModel = ""
                   ConvertModelToValue = ""
-                  UpdateCode = sprintf "ViewUpdaters.updateCommand prev%sOpt curr%sOpt (fun _target -> ()) (fun (target: %s) cmd -> target.%s <- cmd)" boundProperty.UniqueName boundProperty.UniqueName boundType.Type boundProperty.Name
+                  UpdateCode = sprintf "ViewUpdaters.updateCommand prev%sOpt curr%sOpt (fun _target -> ()) (fun (target: %s) cmd -> target.%s <- cmd)" boundProperty.UniqueName boundProperty.UniqueName boundType.FullName boundProperty.Name
                   CollectionData = None
                   IsInherited = false }
             |]
