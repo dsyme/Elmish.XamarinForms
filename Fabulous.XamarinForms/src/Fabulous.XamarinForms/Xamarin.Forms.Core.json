@@ -29,8 +29,7 @@
           "source": null,
           "name": "Created",
           "canBeUpdated": false,
-          "inputType": "obj -> unit",
-          "modelType": "obj -> unit"
+          "inputType": "obj -> unit"
         }
       ]
     },
@@ -111,7 +110,7 @@
         {
           "source": null,
           "name": "Children",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updateMenuChildren",
           "collection": {
@@ -228,7 +227,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
-          "convertInputToModel": "ViewConverters.makeEntryCellCompletedEventHandler"
+          "convertModelToValue": "ViewConverters.makeEntryCellCompletedEventHandler"
         }
       ],
       "primaryConstructorMembers": [
@@ -350,7 +349,7 @@
         {
           "source": null,
           "name": "GestureRecognizers",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "collection": {
             "elementType": "Xamarin.Forms.IGestureRecognizer"
@@ -671,7 +670,7 @@
         {
           "name": "MenuItems",
           "defaultValue": "null",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateShellContentMenuItems"
         }
       ],
@@ -696,7 +695,7 @@
         },
         {
           "source": "Items",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateShellItemItems"
         }
       ],
@@ -724,7 +723,7 @@
         },
         {
           "source": "Items",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateShellSectionItems"
         }
       ],
@@ -876,7 +875,7 @@
         {
           "source": null,
           "name": "ToolbarItems",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updatePageToolbarItems",
           "collection": {
@@ -940,7 +939,7 @@
         {
           "source": "IsPresentedChanged",
           "inputType": "bool -> unit",
-          "convertInputToModel": "ViewConverters.makeMasterDetailPageIsPresentedChangedEventHandler",
+          "convertModelToValue": "ViewConverters.makeMasterDetailPageIsPresentedChangedEventHandler",
           "relatedProperties": [
             "IsPresented"
           ]
@@ -960,7 +959,7 @@
         {
           "source": null,
           "name": "Children",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "collection": {
             "elementType": "'T"
@@ -985,8 +984,7 @@
           "source": null,
           "name": "CurrentPageChanged",
           "inputType": "int option -> unit",
-          "modelType": "System.EventHandler",
-          "convertInputToModel": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.ContentPage>",
+          "convertModelToValue": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.ContentPage>",
           "relatedProperties": [
             "CurrentPage"
           ]
@@ -1025,8 +1023,7 @@
           "source": null,
           "name": "CurrentPageChanged",
           "inputType": "int option -> unit",
-          "modelType": "System.EventHandler",
-          "convertInputToModel": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.Page>",
+          "convertModelToValue": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.Page>",
           "relatedProperties": [
             "CurrentPage"
           ]
@@ -1048,7 +1045,7 @@
         {
           "source": null,
           "name": "Pages",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updateNavigationPages",
           "collection": {
@@ -1118,7 +1115,7 @@
           "source": null,
           "name": "Items",
           "defaultValue": "null",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateShellItems",
           "collection": {
             "elementType": "Xamarin.Forms.ShellItem"
@@ -1173,7 +1170,7 @@
         {
           "source": null,
           "name": "GestureRecognizers",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "collection": {
             "elementType": "Xamarin.Forms.IGestureRecognizer"
@@ -1445,7 +1442,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
-          "convertInputToModel": "ViewConverters.makeEditorCompletedEventHandler"
+          "convertModelToValue": "ViewConverters.makeEditorCompletedEventHandler"
         },
         {
           "source": "TextChanged",
@@ -1512,7 +1509,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
-          "convertInputToModel": "ViewConverters.makeEntryCompletedEventHandler"
+          "convertModelToValue": "ViewConverters.makeEntryCompletedEventHandler"
         },
         {
           "source": "TextChanged",
@@ -1554,16 +1551,14 @@
         {
           "source": "SearchCommand",
           "inputType": "string -> unit",
-          "modelType": "string -> unit",
-          "updateCode": "(fun _ _ _ -> ())"
+          "updateCode": "(fun _ _ _ _ -> ())"
         },
         {
           "source": null,
           "name": "SearchCommandCanExecute",
           "inputType": "bool",
-          "modelType": "bool",
           "defaultValue": "true",
-          "updateCode": "ViewUpdaters.updateCommand prevSearchCommandOpt currSearchCommandOpt (fun (_target: Xamarin.Forms.SearchBar) -> _target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
+          "updateCode": "ViewUpdaters.updateCommand prevSearchCommandOpt (searchCommand |> Option.map (fun c -> c.GetValue(token))) (fun (_target: Xamarin.Forms.SearchBar) -> _target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
         },
         {
           "source": "Text"
@@ -1603,7 +1598,7 @@
         {
           "source": "ItemsSource",
           "shortName": "items",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updateItemsViewItems"
         },
@@ -1657,7 +1652,6 @@
         {
           "source": "SelectedItem",
           "inputType": "int option",
-          "modelType": "int option",
           "convertModelToValue": "ViewConverters.convertItemsViewSelectedItemIndexToObj target"
         },
         {
@@ -1708,7 +1702,7 @@
         {
           "source": null,
           "name": "Items",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updateItemsViewOfTItems<'T>"
         }
@@ -1722,16 +1716,14 @@
       "properties": [
         {
           "source": "Footer",
-          "inputType": "ViewElement",
-          "modelType": "ViewElement"
+          "inputType": "ViewElement"
         },
         {
           "source": "HasUnevenRows"
         },
         {
           "source": "Header",
-          "inputType": "ViewElement",
-          "modelType": "ViewElement"
+          "inputType": "ViewElement"
         },
         {
           "source": "HorizontalScrollBarVisibility"
@@ -1757,7 +1749,6 @@
         {
           "source": "SelectedItem",
           "inputType": "int option",
-          "modelType": "int option",
           "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
         },
         {
@@ -1777,17 +1768,17 @@
         {
           "source": "ItemAppearing",
           "inputType": "int -> unit",
-          "convertInputToModel": "ViewConverters.makeListViewItemAppearingEventHandler"
+          "convertModelToValue": "ViewConverters.makeListViewItemAppearingEventHandler"
         },
         {
           "source": "ItemDisappearing",
           "inputType": "int -> unit",
-          "convertInputToModel": "ViewConverters.makeListViewItemDisappearingEventHandler"
+          "convertModelToValue": "ViewConverters.makeListViewItemDisappearingEventHandler"
         },
         {
           "source": "ItemSelected",
           "inputType": "int option -> unit",
-          "convertInputToModel": "ViewConverters.makeListViewItemSelectedEventHandler",
+          "convertModelToValue": "ViewConverters.makeListViewItemSelectedEventHandler",
           "relatedProperties": [
             "SelectedItem"
           ]
@@ -1795,7 +1786,7 @@
         {
           "source": "ItemTapped",
           "inputType": "int -> unit",
-          "convertInputToModel": "ViewConverters.makeListViewItemTappedEventHandler"
+          "convertModelToValue": "ViewConverters.makeListViewItemTappedEventHandler"
         },
         {
           "source": "Refreshing"
@@ -1817,17 +1808,15 @@
           "source": null,
           "name": "ItemsSource",
           "shortName": "items",
-          "inputType": "(string * ViewElement * ViewElement list) list",
-          "modelType": "(string * ViewElement * ViewElement[])[]",
+          "inputType": "(string * ViewElement * ViewElement alist) alist",
           "defaultValue": "[]",
-          "convertInputToModel": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
+          "convertModelToValue": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
           "updateCode": "ViewUpdaters.updateListViewGroupedItems"
         },
         {
           "source": null,
           "name": "SelectedItem",
           "inputType": "int option",
-          "modelType": "int option",
           "defaultValue": "null",
           "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
         },
@@ -1844,9 +1833,8 @@
           "source": null,
           "name": "ItemSelected",
           "inputType": "(int * int) option -> unit",
-          "modelType": "System.EventHandler<Xamarin.Forms.SelectedItemChangedEventArgs>",
           "defaultValue": "null",
-          "convertInputToModel": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
+          "convertModelToValue": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
           "relatedProperties": [
             "SelectedItem"
           ]
@@ -1855,9 +1843,8 @@
           "source": null,
           "name": "ItemTapped",
           "inputType": "(int * int) -> unit",
-          "modelType": "System.EventHandler<Xamarin.Forms.ItemTappedEventArgs>",
           "defaultValue": "null",
-          "convertInputToModel": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
+          "convertModelToValue": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
         }
       ],
       "primaryConstructorMembers": [
@@ -1933,7 +1920,7 @@
       "properties": [
         {
           "source": "Children",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "collection": {
             "elementType": "'T"
           }
@@ -1947,7 +1934,7 @@
         {
           "source": null,
           "name": "Children",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
           "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
           "collection": {
@@ -1981,7 +1968,7 @@
           "source": null,
           "name": "Children",
           "defaultValue": "[]",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
           "collection": {
             "elementType": "Xamarin.Forms.View",
@@ -1998,7 +1985,7 @@
               {
                 "source": "Grow",
                 "inputType": "float",
-                "convertInputToModel": "single"
+                "convertModelToValue": "single"
               },
               {
                 "source": "Shrink"
@@ -2031,7 +2018,7 @@
           "source": null,
           "name": "Children",
           "defaultValue": "[]",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
           "collection": {
             "elementType": "Xamarin.Forms.View",
@@ -2082,7 +2069,7 @@
           "source": null,
           "name": "Children",
           "defaultValue": "[]",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
           "collection": {
             "elementType": "Xamarin.Forms.View",
@@ -2237,7 +2224,7 @@
         {
           "source": "SelectedIndexChanged",
           "inputType": "(int * string option) -> unit",
-          "convertInputToModel": "ViewConverters.makePickerSelectedIndexChangedEventHandler",
+          "convertModelToValue": "ViewConverters.makePickerSelectedIndexChangedEventHandler",
           "relatedProperties": [
             "SelectedIndex"
           ]
@@ -2418,7 +2405,7 @@
         {
           "source": "TimeChanged",
           "inputType": "System.TimeSpan -> unit",
-          "convertInputToModel": "ViewConverters.makeCustomTimePickerTimeChangedEventHandler"
+          "convertModelToValue": "ViewConverters.makeCustomTimePickerTimeChangedEventHandler"
         }
       ],
       "primaryConstructorMembers": [
@@ -2561,7 +2548,7 @@
         {
           "source": "ItemsSource",
           "shortName": "items",
-          "inputType": "ViewElement list",
+          "inputType": "ViewElement alist",
           "defaultValue": "null",
           "updateCode": "ViewUpdaters.updateSearchHandlerItems"
         },
@@ -2644,10 +2631,8 @@
         {
           "source": null,
           "name": "Items",
-          "inputType": "ViewElement list",
-          "modelType": "ViewElement array",
+          "inputType": "ViewElement alist",
           "defaultValue": "[]",
-          "convertInputToModel": "Array.ofList",
           "updateCode": "ViewUpdaters.updateTableSectionBaseOfTItems<'T>",
           "collection": {
             "elementType": "'T"

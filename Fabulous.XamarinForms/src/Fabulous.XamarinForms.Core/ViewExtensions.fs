@@ -4,6 +4,7 @@ namespace Fabulous.XamarinForms
 open Fabulous
 open Fabulous.XamarinForms.ViewHelpers
 open Fabulous.XamarinForms.ViewUpdaters
+open FSharp.Data.Adaptive
 open System.Collections.Generic
 
 [<AutoOpen>]
@@ -12,41 +13,51 @@ module ViewExtensions =
     type ViewElement with
 
         /// Update an event handler on a target control, given a previous and current view element description
-        member inline source.UpdateEvent(prevOpt: ViewElement voption, attribKey: AttributeKey<'T>, targetEvent: IEvent<'T,'Args>) = 
-            let prevValueOpt = match prevOpt with ValueNone -> ValueNone | ValueSome prev -> prev.TryGetAttributeKeyed<'T>(attribKey)
-            let valueOpt = source.TryGetAttributeKeyed<'T>(attribKey)
-            match prevValueOpt, valueOpt with
-            | ValueSome prevValue, ValueSome currValue when identical prevValue currValue -> ()
-            | ValueSome prevValue, ValueSome currValue -> targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(currValue)
-            | ValueNone, ValueSome currValue -> targetEvent.AddHandler(currValue)
-            | ValueSome prevValue, ValueNone -> targetEvent.RemoveHandler(prevValue)
-            | ValueNone, ValueNone -> ()
+        member inline source.EventUpdater(attribKey: AttributeKey<aval<'T>>) = 
+            let mutable prevOpt = ValueNone 
+            let valueOpt = source.TryGetAttributeKeyed<aval<'T>>(attribKey)
+            match valueOpt with 
+            | ValueNone -> (fun _ _ -> ())
+            | ValueSome v -> 
+                fun token (targetEvent: IEvent<'T,'Args>) -> 
+                    let newValue = v.GetValue(token)
+                    match prevOpt with
+                    | ValueSome prevValue when identical prevValue newValue -> ()
+                    | ValueSome prevValue -> targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newValue)
+                    | ValueNone -> targetEvent.AddHandler(newValue)
+                    prevOpt <- ValueSome newValue
 
         /// Update a primitive value on a target control, given a previous and current view element description
-        member inline source.UpdatePrimitive(prevOpt: ViewElement voption, target: 'Target, attribKey: AttributeKey<'T>, setter: 'Target -> 'T -> unit, ?defaultValue: 'T) = 
-            let prevValueOpt = match prevOpt with ValueNone -> ValueNone | ValueSome prev -> prev.TryGetAttributeKeyed<'T>(attribKey)
-            let valueOpt = source.TryGetAttributeKeyed<'T>(attribKey)
-            match prevValueOpt, valueOpt with
-            | ValueSome prevValue, ValueSome newValue when prevValue = newValue -> ()
-            | _, ValueSome newValue -> setter target newValue
-            | ValueSome _, ValueNone -> setter target (defaultArg defaultValue Unchecked.defaultof<_>)
-            | ValueNone, ValueNone -> ()
+        member inline source.PrimitiveUpdater(attribKey: AttributeKey<aval<'T>>, setter: 'Target -> 'T -> unit (* , ?defaultValue: 'T *) ) = 
+            let mutable prevOpt = ValueNone 
+            let valueOpt = source.TryGetAttributeKeyed<_>(attribKey)
+            match valueOpt with 
+            | ValueNone -> (fun _ _ -> ())
+            | ValueSome v -> 
+                fun token target -> 
+                    let newValue = v.GetValue(token)
+                    match prevOpt with
+                    | ValueSome prevValue when prevValue = newValue -> ()
+                    | _ -> setter target newValue
+                    // TODO: disappearing attributes
+                    // setter target (defaultArg defaultValue Unchecked.defaultof<_>)
+                    prevOpt <- ValueSome newValue
 
         /// Recursively update a nested view element on a target control, given a previous and current view element description
-        member inline source.UpdateElement(prevOpt: ViewElement voption, target: 'Target, attribKey: AttributeKey<ViewElement>, getter: 'Target -> 'T, setter: 'Target -> 'T -> unit) = 
-            let prevValueOpt = match prevOpt with ValueNone -> ValueNone | ValueSome prev -> prev.TryGetAttributeKeyed<ViewElement>(attribKey)
-            let valueOpt = source.TryGetAttributeKeyed<ViewElement>(attribKey)
-            match prevValueOpt, valueOpt with
-            | ValueSome prevChild, ValueSome newChild when identical prevChild newChild -> ()
-            | ValueSome prevChild, ValueSome newChild when ViewHelpers.canReuseView prevChild newChild ->
-                newChild.UpdateIncremental(prevChild, getter target)
-            | _, ValueSome newChild -> setter target (newChild.Create() :?> 'T)
-            | ValueSome _, ValueNone -> setter target null
-            | ValueNone, ValueNone -> ()
+        member inline source.ElementUpdater(target: 'Target, attribKey: AttributeKey<ViewElement>, getter: 'Target -> 'T, setter: 'Target -> 'T -> unit) = 
+            let mutable created = false
+            let valueOpt = source.TryGetAttributeKeyed<_>(attribKey)
+            match valueOpt with 
+            | ValueNone -> (fun _ _ -> ())
+            | ValueSome v -> 
+                fun token target ->
+                    if created then 
+                        v.Update(token, getter target)
+                    else  
+                        setter target (v.Create(token) :?> 'T)
 
         /// Recursively update a collection of nested view element on a target control, given a previous and current view element description
-        member inline source.UpdateElementCollection(prevOpt: ViewElement voption, attribKey: AttributeKey<seq<ViewElement>>, targetCollection: IList<'T>)  =
-            let prevCollOpt = match prevOpt with ValueNone -> ValueNone | ValueSome prev -> prev.TryGetAttributeKeyed<_>(attribKey)
-            let collOpt = source.TryGetAttributeKeyed<_>(attribKey)
-            updateCollectionGeneric (ValueOption.map Seq.toArray prevCollOpt) (ValueOption.map Seq.toArray collOpt) targetCollection (fun x -> x.Create() :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        member inline source.ElementCollectionUpdater(attribKey: AttributeKey<ViewElement alist>)  =
+            let coll = source.GetAttributeKeyed<_>(attribKey)
+            updateCollectionGeneric coll (fun token x -> x.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
 

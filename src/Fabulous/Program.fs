@@ -3,6 +3,7 @@ namespace Fabulous
 
 open System
 open System.Diagnostics
+open FSharp.Data.Adaptive
 
 /// Representation of the host framework with access to the root view to update (e.g. Xamarin.Forms.Application)
 type IHost =
@@ -53,7 +54,7 @@ type ProgramRunner<'arg, 'model, 'msg>(host: IHost, program: Program<'arg, 'mode
     // If the view is dynamic, create the initial page
     let viewInfo = 
         let newRootElement = program.view initialModel dispatch
-        let rootView = newRootElement.Create()
+        let rootView = newRootElement.Create(AdaptiveToken.Top)
         host.SetRootView(rootView)
         newRootElement
 
@@ -88,9 +89,9 @@ type ProgramRunner<'arg, 'model, 'msg>(host: IHost, program: Program<'arg, 'mode
 
             if program.canReuseView prevPageElement newPageElement then
                 let rootView = host.GetRootView()
-                newPageElement.UpdateIncremental (prevPageElement, rootView)
+                newPageElement.Update (AdaptiveToken.Top, rootView)
             else
-                let pageObj = newPageElement.Create()
+                let pageObj = newPageElement.Create(AdaptiveToken.Top)
                 host.SetRootView(pageObj)
 
             lastViewDataOpt <- Some newPageElement

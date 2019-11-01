@@ -70,7 +70,7 @@ module SkiaSharpExtension =
                 if invalidate = Some true then target.InvalidateSurface()
 
             // The element
-            ViewElement.Create(create, update, attribs)
+            ViewElement.Create(create, update, attribs.Close())
 
 #if DEBUG 
     type State = 

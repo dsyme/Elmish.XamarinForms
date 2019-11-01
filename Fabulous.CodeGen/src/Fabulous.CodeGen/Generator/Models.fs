@@ -56,6 +56,7 @@ module Models =
     type UpdateProperty =
         { Name: string
           UniqueName: string
+          ShortName: string
           DefaultValue: string
           OriginalType: string
           ModelType: string

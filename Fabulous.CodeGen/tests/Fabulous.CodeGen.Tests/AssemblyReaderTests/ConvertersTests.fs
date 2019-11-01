@@ -35,8 +35,8 @@ module ConvertersTests =
 
     [<TestCase("System.Collections.IList")>]
     [<TestCase("System.Collections.Generic.IList<System.Object>")>]
-    let ``convertTypeName should convert IList/IList<System.Object> to obj list``(typeName) =
-        Converters.convertTypeName typeName |> should equal "obj list"
+    let ``convertTypeName should convert IList/IList<System.Object> to obj alist``(typeName) =
+        Converters.convertTypeName typeName |> should equal "obj alist"
 
     [<Test>]
     let ``convertTypeName should not convert an unknown type``() =

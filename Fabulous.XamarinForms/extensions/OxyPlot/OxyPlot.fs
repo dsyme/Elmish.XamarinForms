@@ -63,7 +63,7 @@ module OxyPlotExtension =
                 source.UpdatePrimitive(prevOpt, target, ControllerAttribKey, (fun target v -> target.Controller <- v))
 
             // The element
-            ViewElement.Create(create, update, attribs)
+            ViewElement.Create(create, update, attribs.Close())
 
 #if DEBUG 
 

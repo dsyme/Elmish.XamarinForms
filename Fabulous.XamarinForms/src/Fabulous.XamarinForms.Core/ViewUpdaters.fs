@@ -6,70 +6,123 @@ open System.Collections.ObjectModel
 open System.Collections.Generic
 open Xamarin.Forms
 open Xamarin.Forms.StyleSheets
+open FSharp.Data.Adaptive
 open System.Windows.Input
+
 
 [<AutoOpen>]
 module ViewUpdaters =
     /// Update a control given the previous and new view elements
-    let inline updateChild (prevChild:ViewElement) (newChild:ViewElement) targetChild = 
-        newChild.UpdateIncremental(prevChild, targetChild)
+    let inline updateChild (token: AdaptiveToken) (newChild: ViewElement) targetChild = 
+        newChild.Update(token, targetChild)
 
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
     /// a reduced number of clear/add/remove/insert operations
     let updateCollectionGeneric
-           (prevCollOpt: 'T[] voption) 
-           (collOpt: 'T[] voption) 
-           (targetColl: IList<'TargetT>) 
-           (create: 'T -> 'TargetT)
-           (attach: 'T voption -> 'T -> 'TargetT -> unit) // adjust attached properties
-           (canReuse : 'T -> 'T -> bool) // Used to check if reuse is possible
-           (update: 'T -> 'T -> 'TargetT -> unit) // Incremental element-wise update, only if element reuse is allowed
+           (coll: 'T alist) 
+           (create: AdaptiveToken -> 'T -> 'TargetT)  // create a target element in the collection
+           (attach: AdaptiveToken -> 'T -> 'TargetT -> unit) // adjust attached properties
+           (canReuse: 'T -> 'T -> bool) // Used to check if reuse is possible
+           (update: AdaptiveToken -> 'T -> 'TargetT -> unit) // Incremental element-wise update, only if element reuse is allowed
         =
-        match prevCollOpt, collOpt with 
-        | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
-        | _, ValueNone -> targetColl.Clear()
-        | _, ValueSome coll ->
-            if (coll = null || coll.Length = 0) then
-                targetColl.Clear()
-            else
-                // Remove the excess targetColl
-                while (targetColl.Count > coll.Length) do
-                    targetColl.RemoveAt (targetColl.Count - 1)
+      let mutable children : IndexList<(AdaptiveToken -> unit)>  = IndexList.empty
+      let mutable subNodes : IndexList<'T>  = IndexList.empty
+      let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
+      let reader = coll.GetReader()
+      (fun token (targetColl: IList<'TargetT>) -> 
+        let changes = reader.GetChanges(token) 
+        for (idx, op) in IndexListDelta.toSeq changes do
+            match op with
+            | Set node ->
+                let insert (element : 'T) = 
+                    let (_, s, r) = IndexList.neighbours idx subNodes
 
-                // Count the existing targetColl
-                // Unused variable n' introduced as a temporary workaround for https://github.com/fsprojects/Fabulous/issues/343
-                let _ = targetColl.Count
-                let n = targetColl.Count
+                    match s with
+                    | Some(si, _) ->
+                        match IndexList.tryGetPosition si subNodes with
+                        | Some i -> targetColl.[i] <- unbox element
+                        | None -> failwith "inconsistent"
+                    | None ->
+                        match r with
+                        | Some (ri, _) ->
+                            match IndexList.tryGetPosition ri children with
+                            | Some i -> targetColl.Insert(i, unbox element)
+                            | None -> failwith "inconsistent"
+                        | None ->
+                            // no right => last
+                            targetColl.Add(unbox element)
 
-                // Adjust the existing targetColl and create the new targetColl
-                for i in 0 .. coll.Length-1 do
-                    let newChild = coll.[i]
-                    let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < n -> ValueSome coll.[i] | _ -> ValueNone
-                    let prevChildOpt, targetChild = 
-                        if (match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (identical prevChild newChild)) then
-                            let mustCreate = (i >= n || match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (canReuse prevChild newChild))
-                            if mustCreate then
-                                let targetChild = create newChild
-                                if i >= n then
-                                    targetColl.Insert(i, targetChild)
-                                else
-                                    targetColl.[i] <- targetChild
-                                ValueNone, targetChild
+                    subNodes <- IndexList.set idx element subNodes
+                    { new System.IDisposable with
+                        member x.Dispose() =   
+                            match IndexList.tryGetPosition idx subNodes with
+                            | Some i -> 
+                                targetColl.RemoveAt i
+                                subNodes <- IndexList.remove idx subNodes
+                            | None -> 
+                                ()
+                                
+                    }
+
+                let u = (fun _ -> ()) //NodeUpdater(node, insert)
+                children <- IndexList.set idx u children
+                dirtyInner.Add u |> ignore
+
+            | Remove ->
+                match IndexList.tryRemove idx children with
+                | Some (c, rest) ->
+                    dirtyInner.Remove c |> ignore
+                    //c.Destroy()
+                    children <- rest
+                | None ->
+                    ()
+        )
+(*
+ for (idx, change) in changes.ToList() do
+           IndexList.tryGetPosition idx
+        idx. IndexListDelta.
+        if (coll = null || coll.Length = 0) then
+            targetColl.Clear()
+        else
+            // Remove the excess targetColl
+            while (targetColl.Count > coll.Length) do
+                targetColl.RemoveAt (targetColl.Count - 1)
+
+            // Count the existing targetColl
+            // Unused variable n' introduced as a temporary workaround for https://github.com/fsprojects/Fabulous/issues/343
+            let _ = targetColl.Count
+            let n = targetColl.Count
+
+            // Adjust the existing targetColl and create the new targetColl
+            for i in 0 .. coll.Length-1 do
+                let newChild = coll.[i]
+                let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < n -> ValueSome coll.[i] | _ -> ValueNone
+                let prevChildOpt, targetChild = 
+                    if (match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (identical prevChild newChild)) then
+                        let mustCreate = (i >= n || match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (canReuse prevChild newChild))
+                        if mustCreate then
+                            let targetChild = create newChild
+                            if i >= n then
+                                targetColl.Insert(i, targetChild)
                             else
-                                let targetChild = targetColl.[i]
-                                update prevChildOpt.Value newChild targetChild
-                                prevChildOpt, targetChild
+                                targetColl.[i] <- targetChild
+                            ValueNone, targetChild
                         else
-                            prevChildOpt, targetColl.[i]
-                    attach prevChildOpt newChild targetChild
-                    
+                            let targetChild = targetColl.[i]
+                            update prevChildOpt.Value newChild targetChild
+                            prevChildOpt, targetChild
+                    else
+                        prevChildOpt, targetColl.[i]
+                attach prevChildOpt newChild targetChild
+*)
+
     /// Update the attached properties for each item in an already updated collection
     let updateAttachedPropertiesForCollection
            (prevCollOpt: 'T[] voption)
-           (collOpt: 'T[] voption)
+           (coll: 'T[] voption)
            (targetColl: IList<'TargetT>)
            (attach: 'T voption -> 'T -> 'TargetT -> unit) =
-        match collOpt with
+        match coll with
         | ValueNone -> ()
         | ValueSome coll when coll = null || coll.Length = 0 -> ()
         | ValueSome coll ->
@@ -78,81 +131,93 @@ module ViewUpdaters =
                 let newChild = coll.[i]
                 let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < coll.Length -> ValueSome coll.[i] | _ -> ValueNone
                 attach prevChildOpt newChild targetChild
-                
+
     /// Update the attached properties for each item in Layout<T>.Children
-    let updateAttachedPropertiesForLayoutOfT prevCollOpt collOpt (target: Xamarin.Forms.Layout<'T>) attach =
-        updateAttachedPropertiesForCollection prevCollOpt collOpt target.Children attach
+    let updateAttachedPropertiesForLayoutOfT prevCollOpt coll (target: Xamarin.Forms.Layout<'T>) attach =
+        updateAttachedPropertiesForCollection prevCollOpt coll target.Children attach
                     
     /// Update the items in a ItemsView control, given previous and current view elements
-    let updateItemsViewItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ItemsView) = 
-        let targetColl = 
-            match target.ItemsSource with 
-            | :? ObservableCollection<ViewElementHolder> as oc -> oc
-            | _ -> 
-                let oc = ObservableCollection<ViewElementHolder>()
-                target.ItemsSource <- oc
-                oc
-        updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr holder -> holder.ViewElement <- curr)
+    let updateItemsViewItems (coll: ViewElement alist) = 
+        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        fun token (target: Xamarin.Forms.ItemsView) ->
+            let targetColl = 
+                match target.ItemsSource with 
+                | :? ObservableCollection<ViewElementHolder> as oc -> oc
+                | _ -> 
+                    let oc = ObservableCollection<ViewElementHolder>()
+                    target.ItemsSource <- oc
+                    oc
+            valueUpdater token targetColl
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
-    let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ItemsView<'T>) = 
-        let targetColl = 
-            match target.ItemsSource with 
-            | :? ObservableCollection<ViewElementHolder> as oc -> oc
-            | _ -> 
-                let oc = ObservableCollection<ViewElementHolder>()
-                target.ItemsSource <- oc
-                oc
-        updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr holder -> holder.ViewElement <- curr)
+    let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
+        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        fun token (target: Xamarin.Forms.ItemsView<'T>) ->
+            let targetColl = 
+                match target.ItemsSource with 
+                | :? ObservableCollection<ViewElementHolder> as oc -> oc
+                | _ -> 
+                    let oc = ObservableCollection<ViewElementHolder>()
+                    target.ItemsSource <- oc
+                    oc
+            valueUpdater token targetColl
         
     /// Update the items in a SearchHandler control, given previous and current view elements
-    let updateSearchHandlerItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.SearchHandler) = 
-        let targetColl = 
-            match target.ItemsSource with 
-            | :? ObservableCollection<ViewElementHolder> as oc -> oc
-            | _ -> 
-                let oc = ObservableCollection<ViewElementHolder>()
-                target.ItemsSource <- oc
-                oc
-        updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr holder -> holder.ViewElement <- curr)
+    let updateSearchHandlerItems (coll: ViewElement alist) = 
+        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        fun token (target: Xamarin.Forms.SearchHandler) ->
+            let targetColl = 
+                match target.ItemsSource with 
+                | :? ObservableCollection<ViewElementHolder> as oc -> oc
+                | _ -> 
+                    let oc = ObservableCollection<ViewElementHolder>()
+                    target.ItemsSource <- oc
+                    oc
+            valueUpdater token targetColl
         
-    let private updateViewElementHolderGroup (_prevShortName: string, _prevKey, prevColl: ViewElement[]) (currShortName: string, currKey, currColl: ViewElement[]) (target: ViewElementHolderGroup) =
-        target.ShortName <- currShortName
-        target.ViewElement <- currKey
-        updateCollectionGeneric (ValueSome prevColl) (ValueSome currColl) target ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr target -> target.ViewElement <- curr) 
+    let private updateViewElementHolderGroup (currShortName: string, currKey, currColl: ViewElement alist) =
+        let valueUpdater = updateCollectionGeneric currColl (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr target -> target.ViewElement <- curr) 
+        fun token (target: ViewElementHolderGroup) ->
+            target.ShortName <- currShortName
+            target.ViewElement <- currKey
+            valueUpdater token target
 
+(*
     /// Update the items in a GroupedListView control, given previous and current view elements
-    let updateListViewGroupedItems (prevCollOpt: (string * ViewElement * ViewElement[])[] voption) (collOpt: (string * ViewElement * ViewElement[])[] voption) (target: Xamarin.Forms.ListView) = 
-        let targetColl = 
-            match target.ItemsSource with 
-            | :? ObservableCollection<ViewElementHolderGroup> as oc -> oc
-            | _ -> 
-                let oc = ObservableCollection<ViewElementHolderGroup>()
-                target.ItemsSource <- oc
-                oc
+    let updateListViewGroupedItems (coll: (string * ViewElement * ViewElement alist) alist) (target: Xamarin.Forms.ListView) = 
+        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolderGroup(elem)) (fun _ _ _ -> ()) (fun (_, prevKey, _) (_, currKey, _) -> ViewHelpers.canReuseView prevKey currKey) updateViewElementHolderGroup
+        fun token (target: Xamarin.Forms.ListView) ->
+            let targetColl = 
+                match target.ItemsSource with 
+                | :? ObservableCollection<ViewElementHolderGroup> as oc -> oc
+                | _ -> 
+                    let oc = ObservableCollection<ViewElementHolderGroup>()
+                    target.ItemsSource <- oc
+                    oc
+            valueUpdater token targetColl
                 
-        updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolderGroup (fun _ _ _ -> ()) (fun (_, prevKey, _) (_, currKey, _) -> ViewHelpers.canReuseView prevKey currKey) updateViewElementHolderGroup
 
     /// Update the ShowJumpList property of a GroupedListView control, given previous and current view elements
-    let updateListViewGroupedShowJumpList (prevOpt: bool voption) (currOpt: bool voption) (target: Xamarin.Forms.ListView) =
+    let updateListViewGroupedShowJumpList token (prevOpt: bool voption) (currOpt: bool voption) (target: Xamarin.Forms.ListView) =
         let updateTarget enableJumpList = target.GroupShortNameBinding <- (if enableJumpList then new Binding("ShortName") else null)
 
         match (prevOpt, currOpt) with
         | ValueNone, ValueSome curr -> updateTarget curr
         | ValueSome prev, ValueSome curr when prev <> curr -> updateTarget curr
-        | ValueSome _, ValueNone -> target.GroupShortNameBinding <- null
+        | ValueSome _ -> target.GroupShortNameBinding <- null
         | _, _ -> ()
+*)
 
     /// Update the items of a TableSectionBase<'T> control, given previous and current view elements
-    let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.TableSectionBase<'T>) _ =
-        let create (desc: ViewElement) =
-            desc.Create() :?> 'T
-        
-        updateCollectionGeneric prevCollOpt collOpt target create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+    let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) _attach =
+        let valueUpdater = updateCollectionGeneric coll (fun token desc -> desc.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        fun token (target: Xamarin.Forms.TableSectionBase<'T>) ->
+            valueUpdater token target
 
+        (*
     /// Update the resources of a control, given previous and current view elements describing the resources
-    let updateResources (prevCollOpt: (string * obj) array voption) (collOpt: (string * obj) array voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, collOpt with 
+    let updateResources (prevCollOpt: (string * obj)[] voption) (coll: (string * obj)[] voption) (target: Xamarin.Forms.VisualElement) = 
+        match prevCollOpt, coll with 
         | ValueNone, ValueNone -> ()
         | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
         | _, ValueNone -> target.Resources.Clear()
@@ -183,8 +248,8 @@ module ViewUpdaters =
     /// Update the style sheets of a control, given previous and current view elements describing them
     // Note, style sheets can't be removed
     // Note, style sheets are compared by object identity
-    let updateStyleSheets (prevCollOpt: StyleSheet array voption) (collOpt: StyleSheet array voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, collOpt with 
+    let updateStyleSheets token (prevCollOpt: StyleSheet[] voption) (coll: StyleSheet[] voption) (target: Xamarin.Forms.VisualElement) = 
+        match prevCollOpt, coll with 
         | ValueNone, ValueNone -> ()
         | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
         | _, ValueNone -> target.Resources.Clear()
@@ -217,8 +282,8 @@ module ViewUpdaters =
     /// Update the styles of a control, given previous and current view elements describing them
     // Note, styles can't be removed
     // Note, styles are compared by object identity
-    let updateStyles (prevCollOpt: Style array voption) (collOpt: Style array voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, collOpt with 
+    let updateStyles token (prevCollOpt: Style[] voption) (coll: Style[] voption) (target: Xamarin.Forms.VisualElement) = 
+        match prevCollOpt, coll with 
         | ValueNone, ValueNone -> ()
         | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
         | _, ValueNone -> target.Resources.Clear()
@@ -247,14 +312,12 @@ module ViewUpdaters =
                         | None -> 
                             eprintfn "**** WARNING: styles may not be removed, and are compared by object identity. They should be created independently of your update or view functions ****"
                         | Some _ -> ()
-
+                        *)
     /// Incremental NavigationPage maintenance: push/pop the right pages
-    let updateNavigationPages (prevCollOpt: ViewElement[] voption)  (collOpt: ViewElement[] voption) (target: NavigationPage) attach =
-        match prevCollOpt, collOpt with 
-        | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
-        | _, ValueNone -> failwith "Error while updating NavigationPage pages: the pages collection should never be empty for a NavigationPage"
-        | _, ValueSome coll ->
-            let create (desc: ViewElement) = (desc.Create() :?> Page)
+    let updateNavigationPages (coll: ViewElement alist) (target: NavigationPage) _attach =
+       (fun token -> ())
+       (*
+            let create token (desc: ViewElement) = (desc.Create(token ) :?> Page)
             if (coll = null || coll.Length = 0) then
                 failwith "Error while updating NavigationPage pages: the pages collection should never be empty for a NavigationPage"
             else
@@ -292,19 +355,37 @@ module ViewUpdaters =
                             else
                                 printfn "Adjust page number %d" i
                                 let targetChild = target.Pages |> Seq.item i
-                                updateChild prevChildOpt.Value newChild targetChild
+                                updateChild token prevChildOpt.Value newChild targetChild
                                 prevChildOpt, targetChild
                         else
                             //printfn "Skipping child %d" i
                             let targetChild = target.Pages |> Seq.item i
                             prevChildOpt, targetChild
                     attach prevChildOpt newChild targetChild
+                    *)
+
+
+    /// Update a value if it has changed
+    let valueUpdater (value: aval<_>) f = 
+        let mutable prevOpt = ValueNone
+        (fun token target ->
+            let curr = value.GetValue(token)
+            f target prevOpt curr
+            prevOpt <- ValueSome curr)
+
+    /// Update a ViewELement
+    let creationUpdater f = 
+        let mutable created = false
+        (fun token target ->
+            f token target created
+            created <- true)
 
     /// Update the OnSizeAllocated callback of a control, given previous and current values
-    let updateOnSizeAllocated prevValueOpt valueOpt (target: obj) = 
-        let target = (target :?> CustomContentPage)
-        match prevValueOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.RemoveHandler(f)
-        match valueOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.AddHandler(f)
+    let updateOnSizeAllocated (value: aval<_>) = 
+        valueUpdater value (fun (target: obj) prevOpt curr ->
+            let target = (target :?> CustomContentPage)
+            match prevOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.RemoveHandler(f)
+            target.SizeAllocated.AddHandler(curr))
         
     /// Converts an F# function to a Xamarin.Forms ICommand
     let makeCommand f =
@@ -325,73 +406,83 @@ module ViewUpdaters =
             member __.Execute _ = f() }
 
     /// Update the Command and CanExecute properties of a control, given previous and current values
-    let inline updateCommand prevCommandValueOpt commandValueOpt argTransform setter  prevCanExecuteValueOpt canExecuteValueOpt target = 
-        match prevCommandValueOpt, prevCanExecuteValueOpt, commandValueOpt, canExecuteValueOpt with 
-        | ValueNone, ValueNone, ValueNone, ValueNone -> ()
-        | ValueSome prevf, ValueNone, ValueSome f, ValueNone when identical prevf f -> ()
-        | ValueSome prevf, ValueSome prevx, ValueSome f, ValueSome x when identical prevf f && prevx = x -> ()
-        | _, _, ValueNone, _ -> setter target null
-        | _, _, ValueSome f, ValueNone -> setter target (makeCommand (fun () -> f (argTransform target)))
-        | _, _, ValueSome f, ValueSome k -> setter target (makeCommandCanExecute (fun () -> f (argTransform target)) k)
+    let inline updateCommand (canExecute: aval<bool> option) argTransform setter (command: aval<_>) =
+        match canExecute with 
+        | None -> 
+            let mutable prevCommandValueOpt = ValueNone
+            fun token (target: 'TTarget) -> 
+                let commandValue = command.GetValue(token)
+                match prevCommandValueOpt with 
+                | ValueSome prevf when identical prevf commandValue -> ()
+                | _ -> setter target (makeCommand (fun () -> commandValue (argTransform target)))
+                prevCommandValueOpt <- ValueSome commandValue
+        | Some canExecute -> 
+            let mutable prevCommandValueOpt = ValueNone
+            let mutable prevCanExecuteValueOpt = ValueNone
+            fun token target -> 
+                let commandValue = command.GetValue(token)
+                let canExecuteValue = canExecute.GetValue(token)
+                match prevCommandValueOpt, prevCanExecuteValueOpt with 
+                | ValueSome prevf, ValueSome prevx when identical prevf commandValue && prevx = canExecuteValue -> ()
+                | ValueSome prevf, ValueNone when identical prevf commandValue -> ()
+                | _ -> setter target (makeCommandCanExecute (fun () -> commandValue (argTransform target)) canExecuteValue)
+                prevCommandValueOpt <- ValueSome commandValue
+                prevCanExecuteValueOpt <- ValueSome canExecuteValue
 
     /// Update the CurrentPage of a control, given previous and current values
-    let updateMultiPageOfTCurrentPage<'a when 'a :> Xamarin.Forms.Page> prevValueOpt valueOpt (target: Xamarin.Forms.MultiPage<'a>) =
-        match prevValueOpt, valueOpt with
-        | ValueNone, ValueNone -> ()
-        | ValueSome prev, ValueSome curr when prev = curr -> ()
-        | ValueSome _, ValueNone -> target.CurrentPage <- Unchecked.defaultof<'a>
-        | _, ValueSome curr -> target.CurrentPage <- target.Children.[curr]
+    let updateMultiPageOfTCurrentPage<'a when 'a :> Xamarin.Forms.Page> (value: aval<_>) = 
+        valueUpdater value (fun (target: Xamarin.Forms.MultiPage<'a>) prevOpt curr ->
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> target.CurrentPage <- target.Children.[curr])
 
     /// Update the Minium and Maximum values of a slider, given previous and current values
-    let updateSliderMinimumMaximum prevValueOpt valueOpt (target: obj) =
-        let control = target :?> Xamarin.Forms.Slider
-        let defaultValue = (0.0, 1.0)
-        let updateFunc (_, prevMaximum) (newMinimum, newMaximum) =
-            if newMinimum > prevMaximum then
-                control.Maximum <- newMaximum
-                control.Minimum <- newMinimum
-            else
-                control.Minimum <- newMinimum
-                control.Maximum <- newMaximum
+    let updateSliderMinimumMaximum (value: aval<_>) =
+        valueUpdater value (fun (target: obj) prevOpt curr -> 
+            let control = target :?> Xamarin.Forms.Slider
+            let defaultValue = (0.0, 1.0)
+            let updateFunc (_, prevMaximum) (newMinimum, newMaximum) =
+                if newMinimum > prevMaximum then
+                    control.Maximum <- newMaximum
+                    control.Minimum <- newMinimum
+                else
+                    control.Minimum <- newMinimum
+                    control.Maximum <- newMaximum
 
-        match prevValueOpt, valueOpt with
-        | ValueNone, ValueNone -> ()
-        | ValueSome prev, ValueSome curr when prev = curr -> ()
-        | ValueSome prev, ValueSome curr -> updateFunc prev curr
-        | ValueSome prev, ValueNone -> updateFunc prev defaultValue
-        | ValueNone, ValueSome curr -> updateFunc defaultValue curr
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | ValueSome prev -> updateFunc prev curr
+            | ValueNone -> updateFunc defaultValue curr)
 
     /// Update the Minimum and Maximum values of a stepper, given previous and current values
-    let updateStepperMinimumMaximum prevValueOpt valueOpt (target: obj) =
-        let control = target :?> Xamarin.Forms.Stepper
-        let defaultValue = (0.0, 1.0)
-        let updateFunc (_, prevMaximum) (newMinimum, newMaximum) =
-            if newMinimum > prevMaximum then
-                control.Maximum <- newMaximum
-                control.Minimum <- newMinimum
-            else
-                control.Minimum <- newMinimum
-                control.Maximum <- newMaximum
+    let updateStepperMinimumMaximum (value: aval<_>) =
+        valueUpdater value (fun (target: obj) prevOpt curr ->
+            let control = target :?> Xamarin.Forms.Stepper
+            let defaultValue = (0.0, 1.0)
+            let updateFunc (_, prevMaximum) (newMinimum, newMaximum) =
+                if newMinimum > prevMaximum then
+                    control.Maximum <- newMaximum
+                    control.Minimum <- newMinimum
+                else
+                    control.Minimum <- newMinimum
+                    control.Maximum <- newMaximum
 
-        match prevValueOpt, valueOpt with
-        | ValueNone, ValueNone -> ()
-        | ValueSome prev, ValueSome curr when prev = curr -> ()
-        | ValueSome prev, ValueSome curr -> updateFunc prev curr
-        | ValueSome prev, ValueNone -> updateFunc prev defaultValue
-        | ValueNone, ValueSome curr -> updateFunc defaultValue curr
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | ValueSome prev -> updateFunc prev curr
+            | ValueNone -> updateFunc defaultValue curr)
 
     /// Update the AcceleratorProperty of a MenuItem, given previous and current Accelerator
-    let updateMenuItemAccelerator prevValue currValue (target: Xamarin.Forms.MenuItem) =
-        match prevValue, currValue with
-        | ValueNone, ValueNone -> ()
-        | ValueSome prevVal, ValueSome newVal when prevVal = newVal -> ()
-        | _, ValueNone -> Xamarin.Forms.MenuItem.SetAccelerator(target, null)
-        | _, ValueSome newVal -> Xamarin.Forms.MenuItem.SetAccelerator(target, Xamarin.Forms.Accelerator.FromString newVal)
+    let updateMenuItemAccelerator (value: aval<_>) =
+        valueUpdater value (fun (target: Xamarin.Forms.MenuItem) prevOpt curr ->
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Xamarin.Forms.MenuItem.SetAccelerator(target, Xamarin.Forms.Accelerator.FromString curr))
 
     /// Update the items of a Shell, given previous and current view elements
-    let updateShellItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.Shell) _ =
-        let create (desc: ViewElement) =
-            match desc.Create() with
+    let updateShellItems (coll: ViewElement alist) _attach =
+        let create token (desc: ViewElement) =
+            match desc.Create(token) with
             | :? ShellContent as shellContent -> ShellItem.op_Implicit shellContent
             | :? TemplatedPage as templatedPage -> ShellItem.op_Implicit templatedPage
             | :? ShellSection as shellSection -> ShellItem.op_Implicit shellSection
@@ -399,7 +490,7 @@ module ViewUpdaters =
             | :? ShellItem as shellItem -> shellItem
             | child -> failwithf "%s is not compatible with the type ShellItem" (child.GetType().Name)
 
-        let update prevViewElement (currViewElement: ViewElement) (target: ShellItem) =
+        let update token (currViewElement: ViewElement) (target: ShellItem) =
             let realTarget =
                 match currViewElement.TargetType with
                 | t when t = typeof<ShellContent> -> target.Items.[0].Items.[0] :> Element
@@ -407,255 +498,281 @@ module ViewUpdaters =
                 | t when t = typeof<ShellSection> -> target.Items.[0] :> Element
                 | t when t = typeof<MenuItem> -> target.GetType().GetProperty("MenuItem").GetValue(target) :?> Element // MenuShellItem is marked as internal
                 | _ -> target :> Element
-            updateChild prevViewElement currViewElement realTarget
+            updateChild token currViewElement realTarget
 
-        updateCollectionGeneric prevCollOpt collOpt target.Items create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        fun token (target: Xamarin.Forms.Shell) ->
+            valueUpdater token target.Items 
         
     /// Update the menu items of a ShellContent, given previous and current view elements
-    let updateShellContentMenuItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ShellContent) =
-        let create (desc: ViewElement) =
-            desc.Create() :?> Xamarin.Forms.MenuItem
+    let updateShellContentMenuItems (coll: ViewElement alist) =
+        let create token (desc: ViewElement) =
+            desc.Create(token) :?> Xamarin.Forms.MenuItem
 
-        updateCollectionGeneric prevCollOpt collOpt target.MenuItems create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        fun token (target: Xamarin.Forms.ShellContent) ->
+            valueUpdater token target.MenuItems 
 
     /// Update the items of a ShellItem, given previous and current view elements
-    let updateShellItemItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ShellItem) _ =
-        let create (desc: ViewElement) =
-            match desc.Create() with
+    let updateShellItemItems (coll: ViewElement alist) _attach =
+        let create token (desc: ViewElement) =
+            match desc.Create(token) with
             | :? ShellContent as shellContent -> ShellSection.op_Implicit shellContent
             | :? TemplatedPage as templatedPage -> ShellSection.op_Implicit templatedPage
             | :? ShellSection as shellSection -> shellSection
             | child -> failwithf "%s is not compatible with the type ShellSection" (child.GetType().Name)
 
-        let update prevViewElement (currViewElement: ViewElement) (target: ShellSection) =
+        let update token (currViewElement: ViewElement) (target: ShellSection) =
             let realTarget =
                 match currViewElement.TargetType with
                 | t when t = typeof<ShellContent> -> target.Items.[0] :> BaseShellItem
                 | t when t = typeof<TemplatedPage> -> target.Items.[0] :> BaseShellItem
                 | _ -> target :> BaseShellItem
-            updateChild prevViewElement currViewElement realTarget
+            updateChild token currViewElement realTarget
 
-        updateCollectionGeneric prevCollOpt collOpt target.Items create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        fun token (target: Xamarin.Forms.ShellItem) ->
+            valueUpdater token target.Items
 
     /// Update the items of a ShellSection, given previous and current view elements
-    let updateShellSectionItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ShellSection) _ =
-        let create (desc: ViewElement) =
-            desc.Create() :?> Xamarin.Forms.ShellContent
+    let updateShellSectionItems (coll: ViewElement alist) =
+        let create token (desc: ViewElement) =
+            desc.Create(token) :?> Xamarin.Forms.ShellContent
 
-        updateCollectionGeneric prevCollOpt collOpt target.Items create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        fun token (target: Xamarin.Forms.ShellSection) ->
+            valueUpdater token target.Items
 
     /// Trigger ScrollView.ScrollToAsync if needed, given the current values
-    let triggerScrollToAsync _ (currValue: (float * float * AnimationKind) voption) (target: Xamarin.Forms.ScrollView) =
-        match currValue with
-        | ValueSome (x, y, animationKind) when x <> target.ScrollX || y <> target.ScrollY ->
-            let animated =
-                match animationKind with
-                | Animated -> true
-                | NotAnimated -> false
-            target.ScrollToAsync(x, y, animated) |> ignore
-        | _ -> ()
+    ///
+    /// TODO: this re-executes repeatedly
+    let triggerScrollToAsync (value: aval<(float * float * AnimationKind)>) =
+        fun token (target: Xamarin.Forms.ScrollView) ->
+            let (x, y, animationKind) = value.GetValue(token)
+            if x <> target.ScrollX || y <> target.ScrollY then
+                let animated =
+                    match animationKind with
+                    | Animated -> true
+                    | NotAnimated -> false
+                target.ScrollToAsync(x, y, animated) |> ignore
 
     /// Trigger ItemsView.ScrollTo if needed, given the current values
-    let triggerScrollTo (currValue: (obj * obj * ScrollToPosition * AnimationKind) voption) (target: Xamarin.Forms.ItemsView) =
-        match currValue with
-        | ValueSome (x, y, scrollToPosition, animationKind) ->
+    ///
+    /// TODO: this re-executes repeatedly
+    let triggerScrollTo (value: aval<(obj * obj * ScrollToPosition * AnimationKind)>) =
+        fun token (target: Xamarin.Forms.ItemsView) ->
+            let (x, y, scrollToPosition, animationKind) = value.GetValue(token)
             let animated =
                 match animationKind with
                 | Animated -> true
                 | NotAnimated -> false
             target.ScrollTo(x,y, scrollToPosition, animated)
-        | _ -> ()
 
     /// Trigger Shell.GoToAsync if needed, given the current values
-    let triggerShellGoToAsync _ (currValue: (ShellNavigationState * AnimationKind) voption) (target: Xamarin.Forms.Shell) =
-        match currValue with
-        | ValueSome (navigationState, animationKind) ->
+    ///
+    /// TODO: this re-executes repeatedly
+    let triggerShellGoToAsync (curr: aval<(ShellNavigationState * AnimationKind)>) =
+        fun token (target: Xamarin.Forms.Shell) ->
+            let (navigationState, animationKind) = curr.GetValue(token)
             let animated =
                 match animationKind with
                 | Animated -> true
                 | NotAnimated -> false
             target.GoToAsync(navigationState, animated) |> ignore
-        | _ -> ()
 
-    let updatePageShellSearchHandler prevValueOpt (currValueOpt: ViewElement voption) target =
-        match prevValueOpt, currValueOpt with
-        | ValueNone, ValueNone -> ()
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueSome prevValue, ValueSome currValue ->
-            let searchHandler = Shell.GetSearchHandler(target)
-            currValue.UpdateIncremental(prevValue, searchHandler)
-        | ValueNone, ValueSome currValue -> Shell.SetSearchHandler(target, currValue.Create() :?> Xamarin.Forms.SearchHandler)
-        | ValueSome _, ValueNone -> Shell.SetSearchHandler(target, null)
+    let updatePageShellSearchHandler (element: ViewElement) =
+        creationUpdater (fun token target created ->
+            // TODO: this will do repeated updates
+            match created with
+            | false -> 
+                let handler = element.Create(token) :?> Xamarin.Forms.SearchHandler
+                Shell.SetSearchHandler(target, handler)
+            | true -> 
+                let handler = Shell.GetSearchHandler(target)
+                element.Update(token, handler))
 
-    let updateShellBackgroundColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetBackgroundColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetBackgroundColor(target, Color.Default)
+    let updateShellBackgroundColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetBackgroundColor(target, curr))
+            //| ValueSome _ -> Shell.SetBackgroundColor(target, Color.Default)
 
-    let updateShellForegroundColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetForegroundColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetForegroundColor(target, Color.Default)
+    let updateShellForegroundColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetForegroundColor(target, curr))
+            //| ValueSome _ -> Shell.SetForegroundColor(target, Color.Default)
 
-    let updateShellTitleColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTitleColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTitleColor(target, Color.Default)
+    let updateShellTitleColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTitleColor(target, curr))
+            //| ValueSome _ -> Shell.SetTitleColor(target, Color.Default)
 
-    let updateShellDisabledColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetDisabledColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetDisabledColor(target, Color.Default)
+    let updateShellDisabledColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetDisabledColor(target, curr))
+            //| ValueSome _ -> Shell.SetDisabledColor(target, Color.Default)
 
-    let updateShellUnselectedColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetUnselectedColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetUnselectedColor(target, Color.Default)
+    let updateShellUnselectedColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetUnselectedColor(target, curr))
+            //| ValueSome _ -> Shell.SetUnselectedColor(target, Color.Default)
 
-    let updateShellTabBarBackgroundColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarBackgroundColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarBackgroundColor(target, Color.Default)
+    let updateShellTabBarBackgroundColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarBackgroundColor(target, curr))
+            //| ValueSome _ -> Shell.SetTabBarBackgroundColor(target, Color.Default)
 
-    let updateShellTabBarForegroundColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarForegroundColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarForegroundColor(target, Color.Default)
+    let updateShellTabBarForegroundColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarForegroundColor(target, curr))
 
-    let updateShellBackButtonBehavior prevValueOpt (currValueOpt: ViewElement voption) target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetBackButtonBehavior(target, currValue.Create() :?> BackButtonBehavior)
-        | ValueSome _, ValueNone -> Shell.SetBackButtonBehavior(target, null)
+    let updateShellBackButtonBehavior (element: ViewElement) =
+        creationUpdater (fun token target created ->
+            // TODO: this will do repeated updates
+            match created with
+            | false -> 
+                let behavior = element.Create(token) :?> BackButtonBehavior
+                Shell.SetBackButtonBehavior(target, behavior)
+            | true -> 
+                let behavior = Shell.GetBackButtonBehavior(target)
+                element.Update(token, behavior))
 
-    let updateShellTitleView prevValueOpt (currValueOpt: ViewElement voption) target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTitleView(target, currValue.Create() :?> View)
-        | ValueSome _, ValueNone -> Shell.SetTitleView(target, null)
+    let updateShellTitleView (element: ViewElement) =
+        creationUpdater (fun token target created ->
+            // TODO: this will do repeated updates
+            match created with
+            | false ->
+                let view = element.Create(token) :?> View
+                Shell.SetTitleView(target, view)
+            | true -> 
+                let view = Shell.GetTitleView(target)
+                element.Update(token, view))
 
-    let updateShellFlyoutBehavior prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetFlyoutBehavior(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetFlyoutBehavior(target, FlyoutBehavior.Flyout)
+    let updateShellFlyoutBehavior (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetFlyoutBehavior(target, curr))
+            //| ValueSome _ -> Shell.SetFlyoutBehavior(target, FlyoutBehavior.Flyout)
 
-    let updateShellTabBarIsVisible prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarIsVisible(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarIsVisible(target, true)
+    let updateShellTabBarIsVisible (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarIsVisible(target, curr))
+            //| ValueSome _ -> Shell.SetTabBarIsVisible(target, true)
 
-    let updateShellNavBarIsVisible prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetNavBarIsVisible(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetNavBarIsVisible(target, true)
+    let updateShellNavBarIsVisible (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetNavBarIsVisible(target, curr))
+            //| ValueSome _ -> Shell.SetNavBarIsVisible(target, true)
 
-    let updateShellTabBarDisabledColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarDisabledColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarDisabledColor(target, Xamarin.Forms.Color.Default)
+    let updateShellTabBarDisabledColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarDisabledColor(target, curr))
+            //| ValueSome _ -> Shell.SetTabBarDisabledColor(target, Xamarin.Forms.Color.Default)
 
-    let updateShellTabBarTitleColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarTitleColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarTitleColor(target, Xamarin.Forms.Color.Default)
+    let updateShellTabBarTitleColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarTitleColor(target, curr))
+            //| ValueSome _ -> Shell.SetTabBarTitleColor(target, Xamarin.Forms.Color.Default)
 
-    let updateShellTabBarUnselectedColor prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Shell.SetTabBarUnselectedColor(target, currValue)
-        | ValueSome _, ValueNone -> Shell.SetTabBarUnselectedColor(target, Xamarin.Forms.Color.Default)
+    let updateShellTabBarUnselectedColor (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> Shell.SetTabBarUnselectedColor(target, curr))
+            //| ValueSome _ -> Shell.SetTabBarUnselectedColor(target, Xamarin.Forms.Color.Default)
 
-    let updateNavigationPageHasNavigationBar prevValueOpt currValueOpt target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> NavigationPage.SetHasNavigationBar(target, currValue)
-        | ValueSome _, ValueNone -> NavigationPage.SetHasNavigationBar(target, true)
+    let updateNavigationPageHasNavigationBar (value: aval<_>) =
+        valueUpdater value (fun target prevOpt curr -> 
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | _ -> NavigationPage.SetHasNavigationBar(target, curr))
+            //| ValueSome _ -> NavigationPage.SetHasNavigationBar(target, true)
 
-    let updateShellContentContentTemplate (prevValueOpt : ViewElement voption) (currValueOpt : ViewElement voption) (target : Xamarin.Forms.ShellContent) =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when identical prevValue currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | ValueNone, ValueSome currValue ->
-            target.ContentTemplate <- DirectViewElementDataTemplate(currValue)
-        | ValueSome prevValue, ValueSome currValue ->
-            target.ContentTemplate <- DirectViewElementDataTemplate(currValue)
-            let realTarget = (target :> Xamarin.Forms.IShellContentController).Page
-            if realTarget <> null then currValue.UpdateIncremental(prevValue, realTarget)            
-        | ValueSome _, ValueNone -> target.ContentTemplate <- null
+    let updateShellContentContentTemplate (curr : ViewElement) =
+        creationUpdater (fun token (target : Xamarin.Forms.ShellContent) created ->
+            match created with 
+            | false -> 
+                target.ContentTemplate <- DirectViewElementDataTemplate(curr)
+            | true -> ())
+            // TODO: varying templates
+            //| ValueSome prev ->
+            //    target.ContentTemplate <- DirectViewElementDataTemplate(curr)
+            //    let realTarget = (target :> Xamarin.Forms.IShellContentController).Page
+            //    if realTarget <> null then curr.Update(token, realTarget)            
+            //| ValueSome _ -> target.ContentTemplate <- null
         
-    let updatePageUseSafeArea (prevValueOpt: bool voption) (currValueOpt: bool voption) (target: Xamarin.Forms.Page) =
-        let setUseSafeArea newValue =
-                Xamarin.Forms.PlatformConfiguration.iOSSpecific.Page.SetUseSafeArea(
-                    (target : Xamarin.Forms.Page).On<Xamarin.Forms.PlatformConfiguration.iOS>(),
-                    newValue
-                ) |> ignore
+    let updatePageUseSafeArea (value: aval<bool>) =
+        valueUpdater value (fun (target : Xamarin.Forms.Page) prevOpt curr -> 
+            let setUseSafeArea newValue =
+                    Xamarin.Forms.PlatformConfiguration.iOSSpecific.Page.SetUseSafeArea(
+                        (target : Xamarin.Forms.Page).On<Xamarin.Forms.PlatformConfiguration.iOS>(),
+                        newValue
+                    ) |> ignore
         
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> setUseSafeArea currValue
-        | ValueSome _, ValueNone -> setUseSafeArea false
+            match prevOpt with
+            | ValueSome prev when prev = curr -> ()
+            | ValueNone -> ()
+            | _ -> setUseSafeArea curr)
 
-    let triggerWebViewReload _ curr (target: Xamarin.Forms.WebView) =
+    let triggerWebViewReload _token _ curr (target: Xamarin.Forms.WebView) =
         if curr = ValueSome true then target.Reload()
     
-    let updateEntryCursorPosition _ curr (target: Xamarin.Forms.Entry) =
-        match curr with
-        | ValueNone -> ()
-        | ValueSome value -> target.CursorPosition <- value
+    let updateEntryCursorPosition (curr: aval<int>) =
+        fun token (target: Xamarin.Forms.Entry) ->
+            target.CursorPosition <- curr.GetValue(token)
     
-    let updateEntrySelectionLength _ curr (target: Xamarin.Forms.Entry) =
+    let updateEntrySelectionLength _token _ curr (target: Xamarin.Forms.Entry) =
         match curr with
         | ValueNone -> ()
         | ValueSome value -> target.SelectionLength <- value
         
-    let updateMenuChildren (prevCollOpt: ViewElement array voption) (currCollOpt: ViewElement array voption) (target: Xamarin.Forms.Menu) _ =
-        updateCollectionGeneric prevCollOpt currCollOpt target (fun _ -> target) (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+    let updateMenuChildren (currCollOpt: ViewElement alist) _ =
+        let valueUpdater = updateCollectionGeneric currCollOpt (fun _ -> failwith "updateMenuChildren - unexpected" (* target *) ) (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        fun token (target: Xamarin.Forms.Menu) ->
+            valueUpdater token target
         
-    let updateElementEffects (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.Element) _ =
-        let create (viewElement: ViewElement) =
-            match viewElement.Create() with
+    let updateElementEffects (coll: ViewElement alist) _attach =
+        let create token (viewElement: ViewElement) =
+            match viewElement.Create(token) with
             | :? CustomEffect as customEffect -> Effect.Resolve(customEffect.Name)
             | effect -> effect :?> Xamarin.Forms.Effect
-        updateCollectionGeneric prevCollOpt collOpt target.Effects create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
-        
-    let updatePageToolbarItems (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.Page) _ =
-        let create (viewElement: ViewElement) =
-            viewElement.Create() :?> Xamarin.Forms.ToolbarItem
-        
-        updateCollectionGeneric prevCollOpt collOpt target.ToolbarItems create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        fun token (target: Xamarin.Forms.Element) ->
+            valueUpdater token target.Effects
 
-    let updateElementMenu prevValueOpt (currValueOpt: ViewElement voption) target =
-        match prevValueOpt, currValueOpt with
-        | ValueSome prevValue, ValueSome currValue when prevValue = currValue -> ()
-        | ValueNone, ValueNone -> ()
-        | _, ValueSome currValue -> Element.SetMenu(target, currValue.Create() :?> Menu)
-        | ValueSome _, ValueNone -> Element.SetMenu(target, null)
+    let updatePageToolbarItems (coll: ViewElement alist) _attach =
+        let create token (viewElement: ViewElement) =
+            viewElement.Create(token) :?> Xamarin.Forms.ToolbarItem
+        
+        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        fun token (target: Xamarin.Forms.Page) ->
+            valueUpdater token target.ToolbarItems
+
+    let updateElementMenu (value : ViewElement) =
+        creationUpdater (fun token (target: Xamarin.Forms.Element) created ->
+            match created with 
+            | false -> Element.SetMenu(target, value.Create(token) :?> Menu)
+            | true -> value.Update(token, Element.GetMenu(target)))
+

@@ -22,8 +22,8 @@ module Converters =
         | "System.Decimal" -> "decimal"
         | "System.String" -> "string"
         | "System.Object" -> "obj"
-        | "System.Collections.Generic.IList<System.Object>" -> "obj list"
-        | "System.Collections.IList" -> "obj list"
+        | "System.Collections.Generic.IList<System.Object>" -> "obj alist"
+        | "System.Collections.IList" -> "obj alist"
         | _ -> typeName
         
     let inline numberWithDecimalsToString literal v =

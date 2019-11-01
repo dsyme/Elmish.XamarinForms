@@ -178,13 +178,11 @@ module Binder =
         [
             "Name", bindingsTypeEvent.Name
             "InputType", bindingsTypeEvent.InputType
-            "ModelType", bindingsTypeEvent.ModelType
         ]
         |> BinderHelpers.createBinding logger containerTypeName "event" bindingsTypeEvent.Name
             (fun values ->
                 let name = values.[0]
                 let inputType = values.[1]
-                let modelType = values.[2]
             
                 { Name = name
                   ShortName = BinderHelpers.getShortName bindingsTypeEvent.ShortName name
@@ -192,7 +190,7 @@ module Binder =
                   CanBeUpdated = bindingsTypeEvent.CanBeUpdated |> Option.defaultValue true
                   EventArgsType = Text.getValueOrDefault bindingsTypeEvent.EventArgsType ""
                   InputType = inputType
-                  ModelType = modelType
+                  ModelType = Text.getValueOrDefault bindingsTypeEvent.ModelType inputType
                   ConvertInputToModel = Text.getValueOrDefault bindingsTypeEvent.ConvertInputToModel ""
                   RelatedProperties = match bindingsTypeEvent.RelatedProperties with None -> [||] | Some relatedProperties -> relatedProperties
                   IsInherited = false }

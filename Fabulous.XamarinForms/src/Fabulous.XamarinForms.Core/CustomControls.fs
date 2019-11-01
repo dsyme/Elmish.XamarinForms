@@ -2,6 +2,7 @@
 namespace Fabulous.XamarinForms
 
 open Fabulous
+open FSharp.Data.Adaptive
 open Xamarin.Forms
 open System
 open System.Collections.Generic
@@ -21,7 +22,7 @@ type IViewElementHolder =
 type ViewElementHolder(viewElement: ViewElement) =
     let ev = new Event<_,_>()
     let mutable data = viewElement
-    
+
     interface IViewElementHolder with
         member x.ViewElement = data
         [<CLIEvent>] member x.PropertyChanged = ev.Publish
@@ -66,7 +67,8 @@ module BindableHelpers =
         let onDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
             match args.PropertyName, holderOpt, prevModelOpt with
             | "ViewElement", ValueSome holder, ValueSome prevModel ->
-                holder.ViewElement.UpdateIncremental (prevModel, bindableObject)
+                // TODO consider this AdaptiveToken.Top
+                holder.ViewElement.Update (AdaptiveToken.Top, bindableObject)
                 prevModelOpt <- ValueSome holder.ViewElement
             | _ -> ()
         )
@@ -79,7 +81,8 @@ module BindableHelpers =
             match bindableObject.BindingContext with
             | :? IViewElementHolder as newHolder ->
                 newHolder.PropertyChanged.AddHandler onDataPropertyChanged
-                newHolder.ViewElement.UpdateInherited(prevModelOpt, newHolder.ViewElement, bindableObject)
+                // TODO consider this AdaptiveToken.Top
+                newHolder.ViewElement.UpdateInherited(AdaptiveToken.Top, newHolder.ViewElement, bindableObject)
                 holderOpt <- ValueSome newHolder
                 prevModelOpt <- ValueSome newHolder.ViewElement
             | _ ->
@@ -112,7 +115,9 @@ type ViewElementDataTemplateSelector() =
             template :> DataTemplate
             
 type DirectViewElementDataTemplate(viewElement: ViewElement) =
-    inherit DataTemplate(Func<obj>(viewElement.Create))
+    inherit DataTemplate(Func<obj>((fun () ->
+        // TODO consider this AdaptiveToken.Top
+        viewElement.Create(AdaptiveToken.Top))))
         
 /////////////////
 /// Cells

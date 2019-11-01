@@ -67,6 +67,7 @@ module Preparer =
             |> Array.map (fun p ->
                 { Name = p.Name
                   UniqueName = p.UniqueName
+                  ShortName = p.ShortName
                   DefaultValue = p.DefaultValue
                   OriginalType = p.OriginalType
                   ModelType = p.ModelType

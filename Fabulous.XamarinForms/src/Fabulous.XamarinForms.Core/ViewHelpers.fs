@@ -2,6 +2,7 @@
 namespace Fabulous.XamarinForms
 
 open Fabulous
+open FSharp.Data.Adaptive
 open Xamarin.Forms
 open System
 open System.Collections.Concurrent
@@ -13,7 +14,7 @@ module ViewHelpers =
     let identical (x: 'T) (y:'T) = System.Object.ReferenceEquals(x, y)
     
     /// Checks whether an underlying control can be reused given the previous and new view elements
-    let rec canReuseView (prevChild:ViewElement) (newChild:ViewElement) =
+    let rec canReuseView (prevChild: ViewElement) (newChild: ViewElement) =
         if prevChild.TargetType = newChild.TargetType && canReuseAutomationId prevChild newChild then
             if newChild.TargetType.IsAssignableFrom(typeof<NavigationPage>) then
                 canReuseNavigationPage prevChild newChild
@@ -118,28 +119,28 @@ module ViewHelpers =
         /// if ever). The generated state object is associated with the underlying control.
         static member Stateful (init: (unit -> 'State), contents: 'State -> ViewElement, ?onCreate: ('State -> obj -> unit), ?onUpdate: ('State -> obj -> unit)) : _ when 'State : not struct =
 
+            let mutable state = Unchecked.defaultof<_>
+            let mutable source = Unchecked.defaultof<_>
             let attribs = AttributesBuilder(1)
             attribs.Add(ContentsAttribKey, (fun stateObj -> contents (unbox (stateObj))))
 
             // The create method
             let create () = 
-                let state = init()
-                let desc = contents state
-                let item = desc.Create()
-                localStateTable.Add(item, Some (box state))
+                state <- init()
+                source <- contents state
+                let item = source.Create(AdaptiveToken.Top)
                 match onCreate with None -> () | Some f -> f state item
                 item
 
             // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: obj) = 
-                let state = unbox<'State> ((snd (localStateTable.TryGetValue(target))).Value)
+            let update (token, target: obj) = 
                 let contents = source.TryGetAttributeKeyed(ContentsAttribKey).Value
                 let realSource = contents state
-                realSource.Update(prevOpt, source, target)
+                realSource.Update(token, target)
                 match onUpdate with None -> () | Some f -> f state target
 
             // The element
-            ViewElement.Create(create, update, attribs)
+            ViewElement.Create(create, update, attribs.Close())
 
         static member OnCreate (contents : ViewElement, onCreate: (obj -> unit)) =
             View.Stateful (init = (fun () -> ()), contents = (fun _ -> contents), onCreate = (fun _ obj -> onCreate obj))
@@ -164,7 +165,9 @@ module ViewHelpers =
             | _ -> 
                 let attribs = AttributesBuilder(0)
                 let create () = box externalObj 
-                let update (_prevOpt: ViewElement voption) (_source: ViewElement) (_target: obj) = ()
-                let res = ViewElement(externalObj.GetType(), create, update, attribs)
+                let update (token, _target: obj) = ()
+                let res = ViewElement(externalObj.GetType(), create, update, attribs.Close())
                 externalsTable.Add(externalObj, res)
                 res
+
+

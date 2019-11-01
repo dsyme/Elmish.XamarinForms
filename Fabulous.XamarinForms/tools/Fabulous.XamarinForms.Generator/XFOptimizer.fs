@@ -19,7 +19,7 @@ module XFOptimizer =
                     ModelType = "unit -> unit"
                     ConvertInputToModel = ""
                     ConvertModelToValue = ""
-                    UpdateCode = "(fun _ _ _ -> ())" }
+                    UpdateCode = sprintf "ViewUpdaters.updateCommand %sCanExecute (fun _target -> ()) (fun (target: %s) cmd -> target.%s <- cmd)" boundProperty.ShortName boundType.FullName boundProperty.Name }
                 
                 // Accepts a boolean to know when the function can be executed
                 // Creates a Command for both CanExecute and the function
@@ -33,7 +33,7 @@ module XFOptimizer =
                   ModelType = "bool"
                   ConvertInputToModel = ""
                   ConvertModelToValue = ""
-                  UpdateCode = sprintf "ViewUpdaters.updateCommand prev%sOpt curr%sOpt (fun _target -> ()) (fun (target: %s) cmd -> target.%s <- cmd)" boundProperty.UniqueName boundProperty.UniqueName boundType.FullName boundProperty.Name
+                  UpdateCode = "(fun _ _ _ -> ())" 
                   CollectionData = None
                   IsInherited = false }
             |]
