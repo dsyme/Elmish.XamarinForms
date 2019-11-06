@@ -45,7 +45,8 @@ module ViewConverters =
         | Bytes bytes -> ImageSource.FromStream(fun () -> new MemoryStream(bytes) :> Stream)
         | Source imageSource -> imageSource
                 
-    let convertFabulousDimensionToXamarinFormsRowDefinition (v: InputTypes.Dimension array) =
+    let convertFabulousDimensionToXamarinFormsRowDefinition (v: InputTypes.Dimension list) =
+        let v = Array.ofList v
         let rows =
             Array.map (fun vi ->
                 match vi with
@@ -59,7 +60,8 @@ module ViewConverters =
         rows |> Array.iter collection.Add
         collection
         
-    let convertFabulousDimensionToXamarinFormsColumnDefinition (v: InputTypes.Dimension array) =
+    let convertFabulousDimensionToXamarinFormsColumnDefinition (v: InputTypes.Dimension list) =
+        let v = Array.ofList v
         let columns =
             Array.map (fun vi ->
                 match vi with

@@ -33,7 +33,7 @@ module XamarinFormsProgram =
         let host = XamarinFormsHost(app)
 
         program
-        |> Program.withCanReuseView ViewHelpers.canReuseView
+        //|> Program.withCanReuseView ViewHelpers.canReuseView
         |> Program.withSyncDispatch syncDispatch
         |> Program.withSyncAction syncAction
         |> Program.runWithFabulous host arg

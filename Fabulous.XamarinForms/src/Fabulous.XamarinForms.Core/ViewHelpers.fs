@@ -133,7 +133,7 @@ module ViewHelpers =
                 item
 
             // The update method
-            let update (token, target: obj) = 
+            let update token (target: obj) = 
                 let contents = source.TryGetAttributeKeyed(ContentsAttribKey).Value
                 let realSource = contents state
                 realSource.Update(token, target)
@@ -165,7 +165,7 @@ module ViewHelpers =
             | _ -> 
                 let attribs = AttributesBuilder(0)
                 let create () = box externalObj 
-                let update (token, _target: obj) = ()
+                let update token (_target: obj) = ()
                 let res = ViewElement(externalObj.GetType(), create, update, attribs.Close())
                 externalsTable.Add(externalObj, res)
                 res

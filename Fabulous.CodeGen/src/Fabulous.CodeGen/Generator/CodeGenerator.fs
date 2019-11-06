@@ -211,13 +211,11 @@ module CodeGenerator =
                         w.printfn "                let %sUpdater = %s %s" p.ShortName p.UpdateCode p.ShortName
                     | _ -> 
                         w.printfn "                let %sUpdater =" p.ShortName
-                        w.printfn "                    let mutable prevOpt = ValueNone" 
-                        w.printfn "                    fun token (target: %s) -> " data.FullName
-                        w.printfn "                        let curr = %s.GetValue(token)" p.ShortName
-                        w.printfn "                        match prev%sOpt with" p.UniqueName
+                        w.printfn "                    ViewUpdaters.valueUpdater %s (fun (target: %s) prevOpt curr ->" p.ShortName data.FullName
+                        w.printfn "                        match prevOpt with"
                         w.printfn "                        | ValueSome prev when prev = curr -> ()"
-                        w.printfn "                        | _ -> target.%s <- %s curr" p.Name p.ConvertModelToValue
-                        w.printfn "                        prev%sOpt <- ValueSome curr" p.UniqueName
+                        w.printfn "                        | _ -> target.%s <- %s curr)" p.Name p.ConvertModelToValue
+
                     w.printfn "                (fun token (target: %s) -> " data.FullName
                     w.printfn "                    update token target"
                     match p.CollectionData with 

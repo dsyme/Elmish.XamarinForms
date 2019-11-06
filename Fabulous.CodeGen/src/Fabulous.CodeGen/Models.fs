@@ -93,6 +93,9 @@ module Models =
         /// The properties' name which are linked to this event (e.g. TextChanged => Text)
         member val RelatedProperties: string array option = None with get, set
         
+        /// The function that converts the model value to the target type
+        member val ConvertModelToValue: string option = None with get, set
+
         interface IConstructorMember with
             member x.ShortName = x.ShortName
     

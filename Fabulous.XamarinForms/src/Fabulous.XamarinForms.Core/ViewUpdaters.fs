@@ -118,27 +118,28 @@ module ViewUpdaters =
 
     /// Update the attached properties for each item in an already updated collection
     let updateAttachedPropertiesForCollection
-           (prevCollOpt: 'T[] voption)
-           (coll: 'T[] voption)
-           (targetColl: IList<'TargetT>)
-           (attach: 'T voption -> 'T -> 'TargetT -> unit) =
-        match coll with
-        | ValueNone -> ()
-        | ValueSome coll when coll = null || coll.Length = 0 -> ()
-        | ValueSome coll ->
-            for i in 0 .. coll.Length-1 do
-                let targetChild = targetColl.[i]
-                let newChild = coll.[i]
-                let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < coll.Length -> ValueSome coll.[i] | _ -> ValueNone
-                attach prevChildOpt newChild targetChild
+           (coll: 'T alist)
+           (attach: _ -> 'T -> 'TargetT -> unit) =
+        let mutable children : IndexList<(AdaptiveToken -> unit)>  = IndexList.empty
+        let mutable subNodes : IndexList<'T>  = IndexList.empty
+        let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
+        let reader = coll.GetReader()
+        fun token (targetColl: IList<'TargetT>) ->
+            ()
+            //for i in 0 .. coll.Length-1 do
+            //    let targetChild = targetColl.[i]
+            //    let newChild = coll.[i]
+            //    let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < coll.Length -> ValueSome coll.[i] | _ -> ValueNone
+            //    attach prevChildOpt newChild targetChild
 
     /// Update the attached properties for each item in Layout<T>.Children
-    let updateAttachedPropertiesForLayoutOfT prevCollOpt coll (target: Xamarin.Forms.Layout<'T>) attach =
-        updateAttachedPropertiesForCollection prevCollOpt coll target.Children attach
+    let updateAttachedPropertiesForLayoutOfT coll attach =
+        let updater = updateAttachedPropertiesForCollection coll attach
+        fun token (target: Xamarin.Forms.Layout<'T>) -> updater token target.Children
                     
     /// Update the items in a ItemsView control, given previous and current view elements
     let updateItemsViewItems (coll: ViewElement alist) = 
-        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        let updater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
         fun token (target: Xamarin.Forms.ItemsView) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -147,11 +148,11 @@ module ViewUpdaters =
                     let oc = ObservableCollection<ViewElementHolder>()
                     target.ItemsSource <- oc
                     oc
-            valueUpdater token targetColl
+            updater token targetColl
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
-        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        let updater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
         fun token (target: Xamarin.Forms.ItemsView<'T>) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -160,11 +161,11 @@ module ViewUpdaters =
                     let oc = ObservableCollection<ViewElementHolder>()
                     target.ItemsSource <- oc
                     oc
-            valueUpdater token targetColl
+            updater token targetColl
         
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 
-        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
+        let updater = updateCollectionGeneric coll (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr holder -> holder.ViewElement <- curr)
         fun token (target: Xamarin.Forms.SearchHandler) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -173,19 +174,19 @@ module ViewUpdaters =
                     let oc = ObservableCollection<ViewElementHolder>()
                     target.ItemsSource <- oc
                     oc
-            valueUpdater token targetColl
+            updater token targetColl
         
     let private updateViewElementHolderGroup (currShortName: string, currKey, currColl: ViewElement alist) =
-        let valueUpdater = updateCollectionGeneric currColl (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr target -> target.ViewElement <- curr) 
+        let updater = updateCollectionGeneric currColl (fun token elem -> ViewElementHolder(elem)) (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun token curr target -> target.ViewElement <- curr) 
         fun token (target: ViewElementHolderGroup) ->
             target.ShortName <- currShortName
             target.ViewElement <- currKey
-            valueUpdater token target
+            updater token target
 
 (*
     /// Update the items in a GroupedListView control, given previous and current view elements
     let updateListViewGroupedItems (coll: (string * ViewElement * ViewElement alist) alist) (target: Xamarin.Forms.ListView) = 
-        let valueUpdater = updateCollectionGeneric coll (fun token elem -> ViewElementHolderGroup(elem)) (fun _ _ _ -> ()) (fun (_, prevKey, _) (_, currKey, _) -> ViewHelpers.canReuseView prevKey currKey) updateViewElementHolderGroup
+        let updater = updateCollectionGeneric coll (fun token elem -> ViewElementHolderGroup(elem)) (fun _ _ _ -> ()) (fun (_, prevKey, _) (_, currKey, _) -> ViewHelpers.canReuseView prevKey currKey) updateViewElementHolderGroup
         fun token (target: Xamarin.Forms.ListView) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -194,7 +195,7 @@ module ViewUpdaters =
                     let oc = ObservableCollection<ViewElementHolderGroup>()
                     target.ItemsSource <- oc
                     oc
-            valueUpdater token targetColl
+            updater token targetColl
                 
 
     /// Update the ShowJumpList property of a GroupedListView control, given previous and current view elements
@@ -210,9 +211,9 @@ module ViewUpdaters =
 
     /// Update the items of a TableSectionBase<'T> control, given previous and current view elements
     let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) _attach =
-        let valueUpdater = updateCollectionGeneric coll (fun token desc -> desc.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        let updater = updateCollectionGeneric coll (fun token desc -> desc.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
         fun token (target: Xamarin.Forms.TableSectionBase<'T>) ->
-            valueUpdater token target
+            updater token target
 
         (*
     /// Update the resources of a control, given previous and current view elements describing the resources
@@ -314,8 +315,8 @@ module ViewUpdaters =
                         | Some _ -> ()
                         *)
     /// Incremental NavigationPage maintenance: push/pop the right pages
-    let updateNavigationPages (coll: ViewElement alist) (target: NavigationPage) _attach =
-       (fun token -> ())
+    let updateNavigationPages (coll: ViewElement alist) _attach =
+       (fun token target -> ())
        (*
             let create token (desc: ViewElement) = (desc.Create(token ) :?> Page)
             if (coll = null || coll.Length = 0) then
@@ -366,7 +367,7 @@ module ViewUpdaters =
 
 
     /// Update a value if it has changed
-    let valueUpdater (value: aval<_>) f = 
+    let inline valueUpdater (value: aval<_>) f = 
         let mutable prevOpt = ValueNone
         (fun token target ->
             let curr = value.GetValue(token)
@@ -500,18 +501,18 @@ module ViewUpdaters =
                 | _ -> target :> Element
             updateChild token currViewElement realTarget
 
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
         fun token (target: Xamarin.Forms.Shell) ->
-            valueUpdater token target.Items 
+            updater token target.Items 
         
     /// Update the menu items of a ShellContent, given previous and current view elements
     let updateShellContentMenuItems (coll: ViewElement alist) =
         let create token (desc: ViewElement) =
             desc.Create(token) :?> Xamarin.Forms.MenuItem
 
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
         fun token (target: Xamarin.Forms.ShellContent) ->
-            valueUpdater token target.MenuItems 
+            updater token target.MenuItems 
 
     /// Update the items of a ShellItem, given previous and current view elements
     let updateShellItemItems (coll: ViewElement alist) _attach =
@@ -530,18 +531,18 @@ module ViewUpdaters =
                 | _ -> target :> BaseShellItem
             updateChild token currViewElement realTarget
 
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) update
         fun token (target: Xamarin.Forms.ShellItem) ->
-            valueUpdater token target.Items
+            updater token target.Items
 
     /// Update the items of a ShellSection, given previous and current view elements
-    let updateShellSectionItems (coll: ViewElement alist) =
+    let updateShellSectionItems (coll: ViewElement alist) _attach =
         let create token (desc: ViewElement) =
             desc.Create(token) :?> Xamarin.Forms.ShellContent
 
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
         fun token (target: Xamarin.Forms.ShellSection) ->
-            valueUpdater token target.Items
+            updater token target.Items
 
     /// Trigger ScrollView.ScrollToAsync if needed, given the current values
     ///
@@ -736,39 +737,44 @@ module ViewUpdaters =
             | ValueNone -> ()
             | _ -> setUseSafeArea curr)
 
-    let triggerWebViewReload _token _ curr (target: Xamarin.Forms.WebView) =
-        if curr = ValueSome true then target.Reload()
+    let triggerWebViewReload (value: aval<bool>) =
+        fun token (target: Xamarin.Forms.WebView) ->
+            let curr = value.GetValue(token)
+            if curr = true then target.Reload()
     
-    let updateEntryCursorPosition (curr: aval<int>) =
+    let updateEntryCursorPosition (value: aval<int>) =
         fun token (target: Xamarin.Forms.Entry) ->
-            target.CursorPosition <- curr.GetValue(token)
+            let curr = value.GetValue(token)
+            if target.CursorPosition <> curr then 
+                target.CursorPosition <- value.GetValue(token)
     
-    let updateEntrySelectionLength _token _ curr (target: Xamarin.Forms.Entry) =
-        match curr with
-        | ValueNone -> ()
-        | ValueSome value -> target.SelectionLength <- value
+    let updateEntrySelectionLength (value: aval<int>) =
+        fun token (target: Xamarin.Forms.Entry) ->
+            let curr = value.GetValue(token)
+            if target.SelectionLength <> curr then 
+                target.SelectionLength <- value.GetValue(token)
         
-    let updateMenuChildren (currCollOpt: ViewElement alist) _ =
-        let valueUpdater = updateCollectionGeneric currCollOpt (fun _ -> failwith "updateMenuChildren - unexpected" (* target *) ) (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
+    let updateMenuChildren (currCollOpt: ViewElement alist) _attach =
+        let updater = updateCollectionGeneric currCollOpt (fun _ -> failwith "updateMenuChildren - unexpected" (* target *) ) (fun _ _ _ -> ()) (fun _ _ -> true) updateChild
         fun token (target: Xamarin.Forms.Menu) ->
-            valueUpdater token target
+            updater token target
         
     let updateElementEffects (coll: ViewElement alist) _attach =
         let create token (viewElement: ViewElement) =
             match viewElement.Create(token) with
             | :? CustomEffect as customEffect -> Effect.Resolve(customEffect.Name)
             | effect -> effect :?> Xamarin.Forms.Effect
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
         fun token (target: Xamarin.Forms.Element) ->
-            valueUpdater token target.Effects
+            updater token target.Effects
 
     let updatePageToolbarItems (coll: ViewElement alist) _attach =
         let create token (viewElement: ViewElement) =
             viewElement.Create(token) :?> Xamarin.Forms.ToolbarItem
         
-        let valueUpdater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+        let updater = updateCollectionGeneric coll create (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
         fun token (target: Xamarin.Forms.Page) ->
-            valueUpdater token target.ToolbarItems
+            updater token target.ToolbarItems
 
     let updateElementMenu (value : ViewElement) =
         creationUpdater (fun token (target: Xamarin.Forms.Element) created ->

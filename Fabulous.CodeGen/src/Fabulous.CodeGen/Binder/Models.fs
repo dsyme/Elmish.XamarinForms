@@ -23,6 +23,7 @@ module Models =
           InputType: string
           ModelType: string
           ConvertInputToModel: string
+          ConvertModelToValue: string
           RelatedProperties: string array
           IsInherited: bool }
         interface IBoundConstructorMember with

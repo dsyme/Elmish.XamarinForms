@@ -26,34 +26,35 @@ type internal ProgramDispatch<'msg>()  =
     static member SetDispatchThunk v = dispatchImpl <- v
 
 /// Program type captures various aspects of program behavior
-type Program<'arg, 'model, 'msg> = 
+type Program<'arg, 'model, 'amodel, 'msg> = 
     { init : 'arg -> 'model * Cmd<'msg>
       update : 'msg -> 'model -> 'model * Cmd<'msg>
+      ainit : 'model -> 'amodel 
+      adelta : 'model -> 'amodel -> unit
       subscribe : 'model -> Cmd<'msg>
-      view : 'model -> Dispatch<'msg> -> ViewElement
-      canReuseView: ViewElement -> ViewElement -> bool
+      view : 'amodel -> Dispatch<'msg> -> ViewElement
       syncDispatch: Dispatch<'msg> -> Dispatch<'msg>
       syncAction: (unit -> unit) -> (unit -> unit)
       debug : bool
       onError : (string * exn) -> unit }
 
 /// Starts the Elmish dispatch loop for the page with the given Elmish program
-type ProgramRunner<'arg, 'model, 'msg>(host: IHost, program: Program<'arg, 'model, 'msg>, arg: 'arg) = 
+type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'arg, 'model, 'amodel, 'msg>, arg: 'arg) = 
 
     do Debug.WriteLine "run: computing initial model"
 
     // Get the initial model
-    let (initialModel,cmd) = program.init arg
-    let mutable alternativeRunner : ProgramRunner<obj,obj,obj> option = None
+    let (initialModel, cmd) = program.init arg
+    let amodel = program.ainit initialModel
+    let mutable alternativeRunner : ProgramRunner<obj,obj,obj,obj> option = None
 
     let mutable lastModel = initialModel
-    let mutable lastViewDataOpt = None
     let dispatch = ProgramDispatch<'msg>.DispatchViaThunk
     let mutable reset = (fun () -> ())
 
-    // If the view is dynamic, create the initial page
+    // Create the initial view
     let viewInfo = 
-        let newRootElement = program.view initialModel dispatch
+        let newRootElement = program.view amodel dispatch
         let rootView = newRootElement.Create(AdaptiveToken.Top)
         host.SetRootView(rootView)
         newRootElement
@@ -76,25 +77,9 @@ type ProgramRunner<'arg, 'model, 'msg>(host: IHost, program: Program<'arg, 'mode
             program.onError ("Unable to process a message:", ex)
 
     and updateView updatedModel = 
-        match lastViewDataOpt with
-        | None -> 
-            lastViewDataOpt <- Some viewInfo
-
-        | Some prevPageElement ->
-            let newPageElement = 
-                try program.view updatedModel dispatch
-                with ex -> 
-                    program.onError ("Unable to evaluate view:", ex)
-                    prevPageElement
-
-            if program.canReuseView prevPageElement newPageElement then
-                let rootView = host.GetRootView()
-                newPageElement.Update (AdaptiveToken.Top, rootView)
-            else
-                let pageObj = newPageElement.Create(AdaptiveToken.Top)
-                host.SetRootView(pageObj)
-
-            lastViewDataOpt <- Some newPageElement
+        program.adelta updatedModel amodel
+        let rootView = host.GetRootView()
+        viewInfo.Update (AdaptiveToken.Top, rootView)
                       
     do 
         // Set up the global dispatch function
@@ -119,10 +104,10 @@ type ProgramRunner<'arg, 'model, 'msg>(host: IHost, program: Program<'arg, 'mode
 
     member __.Dispatch(msg) = dispatch msg
 
-    member runner.ChangeProgram(newProgram: Program<obj,obj, obj>) : unit =
+    member runner.ChangeProgram(newProgram: Program<obj,obj,obj,obj>) : unit =
         let action = program.syncAction (fun () -> 
             // TODO: transmogrify the model
-            alternativeRunner <- Some (ProgramRunner<obj,obj, obj>(host, newProgram, runner.Argument))
+            alternativeRunner <- Some (ProgramRunner<obj,obj,obj,obj>(host, newProgram, runner.Argument))
         )
         action()
 
@@ -158,11 +143,12 @@ module Program =
         Console.WriteLine (sprintf "%s: %A" text ex)
 
     /// Typical program, new commands are produced by `init` and `update` along with the new state.
-    let mkProgram (init : 'arg -> 'model * Cmd<'msg>) (update : 'msg -> 'model -> 'model * Cmd<'msg>) (view : 'model -> Dispatch<'msg> -> ViewElement) =
+    let mkProgram (init : 'arg -> 'model * Cmd<'msg>) (update : 'msg -> 'model -> 'model * Cmd<'msg>) (ainit: 'model -> 'amodel) (adelta: 'model -> 'amodel -> unit) (view : 'amodel -> Dispatch<'msg> -> ViewElement) =
         { init = init
           update = update
+          ainit = ainit
+          adelta = adelta
           view = view
-          canReuseView = fun _ _ -> false
           syncDispatch = id
           syncAction = id
           subscribe = fun _ -> Cmd.none
@@ -170,24 +156,24 @@ module Program =
           onError = onError }
 
     /// Simple program that produces only new state with `init` and `update`.
-    let mkSimple (init : 'arg -> 'model) (update : 'msg -> 'model -> 'model) (view : 'model -> Dispatch<'msg> -> ViewElement) = 
-        mkProgram (fun arg -> init arg, Cmd.none) (fun msg model -> update msg model, Cmd.none) view
+    let mkSimple (init : 'arg -> 'model) (update : 'msg -> 'model -> 'model) ainit adelta (view : 'amodel -> Dispatch<'msg> -> ViewElement) = 
+        mkProgram (fun arg -> init arg, Cmd.none) (fun msg model -> update msg model, Cmd.none) ainit adelta view
 
     /// Typical program, new commands are produced discriminated unions returned by `init` and `update` along with the new state.
-    let mkProgramWithCmdMsg (init: 'arg -> 'model * 'cmdMsg list) (update: 'msg -> 'model -> 'model * 'cmdMsg list) (view: 'model -> Dispatch<'msg> -> ViewElement) (mapToCmd: 'cmdMsg -> Cmd<'msg>) =
+    let mkProgramWithCmdMsg (init: 'arg -> 'model * 'cmdMsg list) (update: 'msg -> 'model -> 'model * 'cmdMsg list) ainit adelta (view: 'amodel -> Dispatch<'msg> -> ViewElement) (mapToCmd: 'cmdMsg -> Cmd<'msg>) =
         let convert = fun (model, cmdMsgs) -> model, (cmdMsgs |> List.map mapToCmd |> Cmd.batch)
-        mkProgram (fun arg -> init arg |> convert) (fun msg model -> update msg model |> convert) view
+        mkProgram (fun arg -> init arg |> convert) (fun msg model -> update msg model |> convert) ainit adelta view
 
     /// Subscribe to external source of events.
     /// The subscription is called once - with the initial (or resumed) model, but can dispatch new messages at any time.
-    let withSubscription (subscribe : 'model -> Cmd<'msg>) (program: Program<'arg, 'model, 'msg>) =
+    let withSubscription (subscribe : 'model -> Cmd<'msg>) (program: Program<'arg, 'model, 'amodel, 'msg>) =
         let sub model =
             Cmd.batch [ program.subscribe model
                         subscribe model ]
         { program with subscribe = sub }
 
     /// Trace all the updates to the console
-    let withConsoleTrace (program: Program<'arg, 'model, 'msg>) =
+    let withConsoleTrace (program: Program<'arg, 'model, 'amodel, 'msg>) =
         let traceInit arg =
             try 
                 let initModel,cmd = program.init arg
@@ -207,10 +193,10 @@ module Program =
                 Console.WriteLine (sprintf "Error in model function: %0A" e)
                 reraise ()
 
-        let traceView model dispatch =
-            Console.WriteLine (sprintf "View, model = %0A" model)
+        let traceView amodel dispatch =
+            Console.WriteLine (sprintf "View, model = %0A" amodel)
             try 
-                let info = program.view model dispatch
+                let info = program.view amodel dispatch
                 Console.WriteLine (sprintf "View result: %0A" info)
                 info
             with e -> 
@@ -223,22 +209,18 @@ module Program =
             view = traceView }
 
     /// Trace all the messages as they update the model
-    let withTrace trace (program: Program<'arg, 'model, 'msg>) =
+    let withTrace trace (program: Program<'arg, 'model, 'amodel, 'msg>) =
         { program
             with update = fun msg model -> trace msg model; program.update msg model}
 
     /// Handle dispatch loop exceptions
-    let withErrorHandler onError (program: Program<'arg, 'model, 'msg>) =
+    let withErrorHandler onError (program: Program<'arg, 'model, 'amodel, 'msg>) =
         { program
             with onError = onError }
 
     /// Set debugging to true
     let withDebug program = 
         { program with debug = true }
-
-    /// Set the canReuseView function
-    let withCanReuseView canReuseView program = 
-        { program with canReuseView = canReuseView }
 
     /// Set the syncDispatch function
     let withSyncDispatch syncDispatch program = 
@@ -249,9 +231,9 @@ module Program =
         { program with syncAction = syncAction }
         
     /// Run the app with Fabulous
-    let runWithFabulous (host : IHost) (arg: 'arg) (program: Program<'arg, 'model, 'msg>) = 
+    let runWithFabulous (host : IHost) (arg: 'arg) (program: Program<'arg, 'model, 'amodel, 'msg>) = 
         ProgramRunner(host, program, arg)
 
     /// Run the app with Fabulous
-    let runFabulous (host : IHost) (program: Program<unit, 'model, 'msg>) = 
+    let runFabulous (host : IHost) (program: Program<unit, 'model, 'amodel, 'msg>) = 
         runWithFabulous host () program

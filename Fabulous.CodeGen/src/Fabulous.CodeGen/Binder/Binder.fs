@@ -132,15 +132,18 @@ module Binder =
     /// Bind an existing event
     let bindEvent (assemblyTypeEvent: AssemblyTypeEvent) (bindingsTypeEvent: Event) =
         let name = Text.getValueOrDefault bindingsTypeEvent.Name assemblyTypeEvent.Name
-        let inputType = sprintf "%s -> unit" assemblyTypeEvent.EventArgsType
+        let defaultInputType = sprintf "%s -> unit" assemblyTypeEvent.EventArgsType
+        let inputType = Text.getValueOrDefault bindingsTypeEvent.InputType defaultInputType
+        let modelType = Text.getValueOrDefault bindingsTypeEvent.ModelType inputType
         { Name = name
           ShortName = BinderHelpers.getShortName bindingsTypeEvent.ShortName name
           UniqueName = Text.getValueOrDefault bindingsTypeEvent.UniqueName name
           CanBeUpdated = bindingsTypeEvent.CanBeUpdated |> Option.defaultValue true
           EventArgsType = Text.getValueOrDefault bindingsTypeEvent.EventArgsType assemblyTypeEvent.EventArgsType
-          InputType = Text.getValueOrDefault bindingsTypeEvent.InputType inputType
-          ModelType = Text.getValueOrDefault bindingsTypeEvent.ModelType assemblyTypeEvent.EventHandlerType
+          InputType = inputType
+          ModelType = modelType //assemblyTypeEvent.EventHandlerType
           ConvertInputToModel = Text.getValueOrDefault bindingsTypeEvent.ConvertInputToModel ""
+          ConvertModelToValue = Text.getValueOrDefault bindingsTypeEvent.ConvertModelToValue ""
           RelatedProperties = match bindingsTypeEvent.RelatedProperties with None -> [||] | Some relatedProperties -> relatedProperties
           IsInherited = false }
     
@@ -192,6 +195,7 @@ module Binder =
                   InputType = inputType
                   ModelType = Text.getValueOrDefault bindingsTypeEvent.ModelType inputType
                   ConvertInputToModel = Text.getValueOrDefault bindingsTypeEvent.ConvertInputToModel ""
+                  ConvertModelToValue = Text.getValueOrDefault bindingsTypeEvent.ConvertModelToValue ""
                   RelatedProperties = match bindingsTypeEvent.RelatedProperties with None -> [||] | Some relatedProperties -> relatedProperties
                   IsInherited = false }
             )

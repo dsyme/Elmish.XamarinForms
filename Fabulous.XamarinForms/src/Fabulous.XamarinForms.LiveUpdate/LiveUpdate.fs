@@ -6,7 +6,7 @@
 
  module LiveUpdate =
      /// Trace all the updates to the console
-     type ProgramRunner<'arg, 'model,'msg> with
+     type ProgramRunner<'arg, 'model, 'amodel, 'msg> with
 
          member runner.EnableLiveUpdate() =
              async {

@@ -176,18 +176,19 @@ module Extensions =
             | DDeclMember (membDef, body, _range) -> if membDef.Name = name then Some (membDef, body) else None
             | _ -> None)
 
-    let internal castToProgramObj (program: Program<unit, obj, obj>) : Program<obj, obj, obj> =
+    let internal castToProgramObj (program: Program<unit, obj, obj, obj>) : Program<obj, obj, obj, obj> =
         { init = (fun x -> program.init ())
           update = program.update
           subscribe = program.subscribe
           view = program.view
-          canReuseView = program.canReuseView
+          ainit = program.ainit
+          adelta = program.adelta
           syncDispatch = program.syncDispatch
           syncAction = program.syncAction
           debug = program.debug
           onError = program.onError }
 
-    let internal changeProgram (runner: ProgramRunner<'arg, 'model,'msg>) syncChangeProgram programErased =
+    let internal changeProgram (runner: ProgramRunner<'arg, 'model,'amodel, 'msg>) syncChangeProgram programErased =
         // Stop the running program 
         printfn "changing running program...."
         syncChangeProgram (fun () ->
@@ -202,7 +203,7 @@ module Extensions =
         Some { Quacked = "LiveUpdate quacked!" }
 
     /// Starts the HttpServer listening for changes
-    let enableLiveUpdate printAddressesFn syncChangeProgram (runner: ProgramRunner<'arg, 'model,'msg>) =
+    let enableLiveUpdate printAddressesFn syncChangeProgram (runner: ProgramRunner<'arg, 'model, 'amodel, 'msg>) =
         let interp = EvalContext(System.Reflection.Assembly.Load)
 
         let switchD (files: (string * DFile)[]) =
@@ -261,13 +262,13 @@ module Extensions =
                             let (_, programObj) = interp.GetExprDeclResult(entity, membDef.Name) 
                             match getVal programObj with
 
-                            | :? Program<unit, obj, obj> as programErased ->
+                            | :? Program<unit, obj, obj, obj> as programErased ->
 
                                 programErased
                                 |> castToProgramObj
                                 |> changeProgram runner syncChangeProgram
 
-                            | :? Program<obj, obj, obj> as programErased -> 
+                            | :? Program<obj, obj, obj, obj> as programErased -> 
 
                                 programErased
                                 |> changeProgram runner syncChangeProgram

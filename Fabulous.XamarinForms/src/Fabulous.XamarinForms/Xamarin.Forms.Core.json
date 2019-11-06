@@ -194,7 +194,7 @@
         }
       ],
       "events": [
-        { 
+        {
           "source": "Tapped"
         }
       ]
@@ -227,6 +227,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
+          "eventArgsType": "string",
           "convertModelToValue": "ViewConverters.makeEntryCellCompletedEventHandler"
         }
       ],
@@ -504,7 +505,8 @@
           "name": "StyleClass",
           "shortName": "styleClasses",
           "defaultValue": "null",
-          "inputType": "string list"
+          "inputType": "string list",
+          "convertModelToValue": "Array.ofList"
         },
         {
           "source": null,
@@ -786,13 +788,14 @@
         {
           "source": "Opacity"
         },
-        {
-          "source": null,
-          "name": "Resources",
-          "inputType": "(string * obj) list",
-          "defaultValue": "null",
-          "updateCode": "ViewUpdaters.updateResources"
-        },
+        // TODO
+        //{
+        //  "source": null,
+        //  "name": "Resources",
+        //  "inputType": "(string * obj) list",
+        //  "defaultValue": "null",
+        //  "updateCode": "ViewUpdaters.updateResources"
+        //},
         {
           "source": "Rotation"
         },
@@ -811,20 +814,21 @@
         {
           "source": "ScaleY"
         },
-        {
-          "source": null,
-          "name": "Styles",
-          "inputType": "Xamarin.Forms.Style list",
-          "defaultValue": "null",
-          "updateCode": "ViewUpdaters.updateStyles"
-        },
-        {
-          "source": null,
-          "name": "StyleSheets",
-          "inputType": "Xamarin.Forms.StyleSheets.StyleSheet list",
-          "defaultValue": "null",
-          "updateCode": "ViewUpdaters.updateStyleSheets"
-        },
+        // TODO
+        //{
+        //  "source": null,
+        //  "name": "Styles",
+        //  "inputType": "Xamarin.Forms.Style list",
+        //  "defaultValue": "null",
+        //  "updateCode": "ViewUpdaters.updateStyles"
+        //},
+        //{
+        //  "source": null,
+        //  "name": "StyleSheets",
+        //  "inputType": "Xamarin.Forms.StyleSheets.StyleSheet list",
+        //  "defaultValue": "null",
+        //  "updateCode": "ViewUpdaters.updateStyleSheets"
+        //},
         {
           "source": "TabIndex"
         },
@@ -939,6 +943,7 @@
         {
           "source": "IsPresentedChanged",
           "inputType": "bool -> unit",
+          "eventArgsType": "bool",
           "convertModelToValue": "ViewConverters.makeMasterDetailPageIsPresentedChangedEventHandler",
           "relatedProperties": [
             "IsPresented"
@@ -984,6 +989,7 @@
           "source": null,
           "name": "CurrentPageChanged",
           "inputType": "int option -> unit",
+          "eventArgsType": "int option",
           "convertModelToValue": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.ContentPage>",
           "relatedProperties": [
             "CurrentPage"
@@ -1023,6 +1029,7 @@
           "source": null,
           "name": "CurrentPageChanged",
           "inputType": "int option -> unit",
+          "eventArgsType": "int option",
           "convertModelToValue": "ViewConverters.makeCurrentPageChanged<Xamarin.Forms.Page>",
           "relatedProperties": [
             "CurrentPage"
@@ -1372,7 +1379,7 @@
           "source": "Source"
         }
       ],
-      "events":[
+      "events": [
         {
           "source": "Clicked"
         },
@@ -1442,6 +1449,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
+          "eventArgsType": "string",
           "convertModelToValue": "ViewConverters.makeEditorCompletedEventHandler"
         },
         {
@@ -1509,6 +1517,7 @@
         {
           "source": "Completed",
           "inputType": "string -> unit",
+          "eventArgsType": "string",
           "convertModelToValue": "ViewConverters.makeEntryCompletedEventHandler"
         },
         {
@@ -1551,14 +1560,14 @@
         {
           "source": "SearchCommand",
           "inputType": "string -> unit",
-          "updateCode": "(fun _ _ _ _ -> ())"
+          "updateCode": "ViewUpdaters.updateCommand searchCommandCanExecute (fun (_target: Xamarin.Forms.SearchBar) -> _target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
         },
         {
           "source": null,
           "name": "SearchCommandCanExecute",
           "inputType": "bool",
           "defaultValue": "true",
-          "updateCode": "ViewUpdaters.updateCommand prevSearchCommandOpt (searchCommand |> Option.map (fun c -> c.GetValue(token))) (fun (_target: Xamarin.Forms.SearchBar) -> _target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
+          "updateCode": "(fun _ _ _ -> ())"
         },
         {
           "source": "Text"
@@ -1654,9 +1663,10 @@
           "inputType": "int option",
           "convertModelToValue": "ViewConverters.convertItemsViewSelectedItemIndexToObj target"
         },
-        {
-          "source": "SelectedItems"
-        },
+        // TODO
+        //{
+        //  "source": "SelectedItems"
+        //},
         {
           "source": "SelectionMode"
         }
@@ -1768,16 +1778,19 @@
         {
           "source": "ItemAppearing",
           "inputType": "int -> unit",
+          "eventArgsType": "int",
           "convertModelToValue": "ViewConverters.makeListViewItemAppearingEventHandler"
         },
         {
           "source": "ItemDisappearing",
           "inputType": "int -> unit",
+          "eventArgsType": "int",
           "convertModelToValue": "ViewConverters.makeListViewItemDisappearingEventHandler"
         },
         {
           "source": "ItemSelected",
           "inputType": "int option -> unit",
+          "eventArgsType": "int option",
           "convertModelToValue": "ViewConverters.makeListViewItemSelectedEventHandler",
           "relatedProperties": [
             "SelectedItem"
@@ -1786,6 +1799,7 @@
         {
           "source": "ItemTapped",
           "inputType": "int -> unit",
+          "eventArgsType": "int",
           "convertModelToValue": "ViewConverters.makeListViewItemTappedEventHandler"
         },
         {
@@ -1800,57 +1814,59 @@
         "Items"
       ]
     },
-    {
-      "type": "Fabulous.XamarinForms.CustomGroupListView",
-      "name": "ListViewGrouped",
-      "properties": [
-        {
-          "source": null,
-          "name": "ItemsSource",
-          "shortName": "items",
-          "inputType": "(string * ViewElement * ViewElement alist) alist",
-          "defaultValue": "[]",
-          "convertModelToValue": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
-          "updateCode": "ViewUpdaters.updateListViewGroupedItems"
-        },
-        {
-          "source": null,
-          "name": "SelectedItem",
-          "inputType": "int option",
-          "defaultValue": "null",
-          "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
-        },
-        {
-          "source": null,
-          "name": "ShowJumpList",
-          "inputType": "bool",
-          "defaultValue": "false",
-          "updateCode": "ViewUpdaters.updateListViewGroupedShowJumpList"
-        }
-      ],
-      "events": [
-        {
-          "source": null,
-          "name": "ItemSelected",
-          "inputType": "(int * int) option -> unit",
-          "defaultValue": "null",
-          "convertModelToValue": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
-          "relatedProperties": [
-            "SelectedItem"
-          ]
-        },
-        {
-          "source": null,
-          "name": "ItemTapped",
-          "inputType": "(int * int) -> unit",
-          "defaultValue": "null",
-          "convertModelToValue": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
-        }
-      ],
-      "primaryConstructorMembers": [
-        "ItemsSource"
-      ]
-    },
+    // TODO
+    //{
+    //  "type": "Fabulous.XamarinForms.CustomGroupListView",
+    //  "name": "ListViewGrouped",
+    //  "properties": [
+    //    {
+    //      "source": null,
+    //      "name": "ItemsSource",
+    //      "shortName": "items",
+    //      "inputType": "(string * ViewElement * ViewElement alist) alist",
+    //      "defaultValue": "[]",
+    //      "convertModelToValue": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
+    //      "updateCode": "ViewUpdaters.updateListViewGroupedItems"
+    //    },
+    //    {
+    //      "source": null,
+    //      "name": "SelectedItem",
+    //      "inputType": "int option",
+    //      "defaultValue": "null",
+    //      "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
+    //    },
+    //    {
+    //      "source": null,
+    //      "name": "ShowJumpList",
+    //      "inputType": "bool",
+    //      "defaultValue": "false",
+    //      "updateCode": "ViewUpdaters.updateListViewGroupedShowJumpList"
+    //    }
+    //  ],
+    //  "events": [
+    //    {
+    //      "source": null,
+    //      "name": "ItemSelected",
+    //      "inputType": "(int * int) option -> unit",
+    //      "eventArgsType": "(int * int) option",
+    //      "defaultValue": "null",
+    //      "convertModelToValue": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
+    //      "relatedProperties": [
+    //        "SelectedItem"
+    //      ]
+    //    },
+    //    {
+    //      "source": null,
+    //      "name": "ItemTapped",
+    //      "inputType": "(int * int) -> unit",
+    //      "defaultValue": "null",
+    //      "convertModelToValue": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
+    //    }
+    //  ],
+    //  "primaryConstructorMembers": [
+    //    "ItemsSource"
+    //  ]
+    //},
     {
       "type": "Xamarin.Forms.Label",
       "properties": [
@@ -2205,7 +2221,8 @@
         {
           "source": "ItemsSource",
           "shortName": "items",
-          "inputType": "string list"
+          "inputType": "string list",
+          "convertModelToValue": "Array.ofList"
         },
         {
           "source": "SelectedIndex"
@@ -2224,6 +2241,7 @@
         {
           "source": "SelectedIndexChanged",
           "inputType": "(int * string option) -> unit",
+          "eventArgsType": "(int * string option)",
           "convertModelToValue": "ViewConverters.makePickerSelectedIndexChangedEventHandler",
           "relatedProperties": [
             "SelectedIndex"
@@ -2269,7 +2287,7 @@
         },
         {
           "source": "ThumbImageSource",
-          "shortName": "ThumbImage"
+          "shortName": "thumbImage"
         },
         {
           "source": "Value"
@@ -2349,7 +2367,7 @@
     },
     {
       "type": "Xamarin.Forms.TableView",
-      "properties":[
+      "properties": [
         {
           "source": "HasUnevenRows"
         },
@@ -2405,6 +2423,7 @@
         {
           "source": "TimeChanged",
           "inputType": "System.TimeSpan -> unit",
+          "eventArgsType": "System.TimeSpan",
           "convertModelToValue": "ViewConverters.makeCustomTimePickerTimeChangedEventHandler"
         }
       ],

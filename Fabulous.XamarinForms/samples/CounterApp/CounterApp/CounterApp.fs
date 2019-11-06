@@ -10,17 +10,29 @@ open System.Diagnostics
 
 module App = 
     type Model = 
+      { Count : int
+        Step : int
+        TimerOn: bool }
+
+    [<RequireQualifiedAccess>]
+    type AdaptiveModel = 
       { Count : cval<int>
         Step : cval<int>
-        TimerOn: cval<bool> }
-      member x.ProcessChanges(change: ModelUpdate) =
-          tbd
+        TimerOn: cval<bool>  }
 
-    // this is the model we observe in view
-    type AModel = 
-      { Count : aval<int>
-        Step : aval<int>
-        TimerOn: aval<bool> }
+    let ainit (model: Model) : AdaptiveModel = 
+        { Count = cval model.Count
+          Step = cval model.Step
+          TimerOn = cval model.TimerOn  }
+
+    let adelta (model: Model) (amodel: AdaptiveModel) =
+        transact (fun () -> 
+            if model.Count <> amodel.Count.Value then 
+                amodel.Count.Value <- model.Count
+            if model.Step <> amodel.Step.Value then 
+                amodel.Step.Value <- model.Step
+            if model.TimerOn <> amodel.TimerOn.Value then 
+                amodel.TimerOn.Value <- model.TimerOn)
 
     type Msg = 
         | Increment 
@@ -42,36 +54,61 @@ module App =
         match cmdMsg with
         | TickTimer -> timerCmd()
 
-    let initModel () = { Count = AVal.constant 0; Step = AVal.constant 1; TimerOn = AVal.constant false }
+    let initialModel = { Count = 0; Step = 1; TimerOn = false }
 
-    let init () = initModel () , []
+    let init () = initialModel, []
 
     let update msg (model: Model) =
         match msg with
-        | Increment -> ModelChange.SetCount (model.Count + model.Step), []
+        | Increment -> { model with Count = model.Count + model.Step }, []
         | Decrement -> { model with Count = model.Count - model.Step }, []
         | Reset -> init ()
         | SetStep n -> { model with Step = n }, []
         | TimerToggled on -> { model with TimerOn = on }, (if on then [ TickTimer ] else [])
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
-    let view (model: Model) dispatch =  
+    let view (model: AdaptiveModel) dispatch =  
         View.ContentPage(
-          content=View.StackLayout(padding = Thickness 30.0, verticalOptions = LayoutOptions.Center,
-            children=[
-              View.Label(automationId="CountLabel", text=sprintf "%d" model.Count, horizontalOptions=LayoutOptions.Center, width=200.0, horizontalTextAlignment=TextAlignment.Center)
-              View.Button(automationId="IncrementButton", text="Increment", command= (fun () -> dispatch Increment))
-              View.Button(automationId="DecrementButton", text="Decrement", command= (fun () -> dispatch Decrement)) 
-              View.StackLayout(padding = Thickness 20.0, orientation=StackOrientation.Horizontal, horizontalOptions=LayoutOptions.Center,
-                              children = [ View.Label(text="Timer")
-                                           View.Switch(automationId="TimerSwitch", isToggled=model.TimerOn, toggled=(fun on -> dispatch (TimerToggled on.Value))) ])
-              View.Slider(automationId="StepSlider", minimumMaximum=(0.0, 10.0), value= double model.Step, valueChanged=(fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
-              View.Label(automationId="StepSizeLabel", text=sprintf "Step size: %d" model.Step, horizontalOptions=LayoutOptions.Center)
-              View.Button(text="Reset", horizontalOptions=LayoutOptions.Center, command=(fun () -> dispatch Reset), commandCanExecute = (model <> initModel () ))
+          content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
+            children = cs [
+              View.Label(automationId = c "CountLabel", 
+                  text = (model.Count |> AVal.map (sprintf "%d")),
+                  horizontalOptions = c LayoutOptions.Center, 
+                  width = c 200.0, 
+                  horizontalTextAlignment = c TextAlignment.Center)
+              View.Button(automationId = c "IncrementButton",
+                  text = c "Increment",
+                  command= c (fun () -> dispatch Increment))
+              View.Button(automationId = c "DecrementButton",
+                  text = c "Decrement",
+                  command= c (fun () -> dispatch Decrement)) 
+              View.StackLayout(padding = c (Thickness 20.0), 
+                  orientation = c StackOrientation.Horizontal,
+                  horizontalOptions = c LayoutOptions.Center,
+                  children = cs [ 
+                      View.Label(text = c "Timer")
+                      View.Switch(automationId = c "TimerSwitch",
+                          isToggled = model.TimerOn, 
+                          toggled = c (fun on -> dispatch (TimerToggled on.Value))) ])
+              View.Slider(automationId = c "StepSlider", 
+                  minimumMaximum = c (0.0, 10.0), 
+                  value = (model.Step |> AVal.map double),
+                  valueChanged = c (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
+              View.Label(automationId = c "StepSizeLabel",
+                  text= (model.Step |> AVal.map (sprintf "Step size: %d")),
+                  horizontalOptions = c LayoutOptions.Center)
+              View.Button(text = c "Reset",
+                  horizontalOptions = c LayoutOptions.Center,
+                  command = c (fun () -> dispatch Reset),
+                  commandCanExecute = 
+                      ((model.Step, model.Count, model.TimerOn) |||> AVal.map3 (fun step count timerOn -> 
+                          step <> initialModel.Step || 
+                          count <> initialModel.Count || 
+                          timerOn <> initialModel.TimerOn)))
             ]))
              
     let program = 
-        Program.mkProgramWithCmdMsg init update view mapCmdMsgToCmd
+        Program.mkProgramWithCmdMsg init update ainit adelta view mapCmdMsgToCmd
 
 type CounterApp () as app = 
     inherit Application ()

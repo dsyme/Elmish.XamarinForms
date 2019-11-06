@@ -13,12 +13,12 @@ module XFConvertersTests =
     let ``isTypeResolvable should return false for excluded types``(typeName, expectedValue) =
         XFConverters.isTypeResolvable typeName |> should equal expectedValue
 
-    [<TestCase("Xamarin.Forms.Grid.IGridList<Xamarin.Forms.View>", "ViewElement list")>]
-    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Effect>", "ViewElement list")>]
-    [<TestCase("System.Collections.Generic.IList<T>", "ViewElement list")>]
-    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Behavior>", "ViewElement list")>]
-    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Span>", "ViewElement list")>]
-    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.MenuItem>", "ViewElement list")>]
+    [<TestCase("Xamarin.Forms.Grid.IGridList<Xamarin.Forms.View>", "ViewElement alist")>]
+    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Effect>", "ViewElement alist")>]
+    [<TestCase("System.Collections.Generic.IList<T>", "ViewElement alist")>]
+    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Behavior>", "ViewElement alist")>]
+    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.Span>", "ViewElement alist")>]
+    [<TestCase("System.Collections.Generic.IList<Xamarin.Forms.MenuItem>", "ViewElement alist")>]
     [<TestCase("Xamarin.Forms.Button+ButtonContentLayout", "Xamarin.Forms.Button.ButtonContentLayout")>]
     [<TestCase("System.EventHandler<Xamarin.Forms.VisualElement/FocusRequestArgs>", "System.EventHandler<Xamarin.Forms.VisualElement.FocusRequestArgs>")>]
     [<TestCase("System.EventHandler<System.Tuple<System.String,System.String>>", "System.EventHandler<string * string>")>]
