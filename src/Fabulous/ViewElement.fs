@@ -128,24 +128,12 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
         | ValueNone -> failwithf "Property '%s' does not exist on %s" key.Name x.TargetType.Name
 
     /// Differentially update a visual element given the previous settings
-    member x.Update(token: AdaptiveToken, target: obj) = update token target
-
-    /// Differentially update the inherited attributes of a visual element given the previous settings
-    // TODO: replcing the ViewELement here?
-    member x.UpdateInherited(token: AdaptiveToken, curr: ViewElement, target: obj) = update token target
+    // TODO: remove all direct calls to this and use ViewElementUpdater instead
+    member x.Updater = update
 
     /// Create the UI element from the view description
-    member x.Create(token: AdaptiveToken) : obj =
-        Debug.WriteLine (sprintf "Create %O" x.TargetType)
-        let target = create()
-        x.Update(token, target)
-        match x.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
-        | ValueSome f -> (f.GetValue(token)) target
-        | ValueNone -> ()
-        match x.TryGetAttributeKeyed(ViewElement._RefAttribKey) with
-        | ValueSome f -> (f.GetValue(token)).Set (box target)
-        | ValueNone -> ()
-        target
+    // TODO: remove all direct calls to this and use ViewElementUpdater instead
+    member x.Create(token: AdaptiveToken) = create()
 
     /// Produce a new visual element with an adjusted attribute
     member __.WithAttribute(key: AttributeKey<'T>, value: 'T) =
@@ -167,4 +155,31 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
 
     override x.ToString() = sprintf "%s(...)@%d" x.TargetType.Name (x.GetHashCode())
 
-        
+and 
+    [<AbstractClass>]
+    ViewElementUpdater(node: ViewElement) = 
+    inherit AdaptiveObject()
+    let mutable targetOpt = None
+
+    member x.Update(token: AdaptiveToken, scope: obj) =
+        x.EvaluateIfNeeded token () (fun token ->
+            if targetOpt.IsNone then 
+                x.Create(token, scope) |> ignore
+            node.Updater token targetOpt.Value
+        )
+
+    member x.Create(token: AdaptiveToken, scope) =
+        Debug.WriteLine (sprintf "Create %O" node.TargetType)
+        let target = node.Create(token)
+        targetOpt <- Some target
+        x.OnCreated (scope, target)
+        node.Updater token target
+        match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
+        | ValueSome f -> (f.GetValue(token)) target
+        | ValueNone -> ()
+        match node.TryGetAttributeKeyed(ViewElement._RefAttribKey) with
+        | ValueSome f -> (f.GetValue(token)).Set (box target)
+        | ValueNone -> ()
+        target
+    
+    abstract OnCreated : scope: obj * target: obj -> unit

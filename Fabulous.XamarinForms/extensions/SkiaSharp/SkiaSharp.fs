@@ -5,6 +5,7 @@ namespace Fabulous.XamarinForms
 module SkiaSharpExtension = 
 
     open Fabulous
+    open FSharp.Data.Adaptive
     open Xamarin.Forms
     open SkiaSharp
     open SkiaSharp.Views.Forms
@@ -16,8 +17,8 @@ module SkiaSharpExtension =
 
     type Fabulous.XamarinForms.View with
         /// Describes a Map in the view
-        static member SKCanvasView(?paintSurface: (SKPaintSurfaceEventArgs -> unit), ?touch: (SKTouchEventArgs -> unit), ?enableTouchEvents: bool, ?ignorePixelScaling: bool,
-                                   ?invalidate: bool,
+        static member SKCanvasView(?paintSurface: aval<(SKPaintSurfaceEventArgs -> unit)>, ?touch: aval<(SKTouchEventArgs -> unit)>, ?enableTouchEvents: aval<bool>, ?ignorePixelScaling: aval<bool>,
+                                   ?invalidate: aval<bool>,
                                    // inherited attributes common to all views
                                    ?gestureRecognizers, ?horizontalOptions, ?margin, ?verticalOptions, ?anchorX, ?anchorY, ?backgroundColor,
                                    ?behaviors, ?flowDirection, ?height, ?inputTransparent, ?isEnabled, ?isTabStop, ?isVisible, ?minimumHeight,
@@ -27,7 +28,8 @@ module SkiaSharpExtension =
                                    ?shellSearchHandler, ?shellTabBarBackgroundColor, ?shellTabBarDisabledColor, ?shellTabBarForegroundColor,
                                    ?shellTabBarIsVisible, ?shellTabBarTitleColor, ?shellTabBarUnselectedColor, ?shellTitleColor, ?shellTitleView,
                                    ?shellUnselectedColor, ?automationId, ?classId, ?effects, ?menu, ?ref, ?styleId, ?tag, ?focused, ?unfocused, ?created) =
-
+            let paintSurface = paintSurface |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let touch = touch |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
             // Count the number of additional attributes
             let attribCount = 0
             let attribCount = match enableTouchEvents with Some _ -> attribCount + 1 | None -> attribCount
@@ -54,20 +56,39 @@ module SkiaSharpExtension =
             // Add our own attributes. They must have unique names which must match the names below.
             match enableTouchEvents with None -> () | Some v -> attribs.Add(CanvasEnableTouchEventsAttribKey, v) 
             match ignorePixelScaling with None -> () | Some v -> attribs.Add(IgnorePixelScalingAttribKey, v) 
-            match paintSurface with None -> () | Some v -> attribs.Add(PaintSurfaceAttribKey, System.EventHandler<_>(fun _sender args -> v args))
-            match touch with None -> () | Some v -> attribs.Add(TouchAttribKey, System.EventHandler<_>(fun _sender args -> v args))
+            match paintSurface with None -> () | Some v -> attribs.Add(PaintSurfaceAttribKey, v)
+            match touch with None -> () | Some v -> attribs.Add(TouchAttribKey, v)
+
+            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
+                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
+                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
+                                       (*?styleSheets=styleSheets, *) 
+                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
+                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
+                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
+                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
+                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
+                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
+                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
+
+            let updater1 = ViewExtensions.PrimitiveUpdater(enableTouchEvents, (fun (target: SKCanvasView) v -> target.EnableTouchEvents <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(ignorePixelScaling, (fun (target: SKCanvasView) v -> target.IgnorePixelScaling <- v))
+            let updater3 = ViewExtensions.EventUpdater(paintSurface)
+            let updater4 = ViewExtensions.EventUpdater(touch)
 
             // The create method
             let create () = new SkiaSharp.Views.Forms.SKCanvasView()
 
             // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: SKCanvasView) = 
-                ViewBuilders.UpdateView (prevOpt, source, target)
-                source.UpdatePrimitive(prevOpt, target, CanvasEnableTouchEventsAttribKey, (fun target v -> target.EnableTouchEvents <- v))
-                source.UpdatePrimitive(prevOpt, target, IgnorePixelScalingAttribKey, (fun target v -> target.IgnorePixelScaling <- v))
-                source.UpdateEvent(prevOpt, PaintSurfaceAttribKey, target.PaintSurface)
-                source.UpdateEvent(prevOpt, TouchAttribKey, target.Touch)
-                if invalidate = Some true then target.InvalidateSurface()
+            let update token (target: SKCanvasView) = 
+                viewUpdater token target
+                updater1 token target
+                updater2 token target
+                updater3 token target.PaintSurface
+                updater4 token target.Touch
 
             // The element
             ViewElement.Create(create, update, attribs.Close())
@@ -81,8 +102,8 @@ module SkiaSharpExtension =
         View.Stateful(
             (fun () -> { touches = 0; paints = 0 }), 
             (fun state -> 
-                View.SKCanvasView(enableTouchEvents = true, 
-                    paintSurface = (fun args -> 
+                View.SKCanvasView(enableTouchEvents = c true, 
+                    paintSurface = c (fun args -> 
                         let info = args.Info
                         let surface = args.Surface
                         let canvas = surface.Canvas
@@ -93,7 +114,7 @@ module SkiaSharpExtension =
                         use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
                         canvas.DrawCircle(float32 (info.Width / 2), float32 (info.Height / 2), 100.0f, paint)
                     ),
-                    touch = (fun args -> 
+                    touch = c (fun args -> 
                         state.touches <- state.touches + 1
                         printfn "touch event at (%f, %f), total touches on this control = %d" args.Location.X args.Location.Y state.touches
                     )

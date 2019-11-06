@@ -7,29 +7,27 @@ open Xamarin.Forms
 open Fabimals.Models
 
 module Templates =
-    let animalTemplate animal =
-        dependsOn animal (fun _ animal ->
+    let animalTemplate (animal: Animal) =
             View.Grid(
-                tag=animal,
-                padding=Thickness 10.,
-                coldefs=[ Auto; Auto],
-                rowdefs=[ Auto; Auto ],
-                children=[
+                tag = c (box animal),
+                padding = c (Thickness 10.),
+                coldefs = c [ Auto; Auto],
+                rowdefs = c [ Auto; Auto ],
+                children = cs [
                     View.Image(
-                        source=Image.Path animal.ImageUrl,
-                        aspect=Aspect.AspectFill,
-                        height=40.,
-                        width=40.
-                    ).RowSpan(2)
+                        source = c (Image.Path animal.ImageUrl),
+                        aspect = c Aspect.AspectFill,
+                        height = c 40.,
+                        width = c 40.
+                    ).RowSpan(c 2)
                     View.Label(
-                        text=animal.Name,
-                        fontAttributes=FontAttributes.Bold
-                    ).Column(1)
+                        text = c animal.Name,
+                        fontAttributes=c FontAttributes.Bold
+                    ).Column(c 1)
                     View.Label(
-                        text=animal.Location,
-                        fontAttributes=FontAttributes.Italic,
-                        verticalOptions=LayoutOptions.End
-                    ).Row(1).Column(1)
+                        text = c animal.Location,
+                        fontAttributes = c FontAttributes.Italic,
+                        verticalOptions = c LayoutOptions.End
+                    ).Row(c 1).Column(c 1)
                 ]
             )
-        )

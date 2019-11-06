@@ -5,6 +5,7 @@ namespace Fabulous.XamarinForms
 module MapsExtension = 
 
     open Fabulous
+    open FSharp.Data.Adaptive
     open Xamarin.Forms.Maps
 
     let MapHasScrollEnabledAttribKey = AttributeKey "Map_HasScrollEnabled"
@@ -21,8 +22,8 @@ module MapsExtension =
 
     type Fabulous.XamarinForms.View with
         /// Describes a Map in the view
-        static member inline Map(?pins: seq<ViewElement>, ?isShowingUser: bool, ?mapType: MapType, ?hasScrollEnabled: bool,
-                                 ?hasZoomEnabled: bool, ?requestedRegion: MapSpan,
+        static member inline Map(?pins: ViewElement alist, ?isShowingUser: aval<bool>, ?mapType: aval<MapType>, ?hasScrollEnabled: aval<bool>,
+                                 ?hasZoomEnabled: aval<bool>, ?requestedRegion: aval<MapSpan>,
                                  // inherited attributes common to all views
                                  ?gestureRecognizers, ?horizontalOptions, ?margin, ?verticalOptions, ?anchorX, ?anchorY, ?backgroundColor,
                                  ?behaviors, ?flowDirection, ?height, ?inputTransparent, ?isEnabled, ?isTabStop, ?isVisible, ?minimumHeight,
@@ -47,9 +48,10 @@ module MapsExtension =
                 ViewBuilders.BuildView(attribCount, ?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
                                        ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
                                        ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
-                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, ?resources=resources,
-                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, ?styles=styles,
-                                       ?styleSheets=styleSheets, ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
+                                       (*?styleSheets=styleSheets, *)
+                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
                                        ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
                                        ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
                                        ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
@@ -66,21 +68,41 @@ module MapsExtension =
             match hasZoomEnabled with None -> () | Some v -> attribs.Add(MapHasZoomEnabledAttribKey, v) 
             match requestedRegion with None -> () | Some v -> attribs.Add(MapRequestingRegionAttribKey, v) 
 
+            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
+                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
+                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
+                                       (*?styleSheets=styleSheets, *) 
+                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
+                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
+                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
+                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
+                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
+                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
+                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
             // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: Map) = 
-                ViewBuilders.UpdateView (prevOpt, source, target)
-                source.UpdatePrimitive(prevOpt, target, MapHasScrollEnabledAttribKey, (fun target v -> target.HasScrollEnabled <- v))
-                source.UpdatePrimitive(prevOpt, target, MapHasZoomEnabledAttribKey, (fun target v -> target.HasZoomEnabled <- v))
-                source.UpdatePrimitive(prevOpt, target, MapIsShowingUserAttribKey, (fun target v -> target.IsShowingUser <- v))
-                source.UpdatePrimitive(prevOpt, target, MapTypeAttribKey, (fun target v -> target.MapType <- v))
-                source.UpdateElementCollection(prevOpt, MapPinsAttribKey, target.Pins)
-                source.UpdatePrimitive(prevOpt, target, MapRequestingRegionAttribKey, (fun target v -> target.MoveToRegion(v)))
+            let updater1 = ViewExtensions.PrimitiveUpdater(hasScrollEnabled, (fun (target: Map) v -> target.HasScrollEnabled <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(isShowingUser, (fun (target: Map) v -> target.IsShowingUser <- v))
+            let updater3 = ViewExtensions.PrimitiveUpdater(mapType, (fun (target: Map) v -> target.MapType <- v))
+            let updater4 = ViewExtensions.PrimitiveUpdater(hasZoomEnabled, (fun (target: Map) v -> target.HasZoomEnabled <- v))
+            let updater5 = ViewExtensions.ElementCollectionUpdater(pins) //, (fun (target: Map) -> target.Pins))
+            let updater6 = ViewExtensions.PrimitiveUpdater(requestedRegion, (fun (target: Map) v -> target.MoveToRegion(v)))
+            let update token (target: Map) = 
+                viewUpdater token target
+                updater1 token target
+                updater2 token target
+                updater3 token target
+                updater4 token target
+                updater5 token target.Pins
+                updater6 token target
 
             // The element
-            ViewElement.Create<Xamarin.Forms.Maps.Map>(Map, update, attribs)
+            ViewElement.Create<Xamarin.Forms.Maps.Map>(Map, update, attribs.Close())
 
         /// Describes a Pin in the view
-        static member Pin(?position: Position, ?label: string, ?pinType: PinType, ?address: string) = 
+        static member Pin(?position: aval<Position>, ?label: aval<string>, ?pinType: aval<PinType>, ?address: aval<string>) = 
 
             // Count the number of additional attributes
             let attribCount = 0
@@ -97,30 +119,33 @@ module MapsExtension =
             match pinType with None -> () | Some v -> attribs.Add(PinTypeAttribKey, v) 
             match address with None -> () | Some v -> attribs.Add(PinAddressAttribKey, v) 
 
-            // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: Pin) = 
-                source.UpdatePrimitive(prevOpt, target, PinPositionAttribKey, (fun target v -> target.Position <- v))
-                source.UpdatePrimitive(prevOpt, target, PinLabelAttribKey, (fun target v -> target.Label <- v))
-                source.UpdatePrimitive(prevOpt, target, PinTypeAttribKey, (fun target v -> target.Type <- v))
-                source.UpdatePrimitive(prevOpt, target, PinAddressAttribKey, (fun target v -> target.Address <- v))
+            let updater1 = ViewExtensions.PrimitiveUpdater(position, (fun (target: Pin) v -> target.Position <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(label, (fun (target: Pin) v -> target.Label <- v))
+            let updater3 = ViewExtensions.PrimitiveUpdater(pinType, (fun (target: Pin) v -> target.Type <- v))
+            let updater4 = ViewExtensions.PrimitiveUpdater(address, (fun (target: Pin) v -> target.Address <- v))
+            let update token (target: Pin) = 
+                updater1 token target
+                updater2 token target
+                updater3 token target
+                updater4 token target
 
             // The element
-            ViewElement.Create<Xamarin.Forms.Maps.Pin>(Pin, update, attribs)
+            ViewElement.Create<Xamarin.Forms.Maps.Pin>(Pin, update, attribs.Close())
 
 #if DEBUG 
-    let sample1 = View.Map(hasZoomEnabled = true, hasScrollEnabled = true)
+    let sample1 = View.Map(hasZoomEnabled = c true, hasScrollEnabled = c true)
 
     let sample2 = 
         let timbuktu = Position(16.7666, -3.0026)
-        View.Map(hasZoomEnabled = true, hasScrollEnabled = true,
-                 requestedRegion = MapSpan.FromCenterAndRadius(timbuktu, Distance.FromKilometers(1.0)))
+        View.Map(hasZoomEnabled = c true, hasScrollEnabled = c true,
+                 requestedRegion = c (MapSpan.FromCenterAndRadius(timbuktu, Distance.FromKilometers(1.0))))
 
     let sample3 = 
         let paris = Position(48.8566, 2.3522)
         let london = Position(51.5074, -0.1278)
         let calais = Position(50.9513, 1.8587)
-        View.Map(hasZoomEnabled = true, hasScrollEnabled = true, 
-                 pins = [ View.Pin(paris, label="Paris", pinType = PinType.Place)
-                          View.Pin(london, label="London", pinType = PinType.Place) ] ,
-                 requestedRegion = MapSpan.FromCenterAndRadius(calais, Distance.FromKilometers(300.0)))
+        View.Map(hasZoomEnabled = c true, hasScrollEnabled = c true, 
+                 pins = cs [ View.Pin(c paris, label = c "Paris", pinType = c PinType.Place)
+                             View.Pin(c london, label= c "London", pinType = c PinType.Place) ] ,
+                 requestedRegion = c (MapSpan.FromCenterAndRadius(calais, Distance.FromKilometers(300.0))))
 #endif

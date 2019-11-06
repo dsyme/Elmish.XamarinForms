@@ -14,7 +14,8 @@ open System.Windows.Input
 module ViewUpdaters =
     /// Update a control given the previous and new view elements
     let inline updateChild (token: AdaptiveToken) (newChild: ViewElement) targetChild = 
-        newChild.Update(token, targetChild)
+        // TODO make this a ViewElementUpdater?
+        newChild.Updater token targetChild
 
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
     /// a reduced number of clear/add/remove/insert operations
@@ -215,6 +216,10 @@ module ViewUpdaters =
         fun token (target: Xamarin.Forms.TableSectionBase<'T>) ->
             updater token target
 
+    let updateResources (coll: (string * obj) alist) =
+        fun token (target: Xamarin.Forms.VisualElement) ->
+            // TODO - Resources
+            ()
         (*
     /// Update the resources of a control, given previous and current view elements describing the resources
     let updateResources (prevCollOpt: (string * obj)[] voption) (coll: (string * obj)[] voption) (target: Xamarin.Forms.VisualElement) = 
@@ -245,12 +250,17 @@ module ViewUpdaters =
                 for (KeyValue(key, _newChild)) in targetColl do 
                    if not (coll |> Array.exists(fun (key2, _v2) -> key = key2)) then 
                        targetColl.Remove(key) |> ignore
+*)
 
     /// Update the style sheets of a control, given previous and current view elements describing them
     // Note, style sheets can't be removed
     // Note, style sheets are compared by object identity
-    let updateStyleSheets token (prevCollOpt: StyleSheet[] voption) (coll: StyleSheet[] voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, coll with 
+    let updateStyleSheets (coll: StyleSheet alist) = 
+        fun token (target: Xamarin.Forms.VisualElement) ->
+            // TODO 
+            ()
+(*
+         match prevCollOpt, coll with 
         | ValueNone, ValueNone -> ()
         | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
         | _, ValueNone -> target.Resources.Clear()
@@ -279,17 +289,17 @@ module ViewUpdaters =
                         | None -> 
                             eprintfn "**** WARNING: style sheets may not be removed, and are compared by object identity, so should be created independently of your update or view functions ****"
                         | Some _ -> ()
+*)
 
     /// Update the styles of a control, given previous and current view elements describing them
     // Note, styles can't be removed
     // Note, styles are compared by object identity
-    let updateStyles token (prevCollOpt: Style[] voption) (coll: Style[] voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, coll with 
-        | ValueNone, ValueNone -> ()
-        | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
-        | _, ValueNone -> target.Resources.Clear()
-        | _, ValueSome coll ->
-            let targetColl = target.Resources
+    let updateStyles (coll: Style alist) = 
+        fun token (target: Xamarin.Forms.VisualElement) ->
+            // TODO
+            ()
+(*
+     let targetColl = target.Resources
             if (coll = null || coll.Length = 0) then
                 targetColl.Clear()
             else
@@ -318,7 +328,7 @@ module ViewUpdaters =
     let updateNavigationPages (coll: ViewElement alist) _attach =
        (fun token target -> ())
        (*
-            let create token (desc: ViewElement) = (desc.Create(token ) :?> Page)
+            let create token (desc: ViewElement) = (desc.Creator(token ) :?> Page)
             if (coll = null || coll.Length = 0) then
                 failwith "Error while updating NavigationPage pages: the pages collection should never be empty for a NavigationPage"
             else
@@ -364,7 +374,6 @@ module ViewUpdaters =
                             prevChildOpt, targetChild
                     attach prevChildOpt newChild targetChild
                     *)
-
 
     /// Update a value if it has changed
     let inline valueUpdater (value: aval<_>) f = 
@@ -590,7 +599,8 @@ module ViewUpdaters =
                 Shell.SetSearchHandler(target, handler)
             | true -> 
                 let handler = Shell.GetSearchHandler(target)
-                element.Update(token, handler))
+                // TODO make this a ViewElementUpdater?
+                element.Updater token (box handler))
 
     let updateShellBackgroundColor (value: aval<_>) =
         valueUpdater value (fun target prevOpt curr -> 
@@ -649,7 +659,8 @@ module ViewUpdaters =
                 Shell.SetBackButtonBehavior(target, behavior)
             | true -> 
                 let behavior = Shell.GetBackButtonBehavior(target)
-                element.Update(token, behavior))
+                // TODO make this a ViewElementUpdater?
+                element.Updater token (box behavior))
 
     let updateShellTitleView (element: ViewElement) =
         creationUpdater (fun token target created ->
@@ -660,7 +671,8 @@ module ViewUpdaters =
                 Shell.SetTitleView(target, view)
             | true -> 
                 let view = Shell.GetTitleView(target)
-                element.Update(token, view))
+                // TODO make this a ViewElementUpdater?
+                element.Updater token (box view))
 
     let updateShellFlyoutBehavior (value: aval<_>) =
         valueUpdater value (fun target prevOpt curr -> 
@@ -780,5 +792,8 @@ module ViewUpdaters =
         creationUpdater (fun token (target: Xamarin.Forms.Element) created ->
             match created with 
             | false -> Element.SetMenu(target, value.Create(token) :?> Menu)
-            | true -> value.Update(token, Element.GetMenu(target)))
+            | true -> 
+                let menu = Element.GetMenu(target)
+                // TODO make this a ViewElementUpdater?
+                value.Updater token (box menu))
 

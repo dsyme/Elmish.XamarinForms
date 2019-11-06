@@ -53,12 +53,10 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
     let mutable reset = (fun () -> ())
 
     // Create the initial view
-    let viewInfo = 
-        let newRootElement = program.view amodel dispatch
-        let rootView = newRootElement.Create(AdaptiveToken.Top)
-        host.SetRootView(rootView)
-        newRootElement
-
+    let viewInfo = program.view amodel dispatch
+    let updater = { new ViewElementUpdater(viewInfo) with member __.OnCreated (_scope, target) = host.SetRootView(target) }
+    let rootView = updater.Update(AdaptiveToken.Top, host)
+ 
     // Start Elmish dispatch loop  
     let rec processMsg msg = 
         try
@@ -78,8 +76,6 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
 
     and updateView updatedModel = 
         program.adelta updatedModel amodel
-        let rootView = host.GetRootView()
-        viewInfo.Update (AdaptiveToken.Top, rootView)
                       
     do 
         // Set up the global dispatch function

@@ -9,6 +9,12 @@ open Fabulous.CodeGen.Text
 open Fabulous.CodeGen.Generator.Models
 
 module CodeGenerator =
+//#if DEBUG
+    let inlineFlag = ""
+//#else
+//    let inlineFlag = "inline "
+//#endif
+
     let generateNamespace (namespaceOfGeneratedCode: string) (w: StringWriter) = 
         w.printfn "// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license."
         w.printfn "namespace %s" namespaceOfGeneratedCode
@@ -63,7 +69,7 @@ module CodeGenerator =
         let members, baseMembers, immediateMembers = generateBuildMemberArgs data
 
         w.printfn "    /// Builds the attributes for a %s in the view" data.Name
-        w.printfn "    static member inline Build%s(attribCount: int, %s) = " data.Name members
+        w.printfn "    static member %sBuild%s(attribCount: int, %s) = " inlineFlag data.Name members
 
         if immediateMembers.Length > 0 then
             w.printfn ""
@@ -99,15 +105,15 @@ module CodeGenerator =
             w.printfn ""
             w
         
-    let generateUpdateFunction (data: UpdateData) (w: StringWriter) =
+    let generateUpdaterFunction (data: UpdateData) (w: StringWriter) =
         let members, baseMembers, immediateMembers = generateBuildMemberArgs data.BuildData
-        w.printfn "    static member inline Update%s (%s) : (AdaptiveToken -> %s -> unit) = " data.Name members data.FullName // data.FullName
+        w.printfn "    static member %sUpdater%s (%s) : (AdaptiveToken -> %s -> unit) = " inlineFlag data.Name members data.FullName // data.FullName
         
         match data.BaseName, data.BaseFullName with 
         | Some baseName, Some baseFullName ->
             // Update inherited members
-            w.printfn "        let baseUpdate = ViewBuilders.Update%s (%s)"  baseName baseMembers
-            w.printfn "        let update = "
+            w.printfn "        let baseUpdate = ViewBuilders.Updater%s (%s)"  baseName baseMembers
+            w.printfn "        let updater = "
             w.printfn "            (fun token (target: %s) ->" data.FullName
             w.printfn "                baseUpdate token (target :> %s))" (baseFullName.Replace("'T", "_"))
             let generateAttachedProperties collectionData =
@@ -147,17 +153,6 @@ module CodeGenerator =
                 else
 *)        
                     w.printfn "                        (fun _ _ _ -> ())"
-        
-            w.printfn "        // State held by updater"
-            for p in data.Properties do
-                let hasApply = not (System.String.IsNullOrWhiteSpace(p.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(p.UpdateCode))
-                match p.CollectionData with 
-                | Some _collectionData -> ()
-                | _ ->
-                    if p.ModelType = "ViewElement" || not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) then
-                        ()
-                    else
-                        w.printfn "        let mutable prev%sOpt = ValueNone" p.UniqueName
             
             // Unsubscribe previous event handlers
             if data.Events.Length > 0 then
@@ -181,9 +176,9 @@ module CodeGenerator =
                 w.printfn "        // Update properties"
                 for p in data.Properties do
                     let hasApply = not (System.String.IsNullOrWhiteSpace(p.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(p.UpdateCode))
-                    w.printfn "        let update ="
+                    w.printfn "        let updater ="
                     w.printfn "            match %s with" p.ShortName
-                    w.printfn "            | None -> update"
+                    w.printfn "            | None -> updater"
                     w.printfn "            | Some %s ->" p.ShortName
                     match p.CollectionData with 
                     | Some collectionData when not hasApply ->
@@ -193,23 +188,20 @@ module CodeGenerator =
                         generateAttachedProperties collectionData
                         w.printfn "                        ViewHelpers.canReuseView"
                         w.printfn "                        ViewUpdaters.updateChild"
-                    | Some collectionData when hasApply ->
+                    | Some collectionData ->
                         w.printfn "                let %sUpdater =" p.ShortName
                         w.printfn "                    %s %s" p.UpdateCode p.ShortName
                         generateAttachedProperties collectionData
-                    | _ when p.ModelType = "ViewElement" && not hasApply -> 
+                    | None when p.ModelType = "ViewElement" && not hasApply -> 
                         w.printfn "                let %sUpdater =" p.ShortName
-                        w.printfn "                    let mutable created = false" 
-                        w.printfn "                    fun token (target: %s) -> " data.FullName
-                        w.printfn "                        if created then "
-                        w.printfn "                            %s.Update(token, target.%s)" p.ShortName p.Name
-                        w.printfn "                        else"
-                        w.printfn "                            target.%s <- (%s.Create(token) :?> %s)" p.Name p.ShortName p.OriginalType
-                    | _ when not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) ->
+                        w.printfn "                    { new ViewElementUpdater(%s) with" p.ShortName
+                        w.printfn "                             member __.OnCreated (scope: obj, element: obj) ="
+                        w.printfn "                                 (scope :?> %s).%s <- (element :?> _) }" data.FullName p.Name
+                    | None when not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) ->
                         if not (String.IsNullOrWhiteSpace(p.ConvertModelToValue)) then 
                             w.printfn "                let %s = AVal.map %s %s" p.ShortName p.ConvertModelToValue p.ShortName
                         w.printfn "                let %sUpdater = %s %s" p.ShortName p.UpdateCode p.ShortName
-                    | _ -> 
+                    | None -> 
                         w.printfn "                let %sUpdater =" p.ShortName
                         w.printfn "                    ViewUpdaters.valueUpdater %s (fun (target: %s) prevOpt curr ->" p.ShortName data.FullName
                         w.printfn "                        match prevOpt with"
@@ -217,12 +209,14 @@ module CodeGenerator =
                         w.printfn "                        | _ -> target.%s <- %s curr)" p.Name p.ConvertModelToValue
 
                     w.printfn "                (fun token (target: %s) -> " data.FullName
-                    w.printfn "                    update token target"
+                    w.printfn "                    updater token target"
                     match p.CollectionData with 
                     | Some _collectionData when not hasApply ->
                         w.printfn "                    %sUpdater token target.%s)" p.ShortName p.Name 
                     | Some _collectionData ->
                         w.printfn "                    %sUpdater token target)" p.ShortName
+                    | None when p.ModelType = "ViewElement" && not hasApply ->
+                        w.printfn "                    %sUpdater.Update(token, target))" p.ShortName
                     | _ ->
                         w.printfn "                    %sUpdater token target)" p.ShortName
 
@@ -236,7 +230,7 @@ module CodeGenerator =
                     w.printfn "            | ValueSome currValue -> target.%s.AddHandler(currValue)" e.Name
                     w.printfn "            | ValueNone -> ()"
 *)
-            w.printfn "        update"
+            w.printfn "        updater"
         | _ -> 
             w.printfn "        (fun _ _ -> ())"
                 
@@ -275,12 +269,12 @@ module CodeGenerator =
                     sprintf ",%s?%s=%s" space m.Name value)
                 |> String.concat ""
 
-            w.printfn "    static member inline Construct%s(%s) = " data.Name membersForConstructor
+            w.printfn "    static member %sConstruct%s(%s) = " inlineFlag data.Name membersForConstructor
             w.printfn ""
             w.printfn "        let attribBuilder = ViewBuilders.Build%s(0%s)" data.Name membersForBuild
             w.printfn ""
-            w.printfn "        let update = ViewBuilders.Update%s(%s)" data.Name membersForBuild.[1..]
-            w.printfn "        ViewElement.Create<%s>(ViewBuilders.Create%s, update, attribBuilder.Close())" data.FullName data.Name
+            w.printfn "        let updater = ViewBuilders.Updater%s(%s)" data.Name membersForBuild.[1..]
+            w.printfn "        ViewElement.Create<%s>(ViewBuilders.Create%s, updater, attribBuilder.Close())" data.FullName data.Name
             w.printfn ""
 
     let generateBuilders (data: BuilderData array) (w: StringWriter) =
@@ -289,7 +283,7 @@ module CodeGenerator =
             w
             |> generateBuildFunction typ.Build
             |> generateCreateFunction typ.Create
-            |> generateUpdateFunction typ.Update
+            |> generateUpdaterFunction typ.Update
             |> generateConstruct typ.Construct
         w
 
@@ -344,7 +338,7 @@ module CodeGenerator =
                 |> String.concat ""
 
             w.printfn "    /// Describes a %s in the view" d.Name
-            w.printfn "    static member inline %s(%s) =" d.Name membersForConstructor
+            w.printfn "    static member %s%s(%s) =" inlineFlag d.Name membersForConstructor
             w.printfn ""
             w.printfn "        ViewBuilders.Construct%s(%s)" d.Name membersForConstruct
             w.printfn ""
@@ -374,7 +368,7 @@ module CodeGenerator =
             |> String.concat ""
 
         w.printfn ""
-        w.printfn "        member inline x.With(%s) =" members
+        w.printfn "        member %sx.With(%s) =" inlineFlag members
         for m in data do
             match m.UniqueName with
             | "Created" | "Ref" -> ()

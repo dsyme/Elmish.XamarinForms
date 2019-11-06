@@ -30,32 +30,45 @@ module ViewHelpers =
     // NavigationPage can be reused only if the pages don't change their type (added/removed pages don't prevent reuse)
     // E.g. If the first page switch from ContentPage to TabbedPage, the NavigationPage can't be reused.
     and internal canReuseNavigationPage (prevChild:ViewElement) (newChild:ViewElement) =
-        let prevPages = prevChild.TryGetAttribute<ViewElement[]>("Pages")
-        let newPages = newChild.TryGetAttribute<ViewElement[]>("Pages")
+        let prevPages = prevChild.TryGetAttribute<ViewElement alist>("Pages")
+        let newPages = newChild.TryGetAttribute<ViewElement alist>("Pages")
+        failwith "canReuseNavigationPage"
 
-        match prevPages, newPages with
-        | ValueSome prevPages, ValueSome newPages -> (prevPages, newPages) ||> Seq.forall2 canReuseView
-        | _, _ -> true
+        // This technique needs to change completely
+
+        //match prevPages, newPages with
+        //| ValueSome prevPages, ValueSome newPages -> (AList.toAVal prevPages, AList.toList newPages) ||> Seq.forall2 canReuseView
+        //| _, _ -> true
 
     /// Checks whether the control can be reused given the previous and the new AutomationId.
     /// Xamarin.Forms can't change an already set AutomationId
+    //
+    // TODO: make the AutomationId non-adapting
     and internal canReuseAutomationId (prevChild: ViewElement) (newChild: ViewElement) =
-        let prevAutomationId = prevChild.TryGetAttribute<string>("AutomationId")
-        let newAutomationId = newChild.TryGetAttribute<string>("AutomationId")
+        let prevAutomationId = prevChild.TryGetAttribute<aval<string>>("AutomationId")
+        let newAutomationId = newChild.TryGetAttribute<aval<string>>("AutomationId")
 
-        match prevAutomationId with
-        | ValueSome _ when prevAutomationId <> newAutomationId -> false
+        match prevAutomationId, newAutomationId  with
+        | ValueSome _, ValueNone 
+        | ValueNone, ValueSome _ -> false
+        | ValueSome o, ValueSome n   when AVal.force o <> AVal.force n -> false
         | _ -> true
         
     /// Checks whether the CustomEffect can be reused given the previous and the new Effect name
     /// The effect is instantiated by Effect.Resolve and can't be reused when asking for a new effect
+    //
+    // TODO: make the Name non-adapting
     and internal canReuseCustomEffect (prevChild:ViewElement) (newChild:ViewElement) =
-        let prevName = prevChild.TryGetAttribute<string>("Name")
-        let newName = newChild.TryGetAttribute<string>("Name")
+        let prevName = prevChild.TryGetAttribute<aval<string>>("Name")
+        let newName = newChild.TryGetAttribute<aval<string>>("Name")
+        failwith "canReuseCustomEffect"
 
-        match prevName with
-        | ValueSome _ when prevName <> newName -> false
-        | _ -> true
+        // This technique needs to change completely
+        //true
+        //
+        //match prevName with
+        //| ValueSome _ when prevName <> newName -> false
+        //| _ -> true
         
     /// Debounce multiple calls to a single function
     let debounce<'T> =
@@ -80,23 +93,28 @@ module ViewHelpers =
 
     /// Looks for a view element with the given Automation ID in the view hierarchy.
     /// This function is not optimized for efficiency and may execute slowly.
-    let rec tryFindViewElement automationId (element:ViewElement) =
-        let elementAutomationId = element.TryGetAttribute<string>("AutomationId")
+    let rec tryFindViewElement automationId (element:ViewElement) : _ option =
+        // TODO: make the AutomationId non-adapting
+        let elementAutomationId = element.TryGetAttribute<aval<string>>("AutomationId")
         match elementAutomationId with
-        | ValueSome automationIdValue when automationIdValue = automationId -> Some element
+        | ValueSome automationIdValue when AVal.force automationIdValue = automationId -> 
+            Some element
         | _ ->
             let childElements =
                 match element.TryGetAttribute<ViewElement>("Content") with
-                | ValueSome content -> [| content |]
+                | ValueSome content -> AList.ofArray [| content |]
                 | ValueNone ->
-                    match element.TryGetAttribute<ViewElement[]>("Pages") with
-                    | ValueSome pages -> pages
+                    match element.TryGetAttribute<ViewElement alist>("Pages") with
+                    | ValueSome pages -> pages 
                     | ValueNone ->
-                        match element.TryGetAttribute<ViewElement[]>("Children") with
-                        | ValueNone -> [||]
-                        | ValueSome children -> children
+                        match element.TryGetAttribute<ViewElement alist>("Children") with
+                        | ValueNone -> AList.empty
+                        | ValueSome children -> children 
 
             childElements
+            |> AList.toAVal
+            |> AVal.force // TODO: consider removing this force
+            |> IndexList.toArray
             |> Seq.choose (tryFindViewElement automationId)
             |> Seq.tryHead
      
@@ -136,7 +154,8 @@ module ViewHelpers =
             let update token (target: obj) = 
                 let contents = source.TryGetAttributeKeyed(ContentsAttribKey).Value
                 let realSource = contents state
-                realSource.Update(token, target)
+                // TODO make this a ViewElementUpdater?
+                realSource.Updater token target
                 match onUpdate with None -> () | Some f -> f state target
 
             // The element

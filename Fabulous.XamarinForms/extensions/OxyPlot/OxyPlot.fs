@@ -11,6 +11,7 @@ module OxyPlotExtension =
     open OxyPlot.Series
     open OxyPlot.Xamarin.Forms
     open Fabulous
+    open FSharp.Data.Adaptive
 
     let ModelAttribKey = AttributeKey<_> "OxyPlot_Model"
     let ControllerAttribKey = AttributeKey<_> "OxyPlot_Controller"
@@ -18,7 +19,7 @@ module OxyPlotExtension =
     type Fabulous.XamarinForms.View with
         /// Describes a Map in the view
         static member inline PlotView
-            (model: PlotModel, ?controller: PlotController,
+            (model: aval<PlotModel>, ?controller: aval<PlotController>,
              // inherited attributes common to all views
              ?gestureRecognizers, ?horizontalOptions, ?margin, ?verticalOptions, ?anchorX, ?anchorY, ?backgroundColor,
              ?behaviors, ?flowDirection, ?height, ?inputTransparent, ?isEnabled, ?isTabStop, ?isVisible, ?minimumHeight,
@@ -53,14 +54,32 @@ module OxyPlotExtension =
             attribs.Add(ModelAttribKey, model) 
             match controller with None -> () | Some v -> attribs.Add(ControllerAttribKey, v) 
 
+            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
+                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
+                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
+                                       (*?styleSheets=styleSheets, *) 
+                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
+                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
+                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
+                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
+                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
+                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
+                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
+
+            let updater1 = ViewExtensions.PrimitiveUpdater(Some model, (fun (target: PlotView) v -> target.Model <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(controller, (fun (target: PlotView) v -> target.Controller <- v))
+
             // The create method
             let create () = PlotView()
 
             // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: PlotView) = 
-                ViewBuilders.UpdateView (prevOpt, source, target)
-                source.UpdatePrimitive(prevOpt, target, ModelAttribKey, (fun target v -> target.Model <- v))
-                source.UpdatePrimitive(prevOpt, target, ControllerAttribKey, (fun target v -> target.Controller <- v))
+            let update token (target: PlotView) = 
+                viewUpdater token target
+                updater1 token target
+                updater2 token target
 
             // The element
             ViewElement.Create(create, update, attribs.Close())
@@ -88,9 +107,9 @@ module OxyPlotExtension =
 
         let sample = 
             View.CarouselPage(
-                [ for m in plotModels ->
-                    View.ContentPage(
-                        View.PlotView(m,
-                                      horizontalOptions=LayoutOptions.FillAndExpand, 
-                                      verticalOptions=LayoutOptions.FillAndExpand)) ])
+                cs [ for m in plotModels ->
+                       View.ContentPage(
+                          View.PlotView(c m,
+                                      horizontalOptions = c LayoutOptions.FillAndExpand, 
+                                      verticalOptions = c LayoutOptions.FillAndExpand)) ])
 #endif

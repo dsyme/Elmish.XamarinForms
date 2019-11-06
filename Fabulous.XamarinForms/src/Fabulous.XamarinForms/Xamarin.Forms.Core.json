@@ -788,14 +788,13 @@
         {
           "source": "Opacity"
         },
-        // TODO
-        //{
-        //  "source": null,
-        //  "name": "Resources",
-        //  "inputType": "(string * obj) list",
-        //  "defaultValue": "null",
-        //  "updateCode": "ViewUpdaters.updateResources"
-        //},
+        {
+          "source": null,
+          "name": "Resources",
+          "inputType": "(string * obj) alist",
+          "defaultValue": "null",
+          "updateCode": "ViewUpdaters.updateResources"
+        },
         {
           "source": "Rotation"
         },
@@ -814,21 +813,20 @@
         {
           "source": "ScaleY"
         },
-        // TODO
-        //{
-        //  "source": null,
-        //  "name": "Styles",
-        //  "inputType": "Xamarin.Forms.Style list",
-        //  "defaultValue": "null",
-        //  "updateCode": "ViewUpdaters.updateStyles"
-        //},
-        //{
-        //  "source": null,
-        //  "name": "StyleSheets",
-        //  "inputType": "Xamarin.Forms.StyleSheets.StyleSheet list",
-        //  "defaultValue": "null",
-        //  "updateCode": "ViewUpdaters.updateStyleSheets"
-        //},
+        {
+          "source": null,
+          "name": "Styles",
+          "inputType": "Xamarin.Forms.Style alist",
+          "defaultValue": "null",
+          "updateCode": "ViewUpdaters.updateStyles"
+        },
+        {
+          "source": null,
+          "name": "StyleSheets",
+          "inputType": "Xamarin.Forms.StyleSheets.StyleSheet alist",
+          "defaultValue": "null",
+          "updateCode": "ViewUpdaters.updateStyleSheets"
+        },
         {
           "source": "TabIndex"
         },

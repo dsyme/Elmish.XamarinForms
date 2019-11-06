@@ -62,14 +62,13 @@ type ViewElementHolderGroup(shortName: string, viewElement: ViewElement, items: 
 module BindableHelpers =
     let createOnBindingContextChanged (bindableObject: BindableObject) =
         let mutable holderOpt : IViewElementHolder voption = ValueNone
-        let mutable prevModelOpt : ViewElement voption = ValueNone
 
         let onDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
-            match args.PropertyName, holderOpt, prevModelOpt with
-            | "ViewElement", ValueSome holder, ValueSome prevModel ->
+            match args.PropertyName, holderOpt with
+            | "ViewElement", ValueSome holder ->
                 // TODO consider this AdaptiveToken.Top
-                holder.ViewElement.Update (AdaptiveToken.Top, bindableObject)
-                prevModelOpt <- ValueSome holder.ViewElement
+                // TODO make this a ViewElementUpdater?
+                holder.ViewElement.Updater AdaptiveToken.Top (box bindableObject)
             | _ -> ()
         )
         
@@ -81,13 +80,11 @@ module BindableHelpers =
             match bindableObject.BindingContext with
             | :? IViewElementHolder as newHolder ->
                 newHolder.PropertyChanged.AddHandler onDataPropertyChanged
-                // TODO consider this AdaptiveToken.Top
-                newHolder.ViewElement.UpdateInherited(AdaptiveToken.Top, newHolder.ViewElement, bindableObject)
+                // TODO make this a ViewElementUpdater?
+                newHolder.ViewElement.Updater AdaptiveToken.Top (box bindableObject)
                 holderOpt <- ValueSome newHolder
-                prevModelOpt <- ValueSome newHolder.ViewElement
             | _ ->
                 holderOpt <- ValueNone
-                prevModelOpt <- ValueNone
             
         onBindingContextChanged
         
@@ -116,7 +113,6 @@ type ViewElementDataTemplateSelector() =
             
 type DirectViewElementDataTemplate(viewElement: ViewElement) =
     inherit DataTemplate(Func<obj>((fun () ->
-        // TODO consider this AdaptiveToken.Top
         viewElement.Create(AdaptiveToken.Top))))
         
 /////////////////

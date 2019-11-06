@@ -5,6 +5,7 @@ open System
 open NUnit.Framework
 open FsUnit
 open FSharp.Data.Adaptive
+open Fabulous
 open Fabulous.XamarinForms
 
 module ViewHelpersTests =
