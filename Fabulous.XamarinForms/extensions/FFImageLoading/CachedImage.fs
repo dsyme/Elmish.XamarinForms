@@ -193,13 +193,13 @@ module FFImageLoadingExtension =
             let updater21 = ViewExtensions.PrimitiveUpdater(bitmapOptimizations, (fun (target: CachedImage) v -> target.BitmapOptimizations <- v))
             let updater22 = ViewExtensions.PrimitiveUpdater(invalidateLayoutAfterLoaded, (fun (target: CachedImage) v -> target.InvalidateLayoutAfterLoaded <- v))
             let updater23 = ViewExtensions.PrimitiveUpdater(transformPlaceholders, (fun (target: CachedImage) v -> target.TransformPlaceholders <- v))
-            let updater24 = ViewExtensions.ElementCollectionUpdater(transformations)
-            let updater25 = ViewExtensions.EventUpdater(downloadStarted)
-            let updater26 = ViewExtensions.EventUpdater(downloadProgress)
-            let updater27 = ViewExtensions.EventUpdater(fileWriteFinished)
-            let updater28 = ViewExtensions.EventUpdater(finish)
-            let updater29 = ViewExtensions.EventUpdater(success)
-            let updater30 = ViewExtensions.EventUpdater(error)
+            let updater24 = ViewExtensions.ElementCollectionUpdater(transformations, (fun (target: CachedImage) -> target.Transformations))
+            let updater25 = ViewExtensions.EventUpdater(downloadStarted, (fun (target: CachedImage) -> target.DownloadStarted))
+            let updater26 = ViewExtensions.EventUpdater(downloadProgress, (fun (target: CachedImage) -> target.DownloadProgress))
+            let updater27 = ViewExtensions.EventUpdater(fileWriteFinished, (fun (target: CachedImage) -> target.FileWriteFinished))
+            let updater28 = ViewExtensions.EventUpdater(finish, (fun (target: CachedImage) -> target.Finish))
+            let updater29 = ViewExtensions.EventUpdater(success, (fun (target: CachedImage) -> target.Success))
+            let updater30 = ViewExtensions.EventUpdater(error, (fun (target: CachedImage) -> target.Error))
 
             // The update method
             let update token (target: CachedImage) = 
@@ -227,13 +227,13 @@ module FFImageLoadingExtension =
                 updater21 token target
                 updater22 token target
                 updater23 token target
-                updater24 token target.Transformations
-                updater25 token target.DownloadStarted
-                updater26 token target.DownloadProgress
-                updater27 token target.FileWriteFinished
-                updater28 token target.Finish
-                updater29 token target.Success
-                updater30 token target.Error
+                updater24 token target
+                updater25 token target
+                updater26 token target
+                updater27 token target
+                updater28 token target
+                updater29 token target
+                updater30 token target
                 
             // Create a ViewElement with the instruction to create and update a CachedImage
             ViewElement.Create(CachedImage, update, attribs.Close())

@@ -9,33 +9,22 @@ open FSharp.Data.Adaptive
 [<AutoOpen>]
 module ViewExtensions =
     /// Update an event handler on a target control, given a previous and current view element description
-    let inline EventUpdater(valueOpt: aval<'Delegate> option) = 
-        let mutable prevOpt = ValueNone 
+    let inline EventUpdater(valueOpt: aval<'Delegate> option, getter: 'Target -> IEvent<'Delegate,'Args>) = 
         match valueOpt with 
         | None -> (fun _ _ -> ())
-        | Some v -> 
-            fun token (targetEvent: IEvent<'Delegate,'Args>) -> 
-                let newValue =  v.GetValue(token)
-                match prevOpt with
-                | ValueSome prevValue when identical prevValue newValue -> ()
-                | ValueSome prevValue -> targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newValue)
-                | ValueNone -> targetEvent.AddHandler(newValue)
-                prevOpt <- ValueSome newValue
+        | Some v -> eventUpdater v getter
 
     /// Update a primitive value on a target control, given a previous and current view element description
     let inline PrimitiveUpdater(valueOpt: aval<_> option, setter: 'Target -> 'T -> unit (* , ?defaultValue: 'T *) ) = 
         match valueOpt with 
         | None -> (fun _ _ -> ())
         | Some v -> 
-            let mutable prevOpt = ValueNone 
-            fun token target -> 
-                let newValue = v.GetValue(token)
+            valueUpdater v (fun (target: 'Target) prevOpt curr ->
                 match prevOpt with
-                | ValueSome prevValue when prevValue = newValue -> ()
-                | _ -> setter target newValue
+                | ValueSome prev when prev = curr -> ()
+                | _ -> setter target curr)
                 // TODO: disappearing attributes
                 // setter target (defaultArg defaultValue Unchecked.defaultof<_>)
-                prevOpt <- ValueSome newValue
 
     /// Recursively update a nested view element on a target control, given a previous and current view element description
     let inline ElementUpdater(sourceOpt: ViewElement option, target: 'Target, getter: 'Target -> 'T, setter: 'Target -> 'T -> unit) = 
@@ -48,9 +37,11 @@ module ViewExtensions =
             updater.Update
 
     /// Recursively update a collection of nested view element on a target control, given a previous and current view element description
-    let inline ElementCollectionUpdater(collOpt: ViewElement alist option)  =
+    let inline ElementCollectionUpdater(collOpt: ViewElement alist option, getter: 'Target -> 'TCollection)  =
         match collOpt with 
         | None -> (fun _ _ -> ())
         | Some coll -> 
-            updateCollectionGeneric coll (fun token x -> x.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+            let updater = updateCollectionGeneric coll (fun token x -> x.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+            fun token target -> 
+               updater token (getter target)
 

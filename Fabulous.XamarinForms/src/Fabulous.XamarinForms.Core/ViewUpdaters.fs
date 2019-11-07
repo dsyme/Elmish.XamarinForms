@@ -29,8 +29,7 @@ module ViewUpdaters =
      // TODO: actually use the stored update function....
      // TODO: actually use the attach function....
      // TODO: actually use the canReuse function....
-      let mutable children : IndexList<(AdaptiveToken -> unit) * System.IDisposable>  = IndexList.empty
-      let mutable subNodes : IndexList<'TargetT>  = IndexList.empty
+      let mutable children : IndexList<'TargetT * (AdaptiveToken -> unit) * System.IDisposable>  = IndexList.empty
       //let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
       let reader = coll.GetReader()
       (fun token (targetColl: IList<'TargetT>) -> 
@@ -40,46 +39,52 @@ module ViewUpdaters =
             | Set node ->
                 let child = create token node
                 update token node child
-                let (_, s, r) = IndexList.neighbours idx subNodes
+                let remover =
+                    { new System.IDisposable with
+                        member x.Dispose() =   
+                            match IndexList.tryGetPosition idx children with
+                            | Some i -> 
+                                targetColl.RemoveAt i
+                                children <- IndexList.remove idx children
+                            | None -> 
+                                ()
+                                
+                    }
+                let entry = (child, (fun token -> update token node child), remover)
+                let (_, s, r) = IndexList.neighbours idx children
 
                 match s with
                 | Some(si, _) ->
-                    match IndexList.tryGetPosition si subNodes with
-                    | Some i -> targetColl.[i] <- child
+                    match IndexList.tryGetPosition si children with
+                    | Some i -> 
+                        targetColl.[i] <- child
+                        children <- IndexList.set idx entry children
                     | None -> failwith "inconsistent"
                 | None ->
                     match r with
                     | Some (ri, _) ->
                         match IndexList.tryGetPosition ri children with
-                        | Some i -> targetColl.Insert(i, child)
+                        | Some i -> 
+                            targetColl.Insert(i, child)
+                            children <- IndexList.set idx entry children
                         | None -> failwith "inconsistent"
                     | None ->
                         // no right => last
                         targetColl.Add(child)
-
-                subNodes <- IndexList.set idx child subNodes
-                let remover =
-                    { new System.IDisposable with
-                        member x.Dispose() =   
-                            match IndexList.tryGetPosition idx subNodes with
-                            | Some i -> 
-                                targetColl.RemoveAt i
-                                subNodes <- IndexList.remove idx subNodes
-                            | None -> 
-                                ()
-                                
-                    }
-                children <- IndexList.set idx ((fun token -> update token node child), remover) children
+                        children <- IndexList.set idx entry children
                 //dirtyInner.Add remover |> ignore
 
             | Remove ->
                 match IndexList.tryRemove idx children with
-                | Some (c, rest) ->
+                | Some ((_child,_update,_remove), rest) ->
                     //dirtyInner.Remove c |> ignore
                     //c.Destroy()
+                    match IndexList.tryGetPosition idx children with
+                    | Some i -> 
+                        targetColl.RemoveAt(i)
+                    | None -> () 
                     children <- rest
-                | None ->
-                    ()
+                | None -> ()
         )
                 //attach prevChildOpt newChild targetChild
 
@@ -374,6 +379,20 @@ module ViewUpdaters =
             match prevOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.RemoveHandler(f)
             target.SizeAllocated.AddHandler(curr))
         
+    let eventUpdater (value: aval<'Delegate>) (getter: 'Target -> IEvent<'Delegate,'Args>) = 
+        let mutable prevOpt = ValueNone 
+        fun token (target: 'Target) -> 
+            let newValue =  value.GetValue(token)
+            match prevOpt with
+            | ValueSome prevValue when identical prevValue newValue -> ()
+            | ValueSome prevValue -> 
+                let targetEvent = getter target
+                targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newValue)
+            | ValueNone -> 
+                let targetEvent = getter target
+                targetEvent.AddHandler(newValue)
+            prevOpt <- ValueSome newValue
+
     /// Converts an F# function to a Xamarin.Forms ICommand
     let makeCommand f =
         let ev = Event<_,_>()

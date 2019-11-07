@@ -77,8 +77,8 @@ module SkiaSharpExtension =
 
             let updater1 = ViewExtensions.PrimitiveUpdater(enableTouchEvents, (fun (target: SKCanvasView) v -> target.EnableTouchEvents <- v))
             let updater2 = ViewExtensions.PrimitiveUpdater(ignorePixelScaling, (fun (target: SKCanvasView) v -> target.IgnorePixelScaling <- v))
-            let updater3 = ViewExtensions.EventUpdater(paintSurface)
-            let updater4 = ViewExtensions.EventUpdater(touch)
+            let updater3 = ViewExtensions.EventUpdater(paintSurface, (fun (target: SKCanvasView) -> target.PaintSurface))
+            let updater4 = ViewExtensions.EventUpdater(touch, (fun (target: SKCanvasView) -> target.Touch))
 
             // The create method
             let create () = new SkiaSharp.Views.Forms.SKCanvasView()
@@ -88,8 +88,8 @@ module SkiaSharpExtension =
                 viewUpdater token target
                 updater1 token target
                 updater2 token target
-                updater3 token target.PaintSurface
-                updater4 token target.Touch
+                updater3 token target
+                updater4 token target
 
             // The element
             ViewElement.Create(create, update, attribs.Close())

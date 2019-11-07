@@ -86,7 +86,7 @@ module MapsExtension =
             let updater2 = ViewExtensions.PrimitiveUpdater(isShowingUser, (fun (target: Map) v -> target.IsShowingUser <- v))
             let updater3 = ViewExtensions.PrimitiveUpdater(mapType, (fun (target: Map) v -> target.MapType <- v))
             let updater4 = ViewExtensions.PrimitiveUpdater(hasZoomEnabled, (fun (target: Map) v -> target.HasZoomEnabled <- v))
-            let updater5 = ViewExtensions.ElementCollectionUpdater(pins) //, (fun (target: Map) -> target.Pins))
+            let updater5 = ViewExtensions.ElementCollectionUpdater(pins, (fun (target: Map) -> target.Pins))
             let updater6 = ViewExtensions.PrimitiveUpdater(requestedRegion, (fun (target: Map) v -> target.MoveToRegion(v)))
             let update token (target: Map) = 
                 viewUpdater token target
@@ -94,7 +94,7 @@ module MapsExtension =
                 updater2 token target
                 updater3 token target
                 updater4 token target
-                updater5 token target.Pins
+                updater5 token target
                 updater6 token target
 
             // The element
