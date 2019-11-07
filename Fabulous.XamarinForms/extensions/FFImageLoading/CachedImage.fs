@@ -3,6 +3,7 @@ namespace Fabulous.XamarinForms
 open System
 open FFImageLoading.Forms
 open Fabulous
+open FSharp.Data.Adaptive
 
 module ViewAttributes =
     let CachedImageSourceAttribKey = AttributeKey "CachedImage_Source"
@@ -33,6 +34,7 @@ module ViewAttributes =
     let CachedImageFinishAttribKey = AttributeKey "CachedImage_Finish"
     let CachedImageSuccessAttribKey = AttributeKey "CachedImage_Success"
     let CachedImageErrorAttribKey = AttributeKey "CachedImage_Error"
+
 open ViewAttributes
 
 [<AutoOpen>]
@@ -44,17 +46,17 @@ module FFImageLoadingExtension =
         /// Describes a CachedImage in the view
         // The inline keyword is important for performance
         static member inline CachedImage
-            (?source, ?aspect, ?isOpaque, // Align first 3 parameters with Image
-             ?loadingPlaceholder, ?errorPlaceholder,
-             ?cacheType, ?cacheDuration, ?cacheKeyFactory:ICacheKeyFactory,
-             ?loadingDelay, ?loadingPriority,
-             ?customDataResolver:FFImageLoading.Work.IDataResolver,
-             ?retryCount, ?retryDelay,
-             ?downsampleWidth, ?downsampleHeight, ?downsampleToViewSize, ?downsampleUseDipUnits,
-             ?fadeAnimationEnabled, ?fadeAnimationDuration, ?fadeAnimationForCachedImages,
-             ?bitmapOptimizations, ?invalidateLayoutAfterLoaded,
-             ?transformPlaceholders, ?transformations,
-             ?downloadStarted, ?downloadProgress, ?fileWriteFinished, ?finish, ?success, ?error,
+            (?source: aval<Image>, ?aspect: aval<Xamarin.Forms.Aspect>, ?isOpaque: aval<bool>, // Align first 3 parameters with Image
+             ?loadingPlaceholder: aval<Image>, ?errorPlaceholder: aval<Image>,
+             ?cacheType, ?cacheDuration, ?cacheKeyFactory: aval<ICacheKeyFactory>,
+             ?loadingDelay: aval<_>, ?loadingPriority: aval<_>,
+             ?customDataResolver: aval<FFImageLoading.Work.IDataResolver>,
+             ?retryCount: aval<_>, ?retryDelay: aval<_>,
+             ?downsampleWidth: aval<_>, ?downsampleHeight: aval<_>, ?downsampleToViewSize: aval<_>, ?downsampleUseDipUnits: aval<_>,
+             ?fadeAnimationEnabled: aval<_>, ?fadeAnimationDuration: aval<_>, ?fadeAnimationForCachedImages: aval<_>,
+             ?bitmapOptimizations: aval<_>, ?invalidateLayoutAfterLoaded: aval<_>,
+             ?transformPlaceholders: aval<_>, ?transformations: alist<_>,
+             ?downloadStarted: aval<_>, ?downloadProgress: aval<_>, ?fileWriteFinished: aval<_>, ?finish: aval<_>, ?success: aval<_>, ?error: aval<_>,
              // inherited attributes common to all views
              ?gestureRecognizers, ?horizontalOptions, ?margin, ?verticalOptions, ?anchorX, ?anchorY, ?backgroundColor,
              ?behaviors, ?flowDirection, ?height, ?inputTransparent, ?isEnabled, ?isTabStop, ?isVisible, ?minimumHeight,
@@ -114,6 +116,27 @@ module FFImageLoadingExtension =
                     ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
                     ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
                     
+            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
+                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
+                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, ?resources=resources,
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, ?styles=styles,
+                                       ?styleSheets=styleSheets, ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
+                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
+                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
+                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
+                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
+                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
+                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
+
+            let downloadProgress = downloadProgress |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let downloadStarted = downloadStarted |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let fileWriteFinished = fileWriteFinished |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let finish = finish |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let success = success |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+            let error = error |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+
             // Add our own attributes. They must have unique names which must match the names below.
             match source with None -> () | Some v -> attribs.Add (CachedImageSourceAttribKey, v)
             match aspect with None -> () | Some v -> attribs.Add (AspectAttribKey, v)
@@ -139,80 +162,89 @@ module FFImageLoadingExtension =
             match invalidateLayoutAfterLoaded with None -> () | Some v -> attribs.Add (CachedImageInvalidateLayoutAfterLoadedAttribKey, v)
             match transformPlaceholders with None -> () | Some v -> attribs.Add (CachedImageTransformPlaceholdersAttribKey, v)
             match transformations with None -> () | Some v -> attribs.Add (CachedImageTransformationsAttribKey, v)
-            match downloadProgress with None -> () | Some v -> attribs.Add (CachedImageDownloadProgressAttribKey, EventHandler<_>(fun _ -> v))
-            match downloadStarted with None -> () | Some v -> attribs.Add (CachedImageDownloadStartedAttribKey, EventHandler<_>(fun _ -> v))
-            match fileWriteFinished with None -> () | Some v -> attribs.Add (CachedImageFileWriteFinishedAttribKey, EventHandler<_>(fun _ -> v))
-            match finish with None -> () | Some v -> attribs.Add (CachedImageFinishAttribKey, EventHandler<_>(fun _ -> v))
-            match success with None -> () | Some v -> attribs.Add (CachedImageSuccessAttribKey, EventHandler<_>(fun _ -> v))
-            match error with None -> () | Some v -> attribs.Add (CachedImageErrorAttribKey, EventHandler<_>(fun _ -> v))
+            match downloadProgress with None -> () | Some v -> attribs.Add (CachedImageDownloadProgressAttribKey, v)
+            match downloadStarted with None -> () | Some v -> attribs.Add (CachedImageDownloadStartedAttribKey, v)
+            match fileWriteFinished with None -> () | Some v -> attribs.Add (CachedImageFileWriteFinishedAttribKey, v)
+            match finish with None -> () | Some v -> attribs.Add (CachedImageFinishAttribKey, v)
+            match success with None -> () | Some v -> attribs.Add (CachedImageSuccessAttribKey, v)
+            match error with None -> () | Some v -> attribs.Add (CachedImageErrorAttribKey, v)
     
             // The incremental update method
-            let update (prev: ViewElement voption) (curr: ViewElement) (target: CachedImage) =
-                ViewBuilders.UpdateView(prev, curr, target)
-                curr.UpdatePrimitive (prev, target, CachedImageSourceAttribKey,
-                    fun target source -> target.Source <- ViewConverters.convertFabulousImageToXamarinFormsImageSource source)
-                curr.UpdatePrimitive (prev, target, AspectAttribKey,
-                    fun target aspect -> target.Aspect <- aspect)
-                curr.UpdatePrimitive (prev, target, IsOpaqueAttribKey,
-                    fun target isOpaque -> target.IsOpaque <- isOpaque)
-                curr.UpdatePrimitive (prev, target, CachedImageLoadingPlaceholderAttribKey,
-                    fun target loading -> target.LoadingPlaceholder <- ViewConverters.convertFabulousImageToXamarinFormsImageSource loading)
-                curr.UpdatePrimitive (prev, target, CachedImageErrorPlaceholderAttribKey,
-                    fun target error -> target.ErrorPlaceholder <- ViewConverters.convertFabulousImageToXamarinFormsImageSource error)
-                curr.UpdatePrimitive (prev, target, CachedImageCacheTypeAttribKey,
-                    fun target cacheType -> target.CacheType <- Option.toNullable cacheType)
-                curr.UpdatePrimitive (prev, target, CachedImageCacheDurationAttribKey,
-                    fun target cacheDuration -> target.CacheDuration <- Option.toNullable cacheDuration)
-                curr.UpdatePrimitive (prev, target, CachedImageCacheKeyFactoryAttribKey,
-                    fun target keyFactory -> target.CacheKeyFactory <- keyFactory)
-                curr.UpdatePrimitive (prev, target, CachedImageLoadingDelayAttribKey,
-                    fun target delay -> target.LoadingDelay <- Option.toNullable delay)
-                curr.UpdatePrimitive (prev, target, CachedImageLoadingPriorityAttribKey,
-                    fun target priority -> target.LoadingPriority <- priority)
-                curr.UpdatePrimitive (prev, target, CachedImageCustomDataResolverAttribKey,
-                    fun target resolver -> target.CustomDataResolver <- resolver)
-                curr.UpdatePrimitive (prev, target, CachedImageRetryCountAttribKey,
-                    fun target retryCount -> target.RetryCount <- retryCount)
-                curr.UpdatePrimitive (prev, target, CachedImageRetryDelayAttribKey,
-                    fun target delay -> target.RetryDelay <- delay)
-                curr.UpdatePrimitive (prev, target, CachedImageDownsampleWidthAttribKey,
-                    fun target width -> target.DownsampleWidth <- width)
-                curr.UpdatePrimitive (prev, target, CachedImageDownsampleHeightAttribKey,
-                    fun target height -> target.DownsampleHeight <- height)
-                curr.UpdatePrimitive (prev, target, CachedImageDownsampleToViewSizeAttribKey,
-                    fun target downsample -> target.DownsampleToViewSize <- downsample)
-                curr.UpdatePrimitive (prev, target, CachedImageDownsampleUseDipUnitsAttribKey,
-                    fun target dip -> target.DownsampleUseDipUnits <- dip)
-                curr.UpdatePrimitive (prev, target, CachedImageFadeAnimationEnabledAttribKey,
-                    fun target fade -> target.FadeAnimationEnabled <- Option.toNullable fade)
-                curr.UpdatePrimitive (prev, target, CachedImageFadeAnimationDurationAttribKey,
-                    fun target fadeDuration -> target.FadeAnimationDuration <- Option.toNullable fadeDuration)
-                curr.UpdatePrimitive (prev, target, CachedImageFadeAnimationForCachedImagesAttribKey,
-                    fun target fadeCached -> target.FadeAnimationForCachedImages <- Option.toNullable fadeCached)
-                curr.UpdatePrimitive (prev, target, CachedImageBitmapOptimizationsAttribKey,
-                    fun target optimize -> target.BitmapOptimizations <- Option.toNullable optimize)
-                curr.UpdatePrimitive (prev, target, CachedImageInvalidateLayoutAfterLoadedAttribKey,
-                    fun target invalidate -> target.InvalidateLayoutAfterLoaded <- Option.toNullable invalidate)
-                curr.UpdatePrimitive (prev, target, CachedImageTransformPlaceholdersAttribKey,
-                    fun target transform -> target.TransformPlaceholders <- Option.toNullable transform)
-                curr.UpdateElementCollection (prev, CachedImageTransformationsAttribKey, target.Transformations)
-                curr.UpdateEvent (prev, CachedImageDownloadStartedAttribKey, target.DownloadStarted)
-                curr.UpdateEvent (prev, CachedImageDownloadProgressAttribKey, target.DownloadProgress)
-                curr.UpdateEvent (prev, CachedImageFileWriteFinishedAttribKey, target.FileWriteFinished)
-                curr.UpdateEvent (prev, CachedImageFinishAttribKey, target.Finish)
-                curr.UpdateEvent (prev, CachedImageSuccessAttribKey, target.Success)
-                curr.UpdateEvent (prev, CachedImageErrorAttribKey, target.Error)
+            let updater1 = ViewExtensions.PrimitiveUpdater(source, (fun (target: CachedImage) v -> target.Source <- ViewConverters.convertFabulousImageToXamarinFormsImageSource v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(aspect, (fun (target: CachedImage) v -> target.Aspect <- v))
+            let updater3 = ViewExtensions.PrimitiveUpdater(isOpaque, (fun (target: CachedImage) v -> target.IsOpaque <- v))
+            let updater4 = ViewExtensions.PrimitiveUpdater(loadingPlaceholder, (fun (target: CachedImage) v -> target.LoadingPlaceholder <- ViewConverters.convertFabulousImageToXamarinFormsImageSource v))
+            let updater5 = ViewExtensions.PrimitiveUpdater(errorPlaceholder, (fun (target: CachedImage) v -> target.ErrorPlaceholder <- ViewConverters.convertFabulousImageToXamarinFormsImageSource v))
+            let updater6 = ViewExtensions.PrimitiveUpdater(cacheType, (fun (target: CachedImage) v -> target.CacheType <- Option.toNullable v))
+            let updater7 = ViewExtensions.PrimitiveUpdater(cacheDuration, (fun (target: CachedImage) v -> target.CacheDuration <- Option.toNullable v))
+            let updater8 = ViewExtensions.PrimitiveUpdater(cacheKeyFactory, (fun (target: CachedImage) v -> target.CacheKeyFactory <- v))
+            let updater9 = ViewExtensions.PrimitiveUpdater(loadingDelay, (fun (target: CachedImage) v -> target.LoadingDelay <- Option.toNullable v))
+            let updater10 = ViewExtensions.PrimitiveUpdater(loadingPriority, (fun (target: CachedImage) v -> target.LoadingPriority <- v))
+            let updater11 = ViewExtensions.PrimitiveUpdater(customDataResolver, (fun (target: CachedImage) v -> target.CustomDataResolver <- v))
+            let updater12 = ViewExtensions.PrimitiveUpdater(retryCount, (fun (target: CachedImage) v -> target.RetryCount <- v))
+            let updater13 = ViewExtensions.PrimitiveUpdater(retryDelay, (fun (target: CachedImage) v -> target.RetryDelay <- v))
+            let updater14 = ViewExtensions.PrimitiveUpdater(downsampleWidth, (fun (target: CachedImage) v -> target.DownsampleWidth <- v))
+            let updater15 = ViewExtensions.PrimitiveUpdater(downsampleHeight, (fun (target: CachedImage) v -> target.DownsampleHeight <- v))
+            let updater16 = ViewExtensions.PrimitiveUpdater(downsampleToViewSize, (fun (target: CachedImage) v -> target.DownsampleToViewSize <- v))
+            let updater17 = ViewExtensions.PrimitiveUpdater(downsampleUseDipUnits, (fun (target: CachedImage) v -> target.DownsampleUseDipUnits <- v))
+            let updater18 = ViewExtensions.PrimitiveUpdater(fadeAnimationEnabled, (fun (target: CachedImage) v -> target.FadeAnimationEnabled <- v))
+            let updater19 = ViewExtensions.PrimitiveUpdater(fadeAnimationDuration, (fun (target: CachedImage) v -> target.FadeAnimationDuration <- v))
+            let updater20 = ViewExtensions.PrimitiveUpdater(fadeAnimationForCachedImages, (fun (target: CachedImage) v -> target.FadeAnimationForCachedImages <- v))
+            let updater21 = ViewExtensions.PrimitiveUpdater(bitmapOptimizations, (fun (target: CachedImage) v -> target.BitmapOptimizations <- v))
+            let updater22 = ViewExtensions.PrimitiveUpdater(invalidateLayoutAfterLoaded, (fun (target: CachedImage) v -> target.InvalidateLayoutAfterLoaded <- v))
+            let updater23 = ViewExtensions.PrimitiveUpdater(transformPlaceholders, (fun (target: CachedImage) v -> target.TransformPlaceholders <- v))
+            let updater24 = ViewExtensions.ElementCollectionUpdater(transformations)
+            let updater25 = ViewExtensions.EventUpdater(downloadStarted)
+            let updater26 = ViewExtensions.EventUpdater(downloadProgress)
+            let updater27 = ViewExtensions.EventUpdater(fileWriteFinished)
+            let updater28 = ViewExtensions.EventUpdater(finish)
+            let updater29 = ViewExtensions.EventUpdater(success)
+            let updater30 = ViewExtensions.EventUpdater(error)
+
+            // The update method
+            let update token (target: CachedImage) = 
+                viewUpdater token target
+                updater1 token target
+                updater2 token target
+                updater3 token target
+                updater4 token target
+                updater5 token target
+                updater6 token target
+                updater7 token target
+                updater8 token target
+                updater9 token target
+                updater10 token target
+                updater11 token target
+                updater12 token target
+                updater13 token target
+                updater14 token target
+                updater15 token target
+                updater16 token target
+                updater17 token target
+                updater18 token target
+                updater19 token target
+                updater20 token target
+                updater21 token target
+                updater22 token target
+                updater23 token target
+                updater24 token target.Transformations
+                updater25 token target.DownloadStarted
+                updater26 token target.DownloadProgress
+                updater27 token target.FileWriteFinished
+                updater28 token target.Finish
+                updater29 token target.Success
+                updater30 token target.Error
                 
             // Create a ViewElement with the instruction to create and update a CachedImage
-            ViewElement.Create(CachedImage, update, attribs)
+            ViewElement.Create(CachedImage, update, attribs.Close())
             
 #if DEBUG
     let sample =
         View.CachedImage(
-            source = Path "path/to/image.png",
-            loadingPlaceholder = Path "path/to/loading-placeholder.png",
-            errorPlaceholder = Path "path/to/error-placeholder.png",
-            height = 600.,
-            width = 600.
+            source = c (Path "path/to/image.png"),
+            loadingPlaceholder = c (Path "path/to/loading-placeholder.png"),
+            errorPlaceholder = c (Path "path/to/error-placeholder.png"),
+            height = c 600.,
+            width = c 600.
         )
 #endif
