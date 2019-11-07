@@ -58,7 +58,9 @@ module Preparer =
                 |> Option.map (fun p -> p.UniqueName))
             
             { Name = e.Name
+              ShortName = e.ShortName
               UniqueName = e.UniqueName
+              ConvertModelToValue = e.ConvertModelToValue
               RelatedProperties = relatedProperties }
         )
         

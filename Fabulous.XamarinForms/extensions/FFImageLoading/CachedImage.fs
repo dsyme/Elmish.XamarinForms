@@ -130,13 +130,6 @@ module FFImageLoadingExtension =
                                        ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
                                        ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
 
-            let downloadProgress = downloadProgress |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-            let downloadStarted = downloadStarted |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-            let fileWriteFinished = fileWriteFinished |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-            let finish = finish |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-            let success = success |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-            let error = error |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
-
             // Add our own attributes. They must have unique names which must match the names below.
             match source with None -> () | Some v -> attribs.Add (CachedImageSourceAttribKey, v)
             match aspect with None -> () | Some v -> attribs.Add (AspectAttribKey, v)

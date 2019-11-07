@@ -117,15 +117,15 @@ module Optimizer =
     /// Optimize events by storing them as EventHandlers
     module OptimizeEvents =
         let private canBeOptimized (boundEvent: BoundEvent) =
-            boundEvent.ConvertInputToModel = ""
+            boundEvent.ConvertModelToValue = ""
         
         let private optimizeBoundEvent (boundEvent: BoundEvent) =
             { boundEvent with
-                  ConvertInputToModel =
+                  ConvertModelToValue =
                       match boundEvent.ModelType with
-                      | "System.EventHandler" -> "(fun f -> System.EventHandler(fun _sender _args -> f()))"
-                      | _ when not (System.String.IsNullOrWhiteSpace(boundEvent.EventArgsType)) -> sprintf "(fun f -> System.EventHandler<%s>(fun _sender _args -> f _args))" boundEvent.EventArgsType
-                      | _ -> boundEvent.ConvertInputToModel }
+                      | "System.EventHandler" -> "makeEventHandlerNonGeneric"
+                      | _ when not (System.String.IsNullOrWhiteSpace(boundEvent.EventArgsType)) -> "makeEventHandler"
+                      | _ -> boundEvent.ConvertModelToValue }
             
         let apply = eventOptimizer (fun _ evt -> canBeOptimized evt) (fun _ evt -> [| optimizeBoundEvent evt |])
             

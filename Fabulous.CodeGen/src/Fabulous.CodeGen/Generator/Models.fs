@@ -37,7 +37,9 @@ module Models =
     
     type UpdateEvent =
         { Name: string
+          ShortName: string
           UniqueName: string
+          ConvertModelToValue: string
           RelatedProperties: string array }
         
     type UpdateAttachedProperty =

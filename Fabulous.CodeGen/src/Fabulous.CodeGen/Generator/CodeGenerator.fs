@@ -154,23 +154,6 @@ module CodeGenerator =
 *)        
                     w.printfn "                        (fun _ _ _ -> ())"
             
-            // Unsubscribe previous event handlers
-            if data.Events.Length > 0 then
-                w.printfn "        // TODO: Unsubscribe previous event handlers"
-                (*
-                for e in data.Events do
-                    let relatedProperties =
-                        e.RelatedProperties
-                        |> Array.map (fun p -> sprintf "(identical prev%sOpt curr)" p p)
-                        |> Array.fold (fun a b -> a + " && " + b) ""
-
-                    w.printfn "        let shouldUpdate%s = not ((identical prev%sOpt curr)%s)" e.UniqueName e.UniqueName e.UniqueName relatedProperties
-                    w.printfn "        if shouldUpdate%s then" e.UniqueName
-                    w.printfn "            match prev%sOpt with" e.UniqueName
-                    w.printfn "            | ValueSome prevValue -> target.%s.RemoveHandler(prevValue)" e.Name
-                    w.printfn "            | ValueNone -> ()"
-                    *)
-
             // Update properties
             if data.Properties.Length > 0 then
                 w.printfn "        // Update properties"
@@ -220,16 +203,27 @@ module CodeGenerator =
                     | _ ->
                         w.printfn "                    %sUpdater token target)" p.ShortName
 
-            // Subscribe event handlers
+            // Adjust event handlers
             if data.Events.Length > 0 then
-                w.printfn "        // TODO: Subscribe new event handlers"
-(*
+                w.printfn "        // Update events"
                 for e in data.Events do
-                    w.printfn "        if shouldUpdate%s then" e.UniqueName
-                    w.printfn "            match curr with" e.UniqueName
-                    w.printfn "            | ValueSome currValue -> target.%s.AddHandler(currValue)" e.Name
-                    w.printfn "            | ValueNone -> ()"
-*)
+                    // TODO: restore this
+                    //let relatedProperties =
+                    //    e.RelatedProperties
+                    //    |> Array.map (fun p -> sprintf "(identical prev%sOpt curr)" p p)
+                    //    |> Array.fold (fun a b -> a + " && " + b) ""
+                    w.printfn "        let updater ="
+                    w.printfn "            match %s with" e.ShortName
+                    w.printfn "            | None -> updater"
+                    w.printfn "            | Some %s ->" e.ShortName 
+                    if not (String.IsNullOrWhiteSpace(e.ConvertModelToValue)) then
+                        w.printfn "                let %sUpdater = eventUpdater %s %s (fun (target: %s) -> target.%s)" e.ShortName e.ShortName e.ConvertModelToValue data.FullName e.Name
+                    else 
+                        w.printfn "                let %sUpdater = eventUpdater %s makeEventHandler (fun (target: %s) -> target.%s)" e.ShortName e.ShortName data.FullName e.Name
+                    w.printfn "                (fun token (target: %s) -> " data.FullName
+                    w.printfn "                    updater token target"
+                    w.printfn "                    %sUpdater token target)" e.ShortName
+
             w.printfn "        updater"
         | _ -> 
             w.printfn "        (fun _ _ -> ())"

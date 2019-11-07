@@ -5,14 +5,15 @@ open Fabulous
 open Fabulous.XamarinForms.ViewHelpers
 open Fabulous.XamarinForms.ViewUpdaters
 open FSharp.Data.Adaptive
+open System
 
 [<AutoOpen>]
 module ViewExtensions =
     /// Update an event handler on a target control, given a previous and current view element description
-    let inline EventUpdater(valueOpt: aval<'Delegate> option, getter: 'Target -> IEvent<'Delegate,'Args>) = 
+    let inline EventUpdater(valueOpt: aval<('Args -> unit)> option, getter: 'Target -> IEvent<'Delegate,'Args>, makeDelegate) = 
         match valueOpt with 
         | None -> (fun _ _ -> ())
-        | Some v -> eventUpdater v getter
+        | Some v -> eventUpdater v makeDelegate getter
 
     /// Update a primitive value on a target control, given a previous and current view element description
     let inline PrimitiveUpdater(valueOpt: aval<_> option, setter: 'Target -> 'T -> unit (* , ?defaultValue: 'T *) ) = 

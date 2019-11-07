@@ -2,6 +2,7 @@
 namespace Fabulous.XamarinForms
 
 open Fabulous
+open System
 open System.Collections.ObjectModel
 open System.Collections.Generic
 open Xamarin.Forms
@@ -29,8 +30,8 @@ module ViewUpdaters =
      // TODO: actually use the stored update function....
      // TODO: actually use the attach function....
      // TODO: actually use the canReuse function....
-      let mutable children : IndexList<'TargetT * (AdaptiveToken -> unit) * System.IDisposable>  = IndexList.empty
-      //let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
+      let mutable children : IndexList<'TargetT * (AdaptiveToken -> unit) * IDisposable>  = IndexList.empty
+      //let mutable dirtyInner = Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
       let reader = coll.GetReader()
       (fun token (targetColl: IList<'TargetT>) -> 
         let changes = reader.GetChanges(token) 
@@ -40,7 +41,7 @@ module ViewUpdaters =
                 let child = create token node
                 update token node child
                 let remover =
-                    { new System.IDisposable with
+                    { new IDisposable with
                         member x.Dispose() =   
                             match IndexList.tryGetPosition idx children with
                             | Some i -> 
@@ -94,7 +95,7 @@ module ViewUpdaters =
            (attach: _ -> 'T -> 'TargetT -> unit) =
         let mutable children : IndexList<(AdaptiveToken -> unit)>  = IndexList.empty
         let mutable subNodes : IndexList<'T>  = IndexList.empty
-        let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
+        let mutable dirtyInner = Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
         let reader = coll.GetReader()
         fun token (targetColl: IList<'TargetT>) ->
             ()
@@ -379,18 +380,21 @@ module ViewUpdaters =
             match prevOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.RemoveHandler(f)
             target.SizeAllocated.AddHandler(curr))
         
-    let eventUpdater (value: aval<'Delegate>) (getter: 'Target -> IEvent<'Delegate,'Args>) = 
+    let makeEventHandler f = EventHandler<_>(fun _sender args -> f args)
+    let makeEventHandlerNonGeneric f = EventHandler(fun _sender _args -> f())
+
+    let eventUpdater (value: aval<('Args -> unit)>) makeDelegate (getter: 'Target -> IEvent<'Delegate,'Args>) = 
         let mutable prevOpt = ValueNone 
         fun token (target: 'Target) -> 
-            let newValue =  value.GetValue(token)
+            let newValue =  value.GetValue(token) 
+            let newDelegate =  makeDelegate newValue
             match prevOpt with
-            | ValueSome prevValue when identical prevValue newValue -> ()
             | ValueSome prevValue -> 
                 let targetEvent = getter target
-                targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newValue)
+                targetEvent.RemoveHandler(newDelegate); targetEvent.AddHandler(newDelegate)
             | ValueNone -> 
                 let targetEvent = getter target
-                targetEvent.AddHandler(newValue)
+                targetEvent.AddHandler(newDelegate)
             prevOpt <- ValueSome newValue
 
     /// Converts an F# function to a Xamarin.Forms ICommand
