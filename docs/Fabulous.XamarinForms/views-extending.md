@@ -11,6 +11,7 @@ is typically needed to define a corresponding view element using the incremental
 
 The following additional view elements are available as pre-built nuget libraries:
 
+* [FFImageLoading](views-ffimageloading.md) for cached images, as opposed to the built-in Image view that wastes time and memory
 * [Maps](views-maps.md) for platform maps
 * [SkiaSharp](views-skiasharp.md) for 2D graphics
 * [OxyPlot](views-oxyplot.md) for charting (in preparation)

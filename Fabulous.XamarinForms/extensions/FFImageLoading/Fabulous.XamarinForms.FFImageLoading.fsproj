@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\SourceLink.props" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <NoWarn>NU1701;NU5104</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>Fabulous.XamarinForms.FFImageLoading</PackageId>
+    <Description>Fabulous extension for FFImageLoading</Description>
+    <PackageTags>xamarin;forms;xamarin.forms;mac;windows;android;ios;bitmap;image;cache;webp;quick;easy;lru;load;loading;save</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="CachedImage.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="Xamarin.FFImageLoading.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\..\Packages.targets" />
+</Project>

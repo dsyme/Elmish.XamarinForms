@@ -1,3 +1,21 @@
+#### 0.50.2
+
+* [Fabulous.XamarinForms] Fixed an issue where attached properties could be not applied correctly (https://github.com/fsprojects/Fabulous/pull/592)
+
+#### 0.50.1
+
+* [Fabulous.XamarinForms] [Extensions] Added an extension for FFImageLoading (https://github.com/fsprojects/Fabulous/pull/581)
+* [Fabulous.XamarinForms] Fixed an issue where an InvalidCastException could occur (https://github.com/fsprojects/Fabulous/pull/589)
+
+#### 0.50.0
+
+BREAKING CHANGES: This release introduces many small breaking changes to provide better type-safety and reducing update calls when using events.
+Please read the migration guide to know how to update to this new version (https://fsprojects.github.io/Fabulous/Fabulous.XamarinForms/migration-guide-to-0.50.html)
+
+* [Fabulous.XamarinForms] Changed the View API to provide better type-safety for properties (see migration guide for more information)
+* [Fabulous.XamarinForms] Changed the behavior of event handlers. Events will no longer be triggered by Fabulous.XamarinForms when it's incrementally updating the properties (e.g. changing Text triggering TextChanged). This was changed to prevent unnecessary calls to the update function and in some cases an infinite loop on Android
+* [Fabulous.CodeGen] Introduced Fabulous.CodeGen, a new library, to help build your own library for your favorite framework using the MVU architecture with Fabulous. More documentation to come.
+
 #### 0.50.0-alpha.7
 
 This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.  

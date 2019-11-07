@@ -24,6 +24,7 @@ type RootPageKind =
     | CollectionView
     | CarouselView
     | Effects
+    | RefreshView
 
 type Model = 
   { RootPageKind: RootPageKind
@@ -64,6 +65,8 @@ type Model =
     AnimatedScroll: AnimationKind
     IsScrollingWithFabulous: bool
     IsScrolling: bool
+    // For RefreshView
+    RefreshViewIsRefreshing: bool
     }
 
 type Msg = 
@@ -122,6 +125,9 @@ type Msg =
     | Scrolled of float * float
     // For ShellView page demo
     //| ShowShell
+    // For RefreshView
+    | RefreshViewRefreshing
+    | RefreshViewRefreshDone
 
 [<AutoOpen>]
 module MyExtension = 
@@ -198,7 +204,8 @@ module App =
           ScrollPosition = 0.0, 0.0
           AnimatedScroll = Animated
           IsScrollingWithFabulous = false
-          IsScrolling = false }, Cmd.none
+          IsScrolling = false
+          RefreshViewIsRefreshing = false }, Cmd.none
 
     let getWebData =
         async {
@@ -228,6 +235,12 @@ module App =
                 return Some (Scrolled (x, y))
         } |> Cmd.ofAsyncMsgOption
 
+    let refreshAsync () =
+        (async {
+            do! Async.Sleep 2000
+            return RefreshViewRefreshDone
+        }) |> Cmd.ofAsyncMsg        
+    
     let update msg model =
         match msg with
         | Increment -> { model with Count = model.Count + 1 }, Cmd.none
@@ -324,7 +337,12 @@ module App =
         | ScrollXamarinForms (x, y, animated) ->
             { model with IsScrolling = true; IsScrollingWithFabulous = false; ScrollPosition = (x, y); AnimatedScroll = animated }, scrollWithXFAsync (x, y, animated)
         | Scrolled (x, y) ->
-            { model with ScrollPosition = (x, y); IsScrolling = false; IsScrollingWithFabulous = false }, Cmd.none 
+            { model with ScrollPosition = (x, y); IsScrolling = false; IsScrollingWithFabulous = false }, Cmd.none
+        // For RefreshView
+        | RefreshViewRefreshing ->
+            { model with RefreshViewIsRefreshing = true }, refreshAsync ()
+        | RefreshViewRefreshDone ->
+            { model with RefreshViewIsRefreshing = false }, Cmd.none
 
     let pickerItems = 
         [ ("Aqua", Color.Aqua); ("Black", Color.Black);
@@ -335,6 +353,27 @@ module App =
            ("Purple", Color.Purple); ("Red", Color.Red);
            ("Silver", Color.Silver); ("Teal", Color.Teal);
            ("White", Color.White); ("Yellow", Color.Yellow ) ]
+        
+    let updateViewEffects () =
+        View.ScrollingContentPage("Effects", [
+            View.Label("Samples available on iOS and Android only")
+            
+            View.Label("Focus effect (no properties)", fontSize=FontSize 5., margin=Thickness (0., 30., 0., 0.))
+            View.Label("Classic Entry field", margin=Thickness (0., 15., 0., 0.))
+            View.Entry()
+            View.Label("Entry field with Focus effect", margin=Thickness (0., 15., 0., 0.))
+            View.Entry(effects = [
+                View.Effect("FabulousXamarinForms.FocusEffect")
+            ])
+            
+            View.Label("Shadow effect (with properties)", fontSize=FontSize 15., margin=Thickness (0., 30., 0., 0.))
+            View.Label("Classic Label field", margin=Thickness (0., 15., 0., 0.))
+            View.Label("This is a label without shadows")
+            View.Label("Label field with Shadow effect", margin=Thickness (0., 15., 0., 0.))
+            View.Label("This is a label with shadows", effects = [
+                View.ShadowEffect(color=Color.Red, radius=15., distanceX=10., distanceY=10.)
+            ])
+        ])
 
     let view (model: Model) dispatch =
 
@@ -367,6 +406,7 @@ module App =
                                      View.Button(text = "CollectionView", command=(fun () -> dispatch (SetRootPageKind CollectionView)))
                                      View.Button(text = "CarouselView", command=(fun () -> dispatch (SetRootPageKind CarouselView)))
                                      View.Button(text = "Effects", command=(fun () -> dispatch (SetRootPageKind Effects)))
+                                     View.Button(text = "RefreshView", command=(fun () -> dispatch (SetRootPageKind RefreshView)))
                                 ])))
                      .ToolbarItems([View.ToolbarItem(text="about", command=(fun () -> dispatch (SetRootPageKind (Choice true))))] )
                      .TitleView(View.StackLayout(orientation=StackOrientation.Horizontal, children=[
@@ -1033,25 +1073,22 @@ module App =
                                         ]))
                 
         | Effects ->
-            View.ScrollingContentPage("Effects", [
-                View.Label("Samples available on iOS and Android only")
-                
-                View.Label("Focus effect (no properties)", fontSize=FontSize 5., margin=Thickness (0., 30., 0., 0.))
-                View.Label("Classic Entry field", margin=Thickness (0., 15., 0., 0.))
-                View.Entry()
-                View.Label("Entry field with Focus effect", margin=Thickness (0., 15., 0., 0.))
-                View.Entry(effects = [
-                    View.Effect("FabulousXamarinForms.FocusEffect")
-                ])
-                
-                View.Label("Shadow effect (with properties)", fontSize=FontSize 15., margin=Thickness (0., 30., 0., 0.))
-                View.Label("Classic Label field", margin=Thickness (0., 15., 0., 0.))
-                View.Label("This is a label without shadows")
-                View.Label("Label field with Shadow effect", margin=Thickness (0., 15., 0., 0.))
-                View.Label("This is a label with shadows", effects = [
-                    View.ShadowEffect(color=Color.Red, radius=15., distanceX=10., distanceY=10.)
-                ])
-            ])
+            updateViewEffects ()
+            
+        | RefreshView ->
+            View.ContentPage(
+                View.RefreshView(
+                    isRefreshing = model.RefreshViewIsRefreshing,
+                    refreshing = (fun () -> dispatch RefreshViewRefreshing),
+                    content = View.ScrollView(
+                        View.BoxView(
+                            height = 150.,
+                            width = 150.,
+                            color = if model.RefreshViewIsRefreshing then Color.Red else Color.Blue
+                        )
+                    )
+                )
+            )
 
     
 type App () as app = 

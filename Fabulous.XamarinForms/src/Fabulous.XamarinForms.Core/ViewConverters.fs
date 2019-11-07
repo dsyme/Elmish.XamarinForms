@@ -123,19 +123,19 @@ module ViewConverters =
         
     let makeEntryCompletedEventHandler (f: string -> unit) =
         System.EventHandler(fun sender _args ->
-            let entryCell = sender :?> Xamarin.Forms.Entry
-            f entryCell.Text
+            let entry = sender :?> Xamarin.Forms.Entry
+            f entry.Text
         )
         
     let makeEditorCompletedEventHandler (f: string -> unit) =
         System.EventHandler(fun sender _args ->
-            let entryCell = sender :?> Xamarin.Forms.Entry
-            f entryCell.Text
+            let editor = sender :?> Xamarin.Forms.Editor
+            f editor.Text
         )
                 
     let makePickerSelectedIndexChangedEventHandler f =
         System.EventHandler(fun sender args ->
-            let picker = (sender :?> Xamarin.Forms.Picker)
+            let picker = sender :?> Xamarin.Forms.Picker
             let selectedItem = (picker.SelectedItem |> Option.ofObj |> Option.map string)
             f (picker.SelectedIndex, selectedItem)
         )

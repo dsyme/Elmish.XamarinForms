@@ -1,12 +1,10 @@
 <Project>
   <!-- NuGet Specs -->
   <PropertyGroup>
-    <Version>0.50.0</Version>
+    <Version>0.50.2</Version>
     <Authors>Fabulous Contributors</Authors>
-    <PackageVersion>0.50.0-alpha.7</PackageVersion>
-    <PackageReleaseNotes>This is an alpha release of an ongoing work with multiple breaking changes that might not be in the final version.
-Please only use this version with a backup of your solution.
-[Fabulous.XamarinForms] Fix issue for NavigationPage reuse</PackageReleaseNotes>
+    <PackageVersion>0.50.2</PackageVersion>
+    <PackageReleaseNotes>[Fabulous.XamarinForms] Fixed an issue where attached properties could be not applied correctly (https://github.com/fsprojects/Fabulous/pull/592)</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/fsprojects/Fabulous</PackageProjectUrl>

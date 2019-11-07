@@ -127,11 +127,22 @@ module ViewUpdaters =
         let reader = coll.GetReader()
         fun token (targetColl: IList<'TargetT>) ->
             ()
-            //for i in 0 .. coll.Length-1 do
-            //    let targetChild = targetColl.[i]
-            //    let newChild = coll.[i]
-            //    let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < coll.Length -> ValueSome coll.[i] | _ -> ValueNone
-            //    attach prevChildOpt newChild targetChild
+
+(*
+            for i in 0 .. coll.Length-1 do
+                let targetChild = targetColl.[i]
+                let newChild = coll.[i]
+                let prevChildOpt =
+                    match prevCollOpt with
+                    | ValueSome coll when i < coll.Length ->
+                        let child = coll.[i]
+                        if not (identical child newChild) && canReuseView child newChild then
+                            ValueSome child
+                        else
+                            ValueNone
+                    | _ -> ValueNone
+                attach prevChildOpt newChild targetChild
+*)
 
     /// Update the attached properties for each item in Layout<T>.Children
     let updateAttachedPropertiesForLayoutOfT coll attach =

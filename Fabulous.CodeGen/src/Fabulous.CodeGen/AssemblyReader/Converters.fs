@@ -2,6 +2,7 @@
 namespace Fabulous.CodeGen.AssemblyReader
 
 open System
+open System.Globalization
 
 module Converters =
     /// Converts the type name to another type name (e.g. System.Boolean => bool)
@@ -26,8 +27,8 @@ module Converters =
         | "System.Collections.IList" -> "obj alist"
         | _ -> typeName
         
-    let inline numberWithDecimalsToString literal v =
-        let str = v.ToString()
+    let inline numberWithDecimalsToString literal (v: 'T when 'T :> IConvertible) =
+        let str = v.ToString(CultureInfo.InvariantCulture)
         let separator = if not (str.Contains(".")) then "." else ""
         str + separator + literal
         
@@ -37,15 +38,15 @@ module Converters =
         | null -> Some "null"
         | :? bool as b when b = true -> Some "true"
         | :? bool as b when b = false -> Some "false"
-        | :? sbyte as sbyte -> Some (sbyte.ToString() + "y")
-        | :? byte as byte -> Some (byte.ToString() + "uy")
-        | :? int16 as int16 -> Some (int16.ToString() + "s")
-        | :? uint16 as uint16 -> Some (uint16.ToString() + "us")
-        | :? int as int -> Some (int.ToString())
-        | :? uint32 as uint32 -> Some (uint32.ToString() + "u")
-        | :? int64 as int64 -> Some (int64.ToString() + "L")
-        | :? uint64 as uint64 -> Some (uint64.ToString() + "UL")
-        | :? bigint as bigint -> Some (bigint.ToString() + "I")
+        | :? sbyte as sbyte -> Some (sbyte.ToString(CultureInfo.InvariantCulture) + "y")
+        | :? byte as byte -> Some (byte.ToString(CultureInfo.InvariantCulture) + "uy")
+        | :? int16 as int16 -> Some (int16.ToString(CultureInfo.InvariantCulture) + "s")
+        | :? uint16 as uint16 -> Some (uint16.ToString(CultureInfo.InvariantCulture) + "us")
+        | :? int as int -> Some (int.ToString(CultureInfo.InvariantCulture))
+        | :? uint32 as uint32 -> Some (uint32.ToString(CultureInfo.InvariantCulture) + "u")
+        | :? int64 as int64 -> Some (int64.ToString(CultureInfo.InvariantCulture) + "L")
+        | :? uint64 as uint64 -> Some (uint64.ToString(CultureInfo.InvariantCulture) + "UL")
+        | :? bigint as bigint -> Some (bigint.ToString(CultureInfo.InvariantCulture) + "I")
         | :? float as float when Double.IsNaN(float) -> Some "System.Double.NaN"
         | :? double as double when Double.IsNaN(double) -> Some "System.Double.NaN"
         | :? float32 as float32 when Single.IsNaN(float32) -> Some "System.Single.NaN"

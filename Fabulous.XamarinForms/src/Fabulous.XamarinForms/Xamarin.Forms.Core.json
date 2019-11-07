@@ -221,6 +221,9 @@
         },
         {
           "source": "Text"
+        },
+        {
+          "source": "VerticalTextAlignment"
         }
       ],
       "events": [
@@ -361,6 +364,9 @@
     {
       "type": "Xamarin.Forms.Span",
       "properties": [
+        {
+          "source": "CharacterSpacing"
+        },
         {
           "source": "BackgroundColor"
         },
@@ -1230,6 +1236,9 @@
           "source": "BorderWidth"
         },
         {
+          "source": "CharacterSpacing"
+        },
+        {
           "source": "Command"
         },
         {
@@ -1293,6 +1302,9 @@
     {
       "type": "Xamarin.Forms.DatePicker",
       "properties": [
+        {
+          "source": "CharacterSpacing"
+        },
         {
           "source": "Date"
         },
@@ -1417,6 +1429,9 @@
           "source": "AutoSize"
         },
         {
+          "source": "CharacterSpacing"
+        },
+        {
           "source": "FontAttributes"
         },
         {
@@ -1465,6 +1480,12 @@
       "type": "Xamarin.Forms.Entry",
       "properties": [
         {
+          "source": "CharacterSpacing"
+        },
+        {
+          "source": "ClearButtonVisibility"
+        },
+        {
           "source": "CursorPosition",
           "updateCode": "ViewUpdaters.updateEntryCursorPosition"
         },
@@ -1509,6 +1530,9 @@
         },
         {
           "source": "TextColor"
+        },
+        {
+          "source": "VerticalTextAlignment"
         }
       ],
       "events": [
@@ -1534,6 +1558,9 @@
       "properties": [
         {
           "source": "CancelButtonColor"
+        },
+        {
+          "source": "CharacterSpacing"
         },
         {
           "source": "FontAttributes"
@@ -1572,6 +1599,9 @@
         },
         {
           "source": "TextColor"
+        },
+        {
+          "source": "VerticalTextAlignment"
         }
       ],
       "events": [
@@ -1643,7 +1673,47 @@
     {
       "type": "Xamarin.Forms.CarouselView",
       "name": "XFCarouselView",
-      "canBeInstantiated": false
+      "canBeInstantiated": false,
+      "properties": [
+        {
+          "source": "CurrentItem"
+        },
+        {
+          "source": "IsBounceEnabled"
+        },
+        {
+          "source": "IsScrollAnimated"
+        },
+        {
+          "source": "IsSwipeEnabled"
+        },
+        {
+          "source": "ItemsLayout"
+        },
+        {
+          "source": "NumberOfSideItems"
+        },
+        {
+          "source": "PeekAreaInsets"
+        },
+        {
+          "source": "Position"
+        }
+      ],
+      "events": [
+        {
+          "source": "CurrentItemChanged",
+          "relatedProperties": [
+            "CurrentItem"
+          ]
+        },
+        {
+          "source": "PositionChanged",
+          "relatedProperties": [
+            "Position"
+          ]
+        }
+      ]
     },
     {
       "type": "Fabulous.XamarinForms.CustomCarouselView",
@@ -1802,6 +1872,9 @@
         },
         {
           "source": "Refreshing"
+        },
+        {
+          "source": "Scrolled"
         }
       ]
     },
@@ -1869,6 +1942,9 @@
       "type": "Xamarin.Forms.Label",
       "properties": [
         {
+          "source": "CharacterSpacing"
+        },
+        {
           "source": "FontAttributes"
         },
         {
@@ -1895,6 +1971,9 @@
           "source": "MaxLines"
         },
         {
+          "source": "Padding"
+        },
+        {
           "source": "Text"
         },
         {
@@ -1902,6 +1981,9 @@
         },
         {
           "source": "TextDecorations"
+        },
+        {
+          "source": "TextType"
         },
         {
           "source": "VerticalTextAlignment"
@@ -2192,6 +2274,28 @@
       ]
     },
     {
+      "type": "Xamarin.Forms.RefreshView",
+      "properties": [
+        {
+          "source": "IsRefreshing"
+        },
+        {
+          "source": "RefreshColor"
+        }
+      ],
+      "events": [
+        {
+          "source": "Refreshing",
+          "relatedProperties": [
+            "IsRefreshing"
+          ]
+        }
+      ],
+      "primaryConstructorMembers": [
+        "Content"
+      ]
+    },
+    {
       "type": "Xamarin.Forms.OpenGLView",
       "properties": [
         {
@@ -2205,6 +2309,9 @@
     {
       "type": "Xamarin.Forms.Picker",
       "properties": [
+        {
+          "source": "CharacterSpacing"
+        },
         {
           "source": "FontAttributes"
         },
@@ -2391,8 +2498,12 @@
     },
     {
       "type": "Xamarin.Forms.TimePicker",
+      "name": "XFTimePicker",
       "canBeInstantiated": false,
       "properties": [
+        {
+          "source": "CharacterSpacing"
+        },
         {
           "source": "FontAttributes"
         },
@@ -2417,6 +2528,7 @@
     },
     {
       "type": "Fabulous.XamarinForms.CustomTimePicker",
+      "name": "TimePicker",
       "events": [
         {
           "source": "TimeChanged",
@@ -2513,6 +2625,9 @@
       "name": "XFSearchHandler",
       "properties": [
         {
+          "source": "CharacterSpacing"
+        },
+        {
           "source": "BackgroundColor"
         },
         {
@@ -2598,6 +2713,9 @@
         },
         {
           "source": "TextColor"
+        },
+        {
+          "source": "VerticalTextAlignment"
         }
       ],
       "events": [
