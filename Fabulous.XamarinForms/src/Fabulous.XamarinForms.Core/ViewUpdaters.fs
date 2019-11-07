@@ -26,34 +26,39 @@ module ViewUpdaters =
            (canReuse: 'T -> 'T -> bool) // Used to check if reuse is possible
            (update: AdaptiveToken -> 'T -> 'TargetT -> unit) // Incremental element-wise update, only if element reuse is allowed
         =
-      let mutable children : IndexList<(AdaptiveToken -> unit)>  = IndexList.empty
-      let mutable subNodes : IndexList<'T>  = IndexList.empty
-      let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
+     // TODO: actually use the stored update function....
+     // TODO: actually use the attach function....
+     // TODO: actually use the canReuse function....
+      let mutable children : IndexList<(AdaptiveToken -> unit) * System.IDisposable>  = IndexList.empty
+      let mutable subNodes : IndexList<'TargetT>  = IndexList.empty
+      //let mutable dirtyInner = System.Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
       let reader = coll.GetReader()
       (fun token (targetColl: IList<'TargetT>) -> 
         let changes = reader.GetChanges(token) 
         for (idx, op) in IndexListDelta.toSeq changes do
             match op with
             | Set node ->
-                let insert (element : 'T) = 
-                    let (_, s, r) = IndexList.neighbours idx subNodes
+                let child = create token node
+                update token node child
+                let (_, s, r) = IndexList.neighbours idx subNodes
 
-                    match s with
-                    | Some(si, _) ->
-                        match IndexList.tryGetPosition si subNodes with
-                        | Some i -> targetColl.[i] <- unbox element
+                match s with
+                | Some(si, _) ->
+                    match IndexList.tryGetPosition si subNodes with
+                    | Some i -> targetColl.[i] <- child
+                    | None -> failwith "inconsistent"
+                | None ->
+                    match r with
+                    | Some (ri, _) ->
+                        match IndexList.tryGetPosition ri children with
+                        | Some i -> targetColl.Insert(i, child)
                         | None -> failwith "inconsistent"
                     | None ->
-                        match r with
-                        | Some (ri, _) ->
-                            match IndexList.tryGetPosition ri children with
-                            | Some i -> targetColl.Insert(i, unbox element)
-                            | None -> failwith "inconsistent"
-                        | None ->
-                            // no right => last
-                            targetColl.Add(unbox element)
+                        // no right => last
+                        targetColl.Add(child)
 
-                    subNodes <- IndexList.set idx element subNodes
+                subNodes <- IndexList.set idx child subNodes
+                let remover =
                     { new System.IDisposable with
                         member x.Dispose() =   
                             match IndexList.tryGetPosition idx subNodes with
@@ -64,58 +69,19 @@ module ViewUpdaters =
                                 ()
                                 
                     }
-
-                let u = (fun _ -> ()) //NodeUpdater(node, insert)
-                children <- IndexList.set idx u children
-                dirtyInner.Add u |> ignore
+                children <- IndexList.set idx ((fun token -> update token node child), remover) children
+                //dirtyInner.Add remover |> ignore
 
             | Remove ->
                 match IndexList.tryRemove idx children with
                 | Some (c, rest) ->
-                    dirtyInner.Remove c |> ignore
+                    //dirtyInner.Remove c |> ignore
                     //c.Destroy()
                     children <- rest
                 | None ->
                     ()
         )
-(*
- for (idx, change) in changes.ToList() do
-           IndexList.tryGetPosition idx
-        idx. IndexListDelta.
-        if (coll = null || coll.Length = 0) then
-            targetColl.Clear()
-        else
-            // Remove the excess targetColl
-            while (targetColl.Count > coll.Length) do
-                targetColl.RemoveAt (targetColl.Count - 1)
-
-            // Count the existing targetColl
-            // Unused variable n' introduced as a temporary workaround for https://github.com/fsprojects/Fabulous/issues/343
-            let _ = targetColl.Count
-            let n = targetColl.Count
-
-            // Adjust the existing targetColl and create the new targetColl
-            for i in 0 .. coll.Length-1 do
-                let newChild = coll.[i]
-                let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < n -> ValueSome coll.[i] | _ -> ValueNone
-                let prevChildOpt, targetChild = 
-                    if (match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (identical prevChild newChild)) then
-                        let mustCreate = (i >= n || match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (canReuse prevChild newChild))
-                        if mustCreate then
-                            let targetChild = create newChild
-                            if i >= n then
-                                targetColl.Insert(i, targetChild)
-                            else
-                                targetColl.[i] <- targetChild
-                            ValueNone, targetChild
-                        else
-                            let targetChild = targetColl.[i]
-                            update prevChildOpt.Value newChild targetChild
-                            prevChildOpt, targetChild
-                    else
-                        prevChildOpt, targetColl.[i]
-                attach prevChildOpt newChild targetChild
-*)
+                //attach prevChildOpt newChild targetChild
 
     /// Update the attached properties for each item in an already updated collection
     let updateAttachedPropertiesForCollection

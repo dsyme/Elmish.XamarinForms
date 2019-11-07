@@ -28,8 +28,10 @@ module SkiaSharpExtension =
                                    ?shellSearchHandler, ?shellTabBarBackgroundColor, ?shellTabBarDisabledColor, ?shellTabBarForegroundColor,
                                    ?shellTabBarIsVisible, ?shellTabBarTitleColor, ?shellTabBarUnselectedColor, ?shellTitleColor, ?shellTitleView,
                                    ?shellUnselectedColor, ?automationId, ?classId, ?effects, ?menu, ?ref, ?styleId, ?tag, ?focused, ?unfocused, ?created) =
+
             let paintSurface = paintSurface |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
             let touch = touch |> Option.map (AVal.map (fun f -> System.EventHandler<_>(fun _ args -> f args)))
+
             // Count the number of additional attributes
             let attribCount = 0
             let attribCount = match enableTouchEvents with Some _ -> attribCount + 1 | None -> attribCount

@@ -163,12 +163,14 @@ and
 
     member x.Update(token: AdaptiveToken, scope: obj) =
         x.EvaluateIfNeeded token () (fun token ->
-            if targetOpt.IsNone then 
-                x.Create(token, scope) |> ignore
-            node.Updater token targetOpt.Value
+            match targetOpt with 
+            | None -> 
+                x.CreateAndUpdate(token, scope) |> ignore
+            | Some target ->
+                node.Updater token target
         )
 
-    member x.Create(token: AdaptiveToken, scope) =
+    member x.CreateAndUpdate(token: AdaptiveToken, scope) =
         Debug.WriteLine (sprintf "Create %O" node.TargetType)
         let target = node.Create(token)
         targetOpt <- Some target
