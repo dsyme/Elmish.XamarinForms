@@ -7,6 +7,7 @@ module VideoManagerExtension =
     open Fabulous
     open MediaManager.Forms
     open MediaManager.Video
+    open FSharp.Data.Adaptive
 
     //// Define keys for the possible attributes
     let SourceAttribKey = AttributeKey<_> "VideoManager_Source"
@@ -16,7 +17,7 @@ module VideoManagerExtension =
     type Fabulous.XamarinForms.View with
         /// Describes a VideoView in the view
         static member inline VideoView
-            (?source: obj, ?videoAspect: VideoAspectMode , ?showControls: bool,
+            (?source: aval<obj>, ?videoAspect: aval<VideoAspectMode>, ?showControls: aval<bool>,
              // inherited attributes common to all views
              ?gestureRecognizers, ?horizontalOptions, ?margin, ?verticalOptions, ?anchorX, ?anchorY, ?backgroundColor,
              ?behaviors, ?flowDirection, ?height, ?inputTransparent, ?isEnabled, ?isTabStop, ?isVisible, ?minimumHeight,
@@ -54,25 +55,44 @@ module VideoManagerExtension =
             match videoAspect with None -> () | Some v -> attribs.Add(VideoAspectAttribKey, v)
             match showControls with None -> () | Some v -> attribs.Add(ShowControlsAttribKey, v)
 
+            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
+                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
+                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
+                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
+                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
+                                       (*?styleSheets=styleSheets, *) 
+                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
+                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
+                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
+                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
+                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
+                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
+                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
+                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
+
             // The create method
             let create () = new VideoView()
 
+            let updater1 = ViewExtensions.PrimitiveUpdater(source, (fun (target: VideoView) v -> target.Source <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(videoAspect, (fun (target: VideoView) v -> target.VideoAspect <- v))
+            let updater3 = ViewExtensions.PrimitiveUpdater(showControls, (fun (target: VideoView) v -> target.ShowControls <- v))
+
             // The update method
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: VideoView) =
-                ViewBuilders.UpdateView(prevOpt, source, target)
-                source.UpdatePrimitive(prevOpt, target, SourceAttribKey, (fun target v -> target.Source <- v))
-                source.UpdatePrimitive(prevOpt, target, VideoAspectAttribKey, (fun target v -> target.VideoAspect <- v))
-                source.UpdatePrimitive(prevOpt, target, ShowControlsAttribKey, (fun target v -> target.ShowControls <- v))
+            let update token (target: VideoView) = 
+                viewUpdater token target
+                updater1 token target
+                updater2 token target
+                updater3 token target
 
             // The element
-            ViewElement.Create(create, update, attribs)
+            ViewElement.Create(create, update, attribs.Close())
 
 #if DEBUG
     let sample1 =
         View.VideoView(
-            source = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-            showControls = false,
-            height = 500.,
-            width = 200.)
+            source = c (box "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"),
+            showControls = c false,
+            height = c 500.,
+            width = c 200.)
 #endif
 
