@@ -61,6 +61,7 @@ module Preparer =
               ShortName = e.ShortName
               UniqueName = e.UniqueName
               ConvertModelToValue = e.ConvertModelToValue
+              ModelType = e.ModelType
               RelatedProperties = relatedProperties }
         )
         

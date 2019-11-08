@@ -123,7 +123,7 @@ module Optimizer =
             { boundEvent with
                   ConvertModelToValue =
                       match boundEvent.ModelType with
-                      | "System.EventHandler" -> "makeEventHandlerNonGeneric"
+                      | "unit -> unit" -> "makeEventHandlerNonGeneric"
                       | _ when not (System.String.IsNullOrWhiteSpace(boundEvent.EventArgsType)) -> "makeEventHandler"
                       | _ -> boundEvent.ConvertModelToValue }
             

@@ -40,6 +40,7 @@ module Models =
           ShortName: string
           UniqueName: string
           ConvertModelToValue: string
+          ModelType: string
           RelatedProperties: string array }
         
     type UpdateAttachedProperty =

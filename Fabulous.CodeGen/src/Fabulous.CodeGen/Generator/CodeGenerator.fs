@@ -217,9 +217,9 @@ module CodeGenerator =
                     w.printfn "            | None -> updater"
                     w.printfn "            | Some %s ->" e.ShortName 
                     if not (String.IsNullOrWhiteSpace(e.ConvertModelToValue)) then
-                        w.printfn "                let %sUpdater = eventUpdater %s %s (fun (target: %s) -> target.%s)" e.ShortName e.ShortName e.ConvertModelToValue data.FullName e.Name
+                        w.printfn "                let %sUpdater = eventUpdater %s %s (* ModelType = %s *) (fun (target: %s) -> target.%s)" e.ShortName e.ShortName e.ConvertModelToValue e.ModelType data.FullName e.Name
                     else 
-                        w.printfn "                let %sUpdater = eventUpdater %s makeEventHandler (fun (target: %s) -> target.%s)" e.ShortName e.ShortName data.FullName e.Name
+                        w.printfn "                let %sUpdater = eventUpdater %s makeEventHandler (* ModelType = %s *) (fun (target: %s) -> target.%s)" e.ShortName e.ShortName e.ModelType data.FullName e.Name
                     w.printfn "                (fun token (target: %s) -> " data.FullName
                     w.printfn "                    updater token target"
                     w.printfn "                    %sUpdater token target)" e.ShortName

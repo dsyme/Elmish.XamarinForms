@@ -383,7 +383,7 @@ module ViewUpdaters =
     let makeEventHandler f = EventHandler<_>(fun _sender args -> f args)
     let makeEventHandlerNonGeneric f = EventHandler(fun _sender _args -> f())
 
-    let eventUpdater (value: aval<('Args -> unit)>) makeDelegate (getter: 'Target -> IEvent<'Delegate,'Args>) = 
+    let eventUpdater (value: aval<'T>) (makeDelegate: 'T -> 'Delegate) (getter: 'Target -> IEvent<'Delegate,'Args>) = 
         let mutable prevOpt = ValueNone 
         fun token (target: 'Target) -> 
             let newValue =  value.GetValue(token) 
@@ -391,11 +391,11 @@ module ViewUpdaters =
             match prevOpt with
             | ValueSome prevValue -> 
                 let targetEvent = getter target
-                targetEvent.RemoveHandler(newDelegate); targetEvent.AddHandler(newDelegate)
+                targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newDelegate)
             | ValueNone -> 
                 let targetEvent = getter target
                 targetEvent.AddHandler(newDelegate)
-            prevOpt <- ValueSome newValue
+            prevOpt <- ValueSome newDelegate
 
     /// Converts an F# function to a Xamarin.Forms ICommand
     let makeCommand f =
