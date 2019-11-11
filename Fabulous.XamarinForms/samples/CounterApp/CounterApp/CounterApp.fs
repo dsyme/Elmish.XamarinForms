@@ -68,7 +68,6 @@ module App =
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
     let view (amodel: AdaptiveModel) dispatch =  
-
         View.ContentPage(
           content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
             children = cs [
