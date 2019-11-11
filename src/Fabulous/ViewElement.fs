@@ -92,7 +92,6 @@ type ViewRef<'T when 'T : not struct>() =
         | Some res -> Some (unbox res)
         | _ -> None
 
-
 /// An adaptive description of a visual element
 type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToken -> obj -> unit), attribs: KeyValuePair<int, obj>[]) = 
     
