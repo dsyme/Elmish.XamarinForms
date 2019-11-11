@@ -67,46 +67,66 @@ module App =
         | TimerToggled on -> { model with TimerOn = on }, (if on then [ TickTimer ] else [])
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
-    let view (model: AdaptiveModel) dispatch =  
+    let view (amodel: AdaptiveModel) dispatch =  
+        //View.ContentPage(
+        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
+        //          command= c (fun () -> dispatch Increment)
+        //      )
+        // )
+
+        //View.ContentPage(
+        //  content=View.StackLayout(
+        //    children = cs [
+        //      //View.Label(text = (amodel.Count |> AVal.map (sprintf "%d")))
+        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
+        //          command= c (fun () -> dispatch Increment)
+        //      )
+        //    ])
+        // )
+
         View.ContentPage(
           content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
             children = cs [
+
               View.Label(automationId = c "CountLabel", 
-                  text = (model.Count |> AVal.map (sprintf "%d")),
+                  text = (amodel.Count |> AVal.map (sprintf "%d")),
                   horizontalOptions = c LayoutOptions.Center, 
                   width = c 200.0, 
                   horizontalTextAlignment = c TextAlignment.Center)
+
               View.Button(automationId = c "IncrementButton",
                   text = c "Increment",
                   command= c (fun () -> dispatch Increment))
+
               View.Button(automationId = c "DecrementButton",
                   text = c "Decrement",
                   command= c (fun () -> dispatch Decrement)) 
-              View.StackLayout(padding = c (Thickness 20.0), 
-                  orientation = c StackOrientation.Horizontal,
-                  horizontalOptions = c LayoutOptions.Center,
-                  children = cs [ 
-                      View.Label(text = c "Timer")
-                      View.Switch(automationId = c "TimerSwitch",
-                          isToggled = model.TimerOn, 
-                          toggled = c (fun on -> dispatch (TimerToggled on.Value))) ])
+
+              View.Label(text = c "Timer")
+
+              View.Switch(automationId = c "TimerSwitch",
+                isToggled = amodel.TimerOn, 
+                toggled = c (fun on -> dispatch (TimerToggled on.Value)))
+
               View.Slider(automationId = c "StepSlider", 
                   minimumMaximum = c (0.0, 10.0), 
-                  value = (model.Step |> AVal.map double),
+                  value = (amodel.Step |> AVal.map double),
                   valueChanged = c (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
+
               View.Label(automationId = c "StepSizeLabel",
-                  text= (model.Step |> AVal.map (sprintf "Step size: %d")),
+                  text= (amodel.Step |> AVal.map (sprintf "Step size: %d")),
                   horizontalOptions = c LayoutOptions.Center)
+
               View.Button(text = c "Reset",
                   horizontalOptions = c LayoutOptions.Center,
                   command = c (fun () -> dispatch Reset),
                   commandCanExecute = 
-                      ((model.Step, model.Count, model.TimerOn) |||> AVal.map3 (fun step count timerOn -> 
+                      ((amodel.Step, amodel.Count, amodel.TimerOn) |||> AVal.map3 (fun step count timerOn -> 
                           step <> initialModel.Step || 
                           count <> initialModel.Count || 
                           timerOn <> initialModel.TimerOn)))
             ]))
-             
+            
     let program = 
         Program.mkProgramWithCmdMsg init update ainit adelta view mapCmdMsgToCmd
 

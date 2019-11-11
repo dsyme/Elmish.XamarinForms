@@ -38,6 +38,8 @@ type Program<'arg, 'model, 'amodel, 'msg> =
       debug : bool
       onError : (string * exn) -> unit }
 
+    override x.ToString() = "<program>"
+
 /// Starts the Elmish dispatch loop for the page with the given Elmish program
 type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'arg, 'model, 'amodel, 'msg>, arg: 'arg) = 
 
@@ -54,8 +56,11 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
 
     // Create the initial view
     let viewInfo = program.view amodel dispatch
+    
+    // The updater is an active AdaptiveObject receiving update notifications from the adaptive model.
+    // It must be captured kept alive, see the KeepAlive call below.
     let updater = { new ViewElementUpdater(viewInfo) with member __.OnCreated (_scope, target) = host.SetRootView(target) }
-    let rootView = updater.Update(AdaptiveToken.Top, host)
+    do updater.Update(AdaptiveToken.Top, host)
  
     // Start Elmish dispatch loop  
     let rec processMsg msg = 
@@ -76,6 +81,7 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
 
     and updateView updatedModel = 
         program.adelta updatedModel amodel
+        updater.Update(AdaptiveToken.Top, host)
                       
     do 
         // Set up the global dispatch function
@@ -130,6 +136,8 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
                     sub dispatch
         )
         action()
+
+    override x.ToString() = "<ProgramRunner>"
 
 /// Program module - functions to manipulate program instances
 [<RequireQualifiedAccess>]

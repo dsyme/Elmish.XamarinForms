@@ -48,7 +48,7 @@ type ViewExtensions() =
         match collOpt with 
         | None -> (fun _ _ -> ())
         | Some coll -> 
-            let updater = updateCollectionGeneric coll (fun token x -> x.Create(token) :?> 'T) (fun _ _ _ -> ()) ViewHelpers.canReuseView updateChild
+            let updater = updateViewElementCollection coll id //(fun _ _ _ -> ()) ViewHelpers.canReuseView createChildUpdater
             fun token target -> 
                updater token (getter target)
 

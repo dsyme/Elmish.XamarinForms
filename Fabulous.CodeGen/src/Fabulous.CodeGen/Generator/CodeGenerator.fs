@@ -165,12 +165,8 @@ module CodeGenerator =
                     w.printfn "            | Some %s ->" p.ShortName
                     match p.CollectionData with 
                     | Some collectionData when not hasApply ->
-                        w.printfn "                let %sUpdater =" p.ShortName
-                        w.printfn "                    ViewUpdaters.updateCollectionGeneric %s" p.ShortName
-                        w.printfn "                        (fun token (x: ViewElement) -> x.Create(token) :?> %s)" collectionData.ElementType
-                        generateAttachedProperties collectionData
-                        w.printfn "                        ViewHelpers.canReuseView"
-                        w.printfn "                        ViewUpdaters.updateChild"
+                        w.printfn "                let %sUpdater = ViewUpdaters.updateViewElementCollection %s FSharp.Core.Operators.id" p.ShortName p.ShortName
+                        //generateAttachedProperties collectionData
                     | Some collectionData ->
                         w.printfn "                let %sUpdater =" p.ShortName
                         w.printfn "                    %s %s" p.UpdateCode p.ShortName

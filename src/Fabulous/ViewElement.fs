@@ -36,6 +36,7 @@ type AttributeKey<'T> internal (keyv: int) =
         | true, keyv -> keyv
         | false, _ -> failwithf "unregistered attribute key %d" keyv
 
+    override x.ToString() = x.Name
 
 /// A description of a visual element
 type AttributesBuilder (attribCount: int) = 
@@ -95,6 +96,12 @@ type ViewRef<'T when 'T : not struct>() =
 /// An adaptive description of a visual element
 type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToken -> obj -> unit), attribs: KeyValuePair<int, obj>[]) = 
     
+    [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
+    let create = create
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
+    let targetType = targetType
+
     static member Create<'T> (create: (unit -> 'T), update: (AdaptiveToken -> 'T -> unit), attribs: KeyValuePair<int, obj>[]) =
         ViewElement(typeof<'T>, (create >> box), (fun token target -> update token (unbox target)), attribs)
 
@@ -103,6 +110,9 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
 
     [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
     static member val _RefAttribKey : AttributeKey<aval<ViewRef>> = AttributeKey<_>("Ref")
+
+    /// Get the name of the type created by the visual element
+    member x.TargetName = targetType.Name
 
     /// Get the type created by the visual element
     member x.TargetType = targetType
@@ -129,7 +139,7 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
 
     /// Differentially update a visual element given the previous settings
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
-    member x.Updater = update
+    member x.Updater token target = update token target
 
     /// Create the UI element from the view description
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
@@ -152,8 +162,7 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
         | None ->
             duplicateViewElement (n + 1) n // duplicate and add new attribute
 
-
-    override x.ToString() = sprintf "%s(...)@%d" x.TargetType.Name (x.GetHashCode())
+    override x.ToString() = sprintf "%s(...)" x.TargetType.Name //(x.GetHashCode())
 
 and 
     [<AbstractClass>]
@@ -185,3 +194,6 @@ and
         target
     
     abstract OnCreated : scope: obj * target: obj -> unit
+
+    override x.ToString() = "updater for " + node.ToString()
+
