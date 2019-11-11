@@ -10,7 +10,6 @@ module Program =
         [<Option('m', "Mapping file", Required = true, HelpText = "Mapping file")>] MappingFile: string
         [<Option('o', "Output file", Required = true, HelpText = "Output file")>] OutputFile: string
         [<Option('d', "Debug", Required = false, HelpText = "Debug")>] Debug: bool
-        [<Option('a', "Adaptive", Required = false, HelpText = "Adaptive")>] Adaptive: bool
     }
     
     let tryReadOptions args =
