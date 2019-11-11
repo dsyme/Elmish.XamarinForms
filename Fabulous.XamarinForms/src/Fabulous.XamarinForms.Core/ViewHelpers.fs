@@ -190,3 +190,4 @@ module ViewHelpers =
                 res
 
 
+    //let ThicknessC (v: Thickness) = c (Thickness v)

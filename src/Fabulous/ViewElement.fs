@@ -197,3 +197,6 @@ and
 
     override x.ToString() = "updater for " + node.ToString()
 
+//module ViewElement = 
+//    let ofAVal (x: aval<ViewElement>) =
+//        ViewElement()

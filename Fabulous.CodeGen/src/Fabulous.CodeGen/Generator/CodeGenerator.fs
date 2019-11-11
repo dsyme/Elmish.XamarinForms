@@ -49,7 +49,7 @@ module CodeGenerator =
         let members =
             data.Members
             |> Array.mapi (fun index m -> sprintf "%s%s?%s: %s" (if index = 0 then "" else ",") (if index = 0 then "" else memberNewLine) m.Name (adaptType m.InputType))
-            |> String.concat ""
+            |> Array.fold (+) ""
 
         let immediateMembers =
             data.Members
@@ -62,7 +62,7 @@ module CodeGenerator =
                 data.Members
                 |> Array.filter (fun m -> m.IsInherited)
                 |> Array.mapi (fun index m -> sprintf "%s%s?%s=%s" (if index = 0 then "" else ", ") (if index > 0 && index % 5 = 0 then memberNewLine else "") m.Name m.Name)
-                |> String.concat ""
+                |> Array.fold (+) ""
         members, baseMembers, immediateMembers
 
     let generateBuildFunction (data: BuildData) (w: StringWriter) =
@@ -105,7 +105,7 @@ module CodeGenerator =
             w.printfn ""
             w
         
-    let generateUpdaterFunction (data: UpdateData) (w: StringWriter) =
+    let generateUpdateFunction (data: UpdateData) (w: StringWriter) =
         let members, baseMembers, immediateMembers = generateBuildMemberArgs data.BuildData
         w.printfn "    static member %sUpdater%s (%s) : (AdaptiveToken -> %s -> unit) = " inlineFlag data.Name members data.FullName // data.FullName
         
@@ -118,36 +118,31 @@ module CodeGenerator =
             w.printfn "                baseUpdate token (target :> %s))" (baseFullName.Replace("'T", "_"))
             let generateAttachedProperties collectionData =
 (*
-                if (collectionData.AttachedProperties.Length > 0) then
-                    w.printfn "            (fun prevChildOpt newChild targetChild -> "
-                    w.printfn "                // Adjust the attached properties"
-                    for ap in collectionData.AttachedProperties do
-                        let hasApply = not (System.String.IsNullOrWhiteSpace(ap.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(ap.UpdateCode))
                     
-                        w.printfn "                let prev%sOpt = match prevChildOpt with ValueNone -> ValueNone | ValueSome prevChild -> prevChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
-                        w.printfn "                let curr%sOpt = newChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
+                    w.printfn "                let prev%sOpt = match prevChildOpt with ValueNone -> ValueNone | ValueSome prevChild -> prevChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
+                    w.printfn "                let curr%sOpt = newChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
                     
-                        if ap.ModelType = "ViewElement" && not hasApply then
-                            w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
-                            w.printfn "                // For structured objects, dependsOn on reference equality"
-                            w.printfn "                | ValueSome prevValue, ValueSome newValue when identical prevValue newValue -> ()"
-                            w.printfn "                | ValueSome prevValue, ValueSome newValue when canReuseView prevValue newValue ->"
-                            w.printfn "                    newValue.UpdateIncremental(prevValue, (%s.Get%s(targetChild)))" data.FullName ap.Name
-                            w.printfn "                | _, ValueSome newValue ->"
-                            w.printfn "                    %s.Set%s(targetChild, (newValue.Create() :?> %s))" data.FullName ap.Name ap.OriginalType
-                            w.printfn "                | ValueSome _, ValueNone ->"
-                            w.printfn "                    %s.Set%s(targetChild, null)" data.FullName ap.Name
-                            w.printfn "                | ValueNone, ValueNone -> ()"
+                    if ap.ModelType = "ViewElement" && not hasApply then
+                        w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
+                        w.printfn "                // For structured objects, dependsOn on reference equality"
+                        w.printfn "                | ValueSome prevValue, ValueSome newValue when identical prevValue newValue -> ()"
+                        w.printfn "                | ValueSome prevValue, ValueSome newValue when canReuseView prevValue newValue ->"
+                        w.printfn "                    newValue.UpdateIncremental(prevValue, (%s.Get%s(targetChild)))" data.FullName ap.Name
+                        w.printfn "                | _, ValueSome newValue ->"
+                        w.printfn "                    %s.Set%s(targetChild, (newValue.Create() :?> %s))" data.FullName ap.Name ap.OriginalType
+                        w.printfn "                | ValueSome _, ValueNone ->"
+                        w.printfn "                    %s.Set%s(targetChild, null)" data.FullName ap.Name
+                        w.printfn "                | ValueNone, ValueNone -> ()"
                         
-                        elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
-                            w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
+                    elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
+                        w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
                         
-                        else
-                            w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
-                            w.printfn "                | ValueSome prevChildValue, ValueSome currChildValue when prevChildValue = currChildValue -> ()"
-                            w.printfn "                | _, ValueSome currChildValue -> %s.Set%s(targetChild, %s currChildValue)" data.FullName ap.Name ap.ConvertModelToValue
-                            w.printfn "                | ValueSome _, ValueNone -> %s.Set%s(targetChild, %s)" data.FullName ap.Name ap.DefaultValue
-                            w.printfn "                | _ -> ()"
+                    else
+                        w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
+                        w.printfn "                | ValueSome prevChildValue, ValueSome currChildValue when prevChildValue = currChildValue -> ()"
+                        w.printfn "                | _, ValueSome currChildValue -> %s.Set%s(targetChild, %s currChildValue)" data.FullName ap.Name ap.ConvertModelToValue
+                        w.printfn "                | ValueSome _, ValueNone -> %s.Set%s(targetChild, %s)" data.FullName ap.Name ap.DefaultValue
+                        w.printfn "                | _ -> ()"
                 
                     w.printfn "                )"
                 else
@@ -246,7 +241,7 @@ module CodeGenerator =
                 |> Array.mapi (fun i m ->
                     let commaSpace = if i = 0 then "" else "," + memberNewLine
                     sprintf "%s?%s: %s" commaSpace m.Name (memberArgumentType m.Name m.InputType data.FullName))
-                |> String.concat ""
+                |> Array.fold (+) ""
 
             let membersForBuild =
                 data.Members
@@ -257,7 +252,7 @@ module CodeGenerator =
                         | "ref" ->     sprintf "(%s |> Option.map (AVal.map (fun (ref: ViewRef<%s>) -> ref.Unbox)))" m.Name data.FullName
                         | _ ->         m.Name
                     sprintf ",%s?%s=%s" space m.Name value)
-                |> String.concat ""
+                |> Array.fold (+) ""
 
             w.printfn "    static member %sConstruct%s(%s) = " inlineFlag data.Name membersForConstructor
             w.printfn ""
@@ -273,7 +268,7 @@ module CodeGenerator =
             w
             |> generateBuildFunction typ.Build
             |> generateCreateFunction typ.Create
-            |> generateUpdaterFunction typ.Update
+            |> generateUpdateFunction typ.Update
             |> generateConstruct typ.Construct
         w
 
@@ -319,13 +314,13 @@ module CodeGenerator =
                 |> Array.mapi (fun i m ->
                     let commaSpace = if i = 0 then "" else "," + memberNewLine
                     sprintf "%s?%s: %s" commaSpace m.Name (memberArgumentType m.Name m.InputType d.FullName))
-                |> String.concat ""
+                |> Array.fold (+) ""
             let membersForConstruct =
                 d.Members
                 |> Array.mapi (fun i m ->
                     let commaSpace = if i = 0 then "" else "," + space
                     sprintf "%s?%s=%s" commaSpace m.Name m.Name)
-                |> String.concat ""
+                |> Array.fold (+) ""
 
             w.printfn "    /// Describes a %s in the view" d.Name
             w.printfn "    static member %s%s(%s) =" inlineFlag d.Name membersForConstructor
@@ -355,7 +350,7 @@ module CodeGenerator =
             data
             |> Array.filter (fun m -> m.UniqueName <> "Created" && m.UniqueName <> "Ref")
             |> Array.mapi (fun index m -> sprintf "%s%s?%s: %s" (if index > 0 then ", " else "") (if index > 0 && index % 5 = 0 then newLine else "") m.LowerUniqueName (adaptType m.InputType))
-            |> String.concat ""
+            |> Array.fold (+) ""
 
         w.printfn ""
         w.printfn "        member %sx.With(%s) =" inlineFlag members

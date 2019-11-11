@@ -37,11 +37,16 @@ module ShadowEffectViewExtension =
             
             let create () = ShadowEffect()
             
-            let update (prevOpt: ViewElement voption) (source: ViewElement) (target: ShadowEffect) =
-                source.UpdatePrimitive(prevOpt, target, RadiusAttribKey, (fun target v -> target.Radius <- v))
-                source.UpdatePrimitive(prevOpt, target, ColorAttribKey, (fun target v -> target.Color <- v))
-                source.UpdatePrimitive(prevOpt, target, DistanceXAttribKey, (fun target v -> target.DistanceX <- v))
-                source.UpdatePrimitive(prevOpt, target, DistanceYAttribKey, (fun target v -> target.DistanceY <- v))
+            let updater1 = ViewExtensions.PrimitiveUpdater(radius, (fun (target: ShadowEffect) v -> target.Radius <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(color, (fun (target: ShadowEffect) v -> target.Color <- v))
+            let updater3 = ViewExtensions.PrimitiveUpdater(distanceX, (fun (target: ShadowEffect) v -> target.DistanceX <- v))
+            let updater4 = ViewExtensions.PrimitiveUpdater(distanceY, (fun (target: ShadowEffect) v -> target.DistanceY <- v))
+
+            let update token target =
+                updater1 token target
+                updater2 token target
+                updater3 token target
+                updater4 token target
                 
-            ViewElement.Create(create, update, attribs)
+            ViewElement.Create(create, update, attribs.Close())
                 
