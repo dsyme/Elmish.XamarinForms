@@ -1,9 +1,9 @@
 ﻿// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license.
 namespace Fabulous.XamarinForms
 
-open Fabulous
 open Xamarin.Forms
 open System
+open System.Collections
 open System.IO
 open System.Collections.ObjectModel
 
@@ -80,21 +80,11 @@ module ViewConverters =
         | Named namedSize -> Device.GetNamedSize(namedSize, targetType)
         | FontSize value -> value
             
-    let convertItemsViewSelectedItemIndexToObj (target: Xamarin.Forms.ItemsView) (v: int option) =
+    let inline convertItemsViewSelectedItemIndexToObj (target: ^T) (v: int option) =
         match v with
         | None -> null
         | Some i ->
-            let items = target.ItemsSource :?> System.Collections.Generic.IList<ViewElement>
-            if i >= 0 && i < items.Count then
-                items.[i] :> obj
-            else
-                null
-
-    let convertItemsViewOfTSelectedItemIndexToObj (target: Xamarin.Forms.ItemsView<'T>) (v: int option) =
-        match v with
-        | None -> null
-        | Some i ->
-            let items = target.ItemsSource :?> System.Collections.Generic.IList<ViewElement>
+            let items = (^T: (member ItemsSource: IEnumerable) target) :?> System.Collections.Generic.IList<ViewElementHolder>
             if i >= 0 && i < items.Count then
                 items.[i] :> obj
             else

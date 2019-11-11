@@ -63,7 +63,7 @@ type BroadcastInfo =
                             printfn "  "
                             printAddressesFn iips httpPort
                             printfn "  "
-                            printfn "  See https://fsprojects.github.io/Fabulous/tools.html for more details"
+                            printfn "  See https://fsprojects.github.io/Fabulous/Fabulous.XamarinForms/tools.html for more details"
                             printfn "----------"
                         else 
                             printfn "LiveUpdate: Couldn't find a network interface to recommend."

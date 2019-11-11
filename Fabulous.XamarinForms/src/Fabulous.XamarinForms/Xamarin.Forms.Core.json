@@ -1731,9 +1731,12 @@
           "inputType": "int option",
           "convertModelToValue": "ViewConverters.convertItemsViewSelectedItemIndexToObj target"
         },
-        // TODO
         //{
-        //  "source": "SelectedItems"
+        //  "source": "SelectedItems",
+        //  "inputType": "int list option",
+        //  "modelType": "int array option",
+        //  "convertModelToValue": "(Option.map Array.ofList)",
+        //  "updateCode": "ViewUpdaters.updateSelectableItemsViewSelectedItems"
         //},
         {
           "source": "SelectionMode"
@@ -1827,7 +1830,8 @@
         {
           "source": "SelectedItem",
           "inputType": "int option",
-          "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
+          "modelType": "int option",
+          "convertModelToValue": "ViewConverters.convertItemsViewSelectedItemIndexToObj target"
         },
         {
           "source": "SelectionMode"
@@ -1885,7 +1889,6 @@
         "Items"
       ]
     },
-    // TODO
     //{
     //  "type": "Fabulous.XamarinForms.CustomGroupListView",
     //  "name": "ListViewGrouped",
@@ -1894,17 +1897,19 @@
     //      "source": null,
     //      "name": "ItemsSource",
     //      "shortName": "items",
-    //      "inputType": "(string * ViewElement * ViewElement alist) alist",
+    //      "inputType": "(string * ViewElement * ViewElement list) list",
+    //      "modelType": "(string * ViewElement * ViewElement[])[]",
     //      "defaultValue": "[]",
-    //      "convertModelToValue": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
+    //      "convertInputToModel": "(fun es -> es |> Array.ofList |> Array.map (fun (g, e, l) -> (g, e, Array.ofList l)))",
     //      "updateCode": "ViewUpdaters.updateListViewGroupedItems"
     //    },
     //    {
     //      "source": null,
     //      "name": "SelectedItem",
     //      "inputType": "int option",
+    //      "modelType": "int option",
     //      "defaultValue": "null",
-    //      "convertModelToValue": "ViewConverters.convertItemsViewOfTSelectedItemIndexToObj target"
+    //      "convertModelToValue": "ViewConverters.convertItemsViewSelectedItemIndexToObj target"
     //    },
     //    {
     //      "source": null,
@@ -1919,9 +1924,9 @@
     //      "source": null,
     //      "name": "ItemSelected",
     //      "inputType": "(int * int) option -> unit",
-    //      "eventArgsType": "(int * int) option",
+    //      "modelType": "System.EventHandler<Xamarin.Forms.SelectedItemChangedEventArgs>",
     //      "defaultValue": "null",
-    //      "convertModelToValue": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
+    //      "convertInputToModel": "ViewConverters.makeListViewGroupedItemSelectedEventHandler",
     //      "relatedProperties": [
     //        "SelectedItem"
     //      ]
@@ -1930,8 +1935,9 @@
     //      "source": null,
     //      "name": "ItemTapped",
     //      "inputType": "(int * int) -> unit",
+    //      "modelType": "System.EventHandler<Xamarin.Forms.ItemTappedEventArgs>",
     //      "defaultValue": "null",
-    //      "convertModelToValue": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
+    //      "convertInputToModel": "ViewConverters.makeListViewGroupedItemTappedEventHandler"
     //    }
     //  ],
     //  "primaryConstructorMembers": [
@@ -1939,7 +1945,7 @@
     //  ]
     //},
     {
-      "type": "Xamarin.Forms.Label",
+        "type": "Xamarin.Forms.Label",
       "properties": [
         {
           "source": "CharacterSpacing"

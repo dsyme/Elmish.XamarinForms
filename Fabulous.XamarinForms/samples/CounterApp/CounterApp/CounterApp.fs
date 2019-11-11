@@ -68,21 +68,6 @@ module App =
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
     let view (amodel: AdaptiveModel) dispatch =  
-        //View.ContentPage(
-        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
-        //          command= c (fun () -> dispatch Increment)
-        //      )
-        // )
-
-        //View.ContentPage(
-        //  content=View.StackLayout(
-        //    children = cs [
-        //      //View.Label(text = (amodel.Count |> AVal.map (sprintf "%d")))
-        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
-        //          command= c (fun () -> dispatch Increment)
-        //      )
-        //    ])
-        // )
 
         View.ContentPage(
           content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
@@ -127,6 +112,22 @@ module App =
                           timerOn <> initialModel.TimerOn)))
             ]))
             
+        //View.ContentPage(
+        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
+        //          command= c (fun () -> dispatch Increment)
+        //      )
+        // )
+
+        //View.ContentPage(
+        //  content=View.StackLayout(
+        //    children = cs [
+        //      //View.Label(text = (amodel.Count |> AVal.map (sprintf "%d")))
+        //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
+        //          command= c (fun () -> dispatch Increment)
+        //      )
+        //    ])
+        // )
+
     let program = 
         Program.mkProgramWithCmdMsg init update ainit adelta view mapCmdMsgToCmd
 

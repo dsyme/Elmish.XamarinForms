@@ -141,6 +141,7 @@ module ViewUpdaters =
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
+        // TODO: fix this
         let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.ItemsView<'T>) ->
             let targetColl = 
@@ -151,7 +152,39 @@ module ViewUpdaters =
                     target.ItemsSource <- oc
                     oc
             updater token targetColl
+    //let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ItemsView<'T>) = 
+    //    let targetColl = 
+    //        match target.ItemsSource with 
+    //        | :? ObservableCollection<ViewElementHolder> as oc -> oc
+    //        | _ -> 
+    //            let oc = ObservableCollection<ViewElementHolder>()
+    //            target.ItemsSource <- oc
+    //            oc
+    //    updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr holder -> holder.ViewElement <- curr)
+                    
+    /// Update the selected items in a SelectableItemsView control, given previous and current indexes
+    let updateSelectableItemsViewSelectedItems (prevCollOptOpt: int array option voption) (collOptOpt: int array option voption) (target: Xamarin.Forms.SelectableItemsView) = 
+        failwith "TODO"
+(*
+         let targetColl = 
+            match target.SelectedItems with 
+            | :? ObservableCollection<obj> as oc -> oc
+            | _ -> 
+                let oc = ObservableCollection<obj>()
+                target.SelectedItems <- oc
+                oc
+                
+        let convert = ValueOption.bind (function None -> ValueNone | Some x -> ValueSome x)
+        let prevCollOpt = convert prevCollOptOpt
+        let collOpt = convert collOptOpt
         
+        let findItem idx =
+            let itemsSource = target.ItemsSource :?> System.Collections.Generic.IList<ViewElementHolder>
+            itemsSource.[idx] :> obj
+        
+        updateCollectionGeneric prevCollOpt collOpt targetColl findItem (fun _ _ _ -> ()) (fun x y -> x = y) (fun _ _ _ -> ())
+*)
+
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 
         let updater = updateViewElementCollection coll id

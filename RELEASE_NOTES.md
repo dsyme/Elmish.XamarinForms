@@ -1,3 +1,8 @@
+#### 0.50.3
+
+* [Fabulous.XamarinForms] Fixed an issue where the application could crash when LiveUpdate tries to refresh the app with an invalid view (https://github.com/fsprojects/Fabulous/pull/594)
+* [Fabulous.XamarinForms] Fixed an issue where an InvalidCastException could occur (https://github.com/fsprojects/Fabulous/pull/597)
+
 #### 0.50.2
 
 * [Fabulous.XamarinForms] Fixed an issue where attached properties could be not applied correctly (https://github.com/fsprojects/Fabulous/pull/592)
