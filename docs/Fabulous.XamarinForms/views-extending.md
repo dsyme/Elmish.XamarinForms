@@ -13,8 +13,9 @@ The following additional view elements are available as pre-built nuget librarie
 
 * [FFImageLoading](views-ffimageloading.md) for cached images, as opposed to the built-in Image view that wastes time and memory
 * [Maps](views-maps.md) for platform maps
-* [SkiaSharp](views-skiasharp.md) for 2D graphics
-* [OxyPlot](views-oxyplot.md) for charting (in preparation)
+* [SkiaSharp](views-skiasharp.md) for drawing 2D graphics
+* [OxyPlot](views-oxyplot.md) for charting
+* [VideoManager](views-videomanager.md) for playing audio and video
 
 To use other Xamarin.Forms controls, a small amount of wrapper code must
 be written to convert the control to an Fabulous view element.
