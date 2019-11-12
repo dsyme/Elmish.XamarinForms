@@ -39,7 +39,7 @@ type ViewExtensions() =
         | None -> (fun _ -> ())
         | Some source -> 
             let updater = 
-                { new ViewElementUpdater(source) with 
+                { new ViewElementUpdater(AVal.constant source) with 
                         member __.OnCreated (target, element: obj) = setter (target :?> 'Target) (element :?> 'T) }
             updater.Update
 

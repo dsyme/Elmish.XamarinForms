@@ -163,38 +163,77 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
 
     override x.ToString() = sprintf "%s(...)" x.TargetType.Name //(x.GetHashCode())
 
-and 
-    [<AbstractClass>]
-    ViewElementUpdater(node: ViewElement) = 
+[<AbstractClass>]
+type ViewElementUpdater(anode: aval<ViewElement>) = 
     inherit AdaptiveObject()
     let mutable targetOpt = None
 
+    let rec canReuseView token (prevChild: ViewElement) (newChild: ViewElement) =
+        if FSharp.Core.LanguagePrimitives.PhysicalEquality prevChild newChild   
+              // prevChild.TargetType = newChild.TargetType 
+              && canReuseAutomationId token prevChild newChild then
+            //if newChild.TargetType.IsAssignableFrom(typeof<NavigationPage>) then
+            //    canReuseNavigationPage prevChild newChild
+            //elif newChild.TargetType.IsAssignableFrom(typeof<CustomEffect>) then
+            //    canReuseCustomEffect prevChild newChild
+            //else
+                true
+        else
+            false
+
+    // TODO: add this logic back in (it is specific to Xamarin.Forms...)
+    //
+    /// Checks whether an underlying NavigationPage control can be reused given the previous and new view elements
+    //
+    // NavigationPage can be reused only if the pages don't change their type (added/removed pages don't prevent reuse)
+    // E.g. If the first page switch from ContentPage to TabbedPage, the NavigationPage can't be reused.
+    //and canReuseNavigationPage (prevChild:ViewElement) (newChild:ViewElement) =
+    //    let prevPages = prevChild.TryGetAttribute<ViewElement alist>("Pages")
+    //    let newPages = newChild.TryGetAttribute<ViewElement alist>("Pages")
+    //    match prevPages, newPages with
+    //    | ValueSome prevPages, ValueSome newPages -> prevPages.Count = newPages.Count && (prevPages, newPages) ||> Seq.forall2 canReuseView
+    //    | _, _ -> true
+
+    /// Checks whether the control can be reused given the previous and the new AutomationId.
+    /// Xamarin.Forms can't change an already set AutomationId
+    //
+    // TODO: make the AutomationId non-adapting
+    and canReuseAutomationId token (prevChild: ViewElement) (newChild: ViewElement) =
+        let prevAutomationId = prevChild.TryGetAttribute<aval<string>>("AutomationId")
+        let newAutomationId = newChild.TryGetAttribute<aval<string>>("AutomationId")
+
+        match prevAutomationId, newAutomationId  with
+        | ValueSome _, ValueNone 
+        | ValueNone, ValueSome _ -> false
+        | ValueSome o, ValueSome n   when o.GetValue(token) <> n.GetValue(token) -> false
+        | _ -> true
+
     member x.Update(token: AdaptiveToken, scope: obj) =
         x.EvaluateIfNeeded token () (fun token ->
+            let node = anode.GetValue(token)
             match targetOpt with 
-            | None -> 
-                x.CreateAndUpdate(token, scope) |> ignore
-            | Some target ->
+            | Some (prevNode, target) when canReuseView token prevNode node ->
                 node.Updater token target
+            | _ -> 
+                Debug.WriteLine (sprintf "Create %O" node.TargetType)
+
+                let target = node.Create(token)
+                targetOpt <- Some (node, target)
+                x.OnCreated (scope, target)
+                node.Updater token target
+
+                match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
+                | ValueSome f -> (f.GetValue(token)) target
+                | ValueNone -> ()
+
+                match node.TryGetAttributeKeyed(ViewElement._RefAttribKey) with
+                | ValueSome f -> (f.GetValue(token)).Set (box target)
+                | ValueNone -> ()
         )
 
-    member x.CreateAndUpdate(token: AdaptiveToken, scope) =
-        Debug.WriteLine (sprintf "Create %O" node.TargetType)
-        let target = node.Create(token)
-        targetOpt <- Some target
-        x.OnCreated (scope, target)
-        node.Updater token target
-        match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
-        | ValueSome f -> (f.GetValue(token)) target
-        | ValueNone -> ()
-        match node.TryGetAttributeKeyed(ViewElement._RefAttribKey) with
-        | ValueSome f -> (f.GetValue(token)).Set (box target)
-        | ValueNone -> ()
-        target
-    
     abstract OnCreated : scope: obj * target: obj -> unit
 
-    override x.ToString() = "updater for " + node.ToString()
+    override x.ToString() = "updater for " + anode.ToString()
 
 //module ViewElement = 
 //    let ofAVal (x: aval<ViewElement>) =

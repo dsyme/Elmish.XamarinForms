@@ -14,6 +14,69 @@ open System.Windows.Input
 [<AutoOpen>]
 module ViewUpdaters =
 
+    let updateViewElementCollectionPrim
+           (coll: ViewElement alist) 
+           (createTransform: 'TargetT -> 'ActualTargetT) 
+           childSetter
+           childInsert
+           childAdd
+           childRemoveAt
+           =
+      let mutable children : IndexList<ViewElementUpdater>  = IndexList.empty
+      let reader = coll.GetReader()
+      (fun token (target: 'Target) -> 
+        let changes = reader.GetChanges(token) 
+        for (idx, op) in IndexListDelta.toSeq changes do
+            match op with
+            | Set node ->
+
+                let updater = 
+                    { new ViewElementUpdater(AVal.constant node) with
+                        // OnCreated may get called multiple times if the thing is re-created
+                        member __.OnCreated (_scope: obj, element: obj) = 
+                            let child = createTransform (element :?> 'TargetT)
+                            let (_, mid, right) = IndexList.neighbours idx children
+                            match mid with
+                            | Some(midIdx, _) ->
+                                match IndexList.tryGetPosition midIdx children with
+                                | Some i -> childSetter target child i
+                                | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
+                            | None ->
+                                match right with
+                                | Some (rightIdx, _) ->
+                                    match IndexList.tryGetPosition rightIdx children with
+                                    | Some i -> childInsert target child i 
+                                    | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
+                                | None -> childAdd target child 
+                    }
+
+                // Creates the child for the new element if necessary
+                updater.Update(token, ())
+                children <- IndexList.set idx updater children
+
+            | Remove ->
+                match IndexList.tryRemove idx children with
+                | Some (_oldUpdater, rest) ->
+                    let (_, mid, right) = IndexList.neighbours idx children
+                    match mid, right with
+                    | Some _, Some _ -> 
+                        match IndexList.tryGetPosition idx children with
+                        | Some i -> childRemoveAt target i false
+                        | None -> ()
+                    | Some _, None -> 
+                        match IndexList.tryGetPosition idx children with
+                        | Some i -> childRemoveAt target i true
+                        | None -> ()
+                    | None, _ ->
+                        ()
+                    children <- rest
+                | None -> ()
+
+        // An update may have been requested because of a change in a child element
+        for updater in children do
+            updater.Update(token, ())
+        )
+
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
     /// a reduced number of clear/add/remove/insert operations
     let updateViewElementCollection
@@ -22,77 +85,13 @@ module ViewUpdaters =
            //(attach: AdaptiveToken -> ViewElement -> 'TargetT -> unit) // adjust attached properties
         =
      // TODO: actually use the attach function....
-      let mutable removers : IndexList<IDisposable>  = IndexList.empty
-      let mutable updaters : IndexList<ViewElementUpdater>  = IndexList.empty
-      let reader = coll.GetReader()
-      (fun token (targetColl: IList<'ActualTargetT>) -> 
-        let changes = reader.GetChanges(token) 
-        for (idx, op) in IndexListDelta.toSeq changes do
-            match op with
-            | Set node ->
-                let remover =
-                    { new IDisposable with
-                        member x.Dispose() =   
-                            match IndexList.tryGetPosition idx removers with
-                            | Some i -> 
-                                targetColl.RemoveAt i
-                                removers <- IndexList.remove idx removers
-                            | None -> 
-                                ()
-                                
-                    }
-                let (_, mid, right) = IndexList.neighbours idx removers
-                let opKind =
-                    match mid with
-                    | Some(midIdx, _) ->
-                        match IndexList.tryGet midIdx removers with
-                        | Some oldRemover -> oldRemover.Dispose()
-                        | None -> ()
-                        match IndexList.tryGetPosition midIdx removers with
-                        | Some i -> Choice1Of3 i // Set
-                        | None -> failwith "inconsistent"
-                    | None ->
-                        match right with
-                        | Some (rightIdx, _) ->
-                            match IndexList.tryGetPosition rightIdx removers with
-                            | Some i -> Choice2Of3 i // Insert
-                            | None -> failwith "inconsistent"
-                        | None -> Choice3Of3 () // Add
-
-                let updater = 
-                    { new ViewElementUpdater(node) with
-                        member __.OnCreated (_scope: obj, element: obj) = 
-                            let child = createTransform (element :?> 'TargetT)
-                            match opKind with 
-                            | Choice1Of3 i -> targetColl.[i] <- child
-                            | Choice2Of3 i -> targetColl.Insert(i, child)
-                            | Choice3Of3 () -> targetColl.Add(child) }
-
-                // Creates the child for the new element
-                updater.Update(token, ())
-                updaters <- IndexList.set idx updater updaters 
-                removers <- IndexList.set idx remover removers
-
-            | Remove ->
-                match IndexList.tryRemove idx removers with
-                | Some (oldRemover, rest) ->
-                    oldRemover.Dispose()
-                    match IndexList.tryGetPosition idx removers with
-                    | Some i -> 
-                        targetColl.RemoveAt(i)
-                    | None -> () 
-                    removers <- rest
-                | None -> ()
-
-                match IndexList.tryRemove idx updaters with
-                | Some (_updater, rest) ->
-                    updaters <- rest
-                | None -> ()
-        // An update may have been requested because of a change in a child element
-        for updater in updaters do
-            updater.Update(token, ())
-        )
-                //attach prevChildOpt newChild targetChild
+        updateViewElementCollectionPrim
+           coll 
+           createTransform 
+           (fun (targetColl: IList<'ActualTargetT>) child i -> targetColl.[i] <- child)
+           (fun targetColl child i -> targetColl.Insert(i, child))
+           (fun targetColl child -> targetColl.Add(child))
+           (fun targetColl i _isAtEnd -> targetColl.RemoveAt(i))
 
     /// Update the attached properties for each item in an already updated collection
     let updateAttachedPropertiesForCollection
@@ -347,54 +346,17 @@ module ViewUpdaters =
                         *)
     /// Incremental NavigationPage maintenance: push/pop the right pages
     let updateNavigationPages (coll: ViewElement alist) _attach =
-       (fun token target -> ())
-       (*
-            let create token (desc: ViewElement) = (desc.Creator(token ) :?> Page)
-            if (coll = null || coll.Length = 0) then
-                failwith "Error while updating NavigationPage pages: the pages collection should never be empty for a NavigationPage"
-            else
-                // Count the existing pages
-                let prevCount = target.Pages |> Seq.length
-                let newCount = coll.Length
-                printfn "Updating NavigationPage, prevCount = %d, newCount = %d" prevCount newCount
-
-                // Remove the excess pages
-                if newCount = 1 && prevCount > 1 then 
-                    printfn "Updating NavigationPage --> PopToRootAsync" 
-                    target.PopToRootAsync() |> ignore
-                elif prevCount > newCount then
-                    for i in prevCount - 1 .. -1 .. newCount do 
-                        printfn "PopAsync, page number %d" i
-                        target.PopAsync () |> ignore
-                
-                let n = min prevCount newCount
-                // Push and/or adjust pages
-                for i in 0 .. newCount-1 do
-                    let newChild = coll.[i]
-                    let prevChildOpt = match prevCollOpt with ValueNone -> ValueNone | ValueSome coll when i < coll.Length && i < n -> ValueSome coll.[i] | _ -> ValueNone
-                    let prevChildOpt, targetChild = 
-                        if (match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (identical prevChild newChild)) then
-                            let mustCreate = (i >= n || match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (ViewHelpers.canReuseView prevChild newChild))
-                            if mustCreate then
-                                //printfn "Creating child %d, prevChildOpt = %A, newChild = %A" i prevChildOpt newChild
-                                let targetChild = create newChild
-                                if i >= n then
-                                    printfn "PushAsync, page number %d" i
-                                    target.PushAsync(targetChild) |> ignore
-                                else
-                                    failwith "Error while updating NavigationPage pages: can't change type of one of the pages in the navigation chain during navigation"
-                                ValueNone, targetChild
-                            else
-                                printfn "Adjust page number %d" i
-                                let targetChild = target.Pages |> Seq.item i
-                                createChildUpdater token prevChildOpt.Value newChild targetChild
-                                prevChildOpt, targetChild
-                        else
-                            //printfn "Skipping child %d" i
-                            let targetChild = target.Pages |> Seq.item i
-                            prevChildOpt, targetChild
-                    attach prevChildOpt newChild targetChild
-                    *)
+        updateViewElementCollectionPrim
+           coll 
+           id
+           (fun (target: NavigationPage) child i -> System.Diagnostics.Debug.Assert(false); failwith "TODO - Set of NavigationPage")
+           (fun target child i -> System.Diagnostics.Debug.Assert(false); failwith "TODO - Insert of NavigationPage")
+           (fun target child -> target.PushAsync(child) |> ignore)
+           (fun target i isAtEnd -> 
+               if isAtEnd then 
+                   target.PopAsync(true) |> ignore
+               else
+                   System.Diagnostics.Debug.Assert(false); failwith "TODO - Non-pop remove of NavigationPage")
 
     /// Update a value if it has changed
     // TODO: restore inline

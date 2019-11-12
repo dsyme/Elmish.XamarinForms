@@ -168,7 +168,7 @@ module CodeGenerator =
                         generateAttachedProperties collectionData
                     | None when p.ModelType = "ViewElement" && not hasApply -> 
                         w.printfn "                let %sUpdater =" p.ShortName
-                        w.printfn "                    { new ViewElementUpdater(%s) with" p.ShortName
+                        w.printfn "                    { new ViewElementUpdater(AVal.constant %s) with" p.ShortName
                         w.printfn "                             member __.OnCreated (scope: obj, element: obj) ="
                         w.printfn "                                 (scope :?> %s).%s <- (element :?> _) }" data.FullName p.Name
                     | None when not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) ->

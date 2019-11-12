@@ -32,7 +32,7 @@ type Program<'arg, 'model, 'amodel, 'msg> =
       ainit : 'model -> 'amodel 
       adelta : 'model -> 'amodel -> unit
       subscribe : 'model -> Cmd<'msg>
-      view : 'amodel -> Dispatch<'msg> -> ViewElement
+      view : 'amodel -> Dispatch<'msg> -> aval<ViewElement>
       syncDispatch: Dispatch<'msg> -> Dispatch<'msg>
       syncAction: (unit -> unit) -> (unit -> unit)
       debug : bool
@@ -150,7 +150,7 @@ module Program =
         Console.WriteLine (sprintf "%s: %A" text ex)
 
     /// Typical program, new commands are produced by `init` and `update` along with the new state.
-    let mkProgram (init : 'arg -> 'model * Cmd<'msg>) (update : 'msg -> 'model -> 'model * Cmd<'msg>) (ainit: 'model -> 'amodel) (adelta: 'model -> 'amodel -> unit) (view : 'amodel -> Dispatch<'msg> -> ViewElement) =
+    let mkProgram (init : 'arg -> 'model * Cmd<'msg>) (update : 'msg -> 'model -> 'model * Cmd<'msg>) (ainit: 'model -> 'amodel) (adelta: 'model -> 'amodel -> unit) (view : 'amodel -> Dispatch<'msg> -> aval<ViewElement>) =
         { init = init
           update = update
           ainit = ainit
@@ -163,11 +163,11 @@ module Program =
           onError = onError }
 
     /// Simple program that produces only new state with `init` and `update`.
-    let mkSimple (init : 'arg -> 'model) (update : 'msg -> 'model -> 'model) ainit adelta (view : 'amodel -> Dispatch<'msg> -> ViewElement) = 
+    let mkSimple (init : 'arg -> 'model) (update : 'msg -> 'model -> 'model) ainit adelta (view : 'amodel -> Dispatch<'msg> -> aval<ViewElement>) = 
         mkProgram (fun arg -> init arg, Cmd.none) (fun msg model -> update msg model, Cmd.none) ainit adelta view
 
     /// Typical program, new commands are produced discriminated unions returned by `init` and `update` along with the new state.
-    let mkProgramWithCmdMsg (init: 'arg -> 'model * 'cmdMsg list) (update: 'msg -> 'model -> 'model * 'cmdMsg list) ainit adelta (view: 'amodel -> Dispatch<'msg> -> ViewElement) (mapToCmd: 'cmdMsg -> Cmd<'msg>) =
+    let mkProgramWithCmdMsg (init: 'arg -> 'model * 'cmdMsg list) (update: 'msg -> 'model -> 'model * 'cmdMsg list) ainit adelta (view: 'amodel -> Dispatch<'msg> -> aval<ViewElement>) (mapToCmd: 'cmdMsg -> Cmd<'msg>) =
         let convert = fun (model, cmdMsgs) -> model, (cmdMsgs |> List.map mapToCmd |> Cmd.batch)
         mkProgram (fun arg -> init arg |> convert) (fun msg model -> update msg model |> convert) ainit adelta view
 

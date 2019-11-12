@@ -416,16 +416,18 @@ module App =
         ])
 
     let view (model: AdaptiveModel) dispatch =
-
+      aval {
         let MainPageButton = 
             View.Button(text = c "Main page", 
                         command = c (fun () -> dispatch (SetRootPageKind (Choice false))), 
                         horizontalOptions = c LayoutOptions.CenterAndExpand)
 
+        let! rootPageKind = model.RootPageKind
         // TODO: allow different kinds of root page
         //model.RootPageKind |> AVal.ma
-        match Carousel (* model.RootPageKind *) with 
+        match rootPageKind with 
         | Choice showAbout -> 
+          return
             View.NavigationPage(pages=
               cs [ 
                   yield 
@@ -471,7 +473,8 @@ module App =
                 ])
 
         | Carousel -> 
-           View.CarouselPage(
+         return
+            View.CarouselPage(
                     useSafeArea = c true,
                     currentPageChanged = c (fun index -> 
                         match index with
@@ -588,6 +591,7 @@ module App =
            ])
 
         | Tabbed1 ->
+         return
            View.TabbedPage(
                     useSafeArea = c true,
                     currentPageChanged = c (fun index ->
@@ -601,7 +605,7 @@ module App =
                     children = cs [
                      View.ScrollingContentPage(c "Slider", cs [ 
                            View.Label(text = c "Label:")
-                           View.Label(text= (model.Count |> AVal.map (sprintf "%d")), 
+                           View.Label(text= (model.CountForSlider |> AVal.map (sprintf "%d")), 
                                horizontalOptions = c LayoutOptions.CenterAndExpand)
 
                            View.Label(text = c "Button:")
@@ -610,11 +614,18 @@ module App =
                                horizontalOptions = c LayoutOptions.CenterAndExpand)
                  
                            View.Label(text = c "Button:")
-                           View.Button(text = c "Decrement", command = c (fun () -> dispatch DecrementForSlider), horizontalOptions = c LayoutOptions.CenterAndExpand)
+                           View.Button(text = c "Decrement", 
+                               command = c (fun () -> dispatch DecrementForSlider), 
+                               horizontalOptions = c LayoutOptions.CenterAndExpand)
 
                            View.Label(text = c "Button:")
-                           View.Button(text = c "Set Minimum = 0 / Maximum = 10", command = c (fun () -> dispatch ChangeMinimumMaximumForSlider1), horizontalOptions = c LayoutOptions.CenterAndExpand)
-                           View.Button(text = c "Set Minimum = 15 / Maximum = 20", command = c (fun () -> dispatch ChangeMinimumMaximumForSlider2), horizontalOptions = c LayoutOptions.CenterAndExpand)
+                           View.Button(text = c "Set Minimum = 0 / Maximum = 10", 
+                               command = c (fun () -> dispatch ChangeMinimumMaximumForSlider1),
+                               horizontalOptions = c LayoutOptions.CenterAndExpand)
+
+                           View.Button(text = c "Set Minimum = 15 / Maximum = 20",
+                               command = c (fun () -> dispatch ChangeMinimumMaximumForSlider2),
+                               horizontalOptions = c LayoutOptions.CenterAndExpand)
 
                            View.Label(text= ((model.MinimumForSlider, model.MaximumForSlider, model.StepForSlider) |||> AVal.map3 (fun minimum maximum step -> 
                                sprintf "Slider: (Minimum %d, Maximum %d, Value %d)" minimum maximum step)))
@@ -682,6 +693,8 @@ module App =
                                   verticalOptions = c LayoutOptions.FillAndExpand) 
                            MainPageButton ])
                  ])
+        | _ -> 
+           return View.ContentPage(title = c "NYI", content = MainPageButton)
 (*
         | Tabbed2 ->
            View.TabbedPage(useSafeArea=c true, children =cs [
@@ -1113,6 +1126,8 @@ module App =
                 )
             )
 *)
+        }
+
     let ainit (model: Model) : AdaptiveModel = 
         { RootPageKind = cval model.RootPageKind
           Count = cval model.Count

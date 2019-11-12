@@ -67,56 +67,91 @@ module App =
         | TimerToggled on -> { model with TimerOn = on }, (if on then [ TickTimer ] else [])
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
-    let view (amodel: AdaptiveModel) dispatch =  
-        View.ContentPage(
-          content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
-            children = cs [
+    let view (model: AdaptiveModel) dispatch =  
+        //View.ContentPage(
+        //  content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
+        //    children = cs [
 
-              View.Label(automationId = c "CountLabel", 
-                  text = (amodel.Count |> AVal.map (sprintf "%d")),
-                  horizontalOptions = c LayoutOptions.Center, 
-                  width = c 200.0, 
-                  horizontalTextAlignment = c TextAlignment.Center)
+        //      View.Label(automationId = c "CountLabel", 
+        //          text = (amodel.Count |> AVal.map (sprintf "%d")),
+        //          horizontalOptions = c LayoutOptions.Center, 
+        //          width = c 200.0, 
+        //          horizontalTextAlignment = c TextAlignment.Center)
 
-              View.Button(automationId = c "IncrementButton",
-                  text = c "Increment",
-                  command= c (fun () -> dispatch Increment))
+        //      View.Button(automationId = c "IncrementButton",
+        //          text = c "Increment",
+        //          command= c (fun () -> dispatch Increment))
 
-              View.Button(automationId = c "DecrementButton",
-                  text = c "Decrement",
-                  command= c (fun () -> dispatch Decrement)) 
+        //      View.Button(automationId = c "DecrementButton",
+        //          text = c "Decrement",
+        //          command= c (fun () -> dispatch Decrement)) 
 
-              View.Label(text = c "Timer")
+        //      View.Label(text = c "Timer")
 
-              View.Switch(automationId = c "TimerSwitch",
-                isToggled = amodel.TimerOn, 
-                toggled = c (fun on -> dispatch (TimerToggled on.Value)))
+        //      View.Switch(automationId = c "TimerSwitch",
+        //        isToggled = amodel.TimerOn, 
+        //        toggled = c (fun on -> dispatch (TimerToggled on.Value)))
 
-              View.Slider(automationId = c "StepSlider", 
-                  minimumMaximum = c (0.0, 10.0), 
-                  value = (amodel.Step |> AVal.map double),
-                  valueChanged = c (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
+        //      View.Slider(automationId = c "StepSlider", 
+        //          minimumMaximum = c (0.0, 10.0), 
+        //          value = (amodel.Step |> AVal.map double),
+        //          valueChanged = c (fun args -> dispatch (SetStep (int (args.NewValue + 0.5)))))
 
-              View.Label(automationId = c "StepSizeLabel",
-                  text= (amodel.Step |> AVal.map (sprintf "Step size: %d")),
-                  horizontalOptions = c LayoutOptions.Center)
+        //      View.Label(automationId = c "StepSizeLabel",
+        //          text= (amodel.Step |> AVal.map (sprintf "Step size: %d")),
+        //          horizontalOptions = c LayoutOptions.Center)
 
-              View.Button(text = c "Reset",
-                  horizontalOptions = c LayoutOptions.Center,
-                  command = c (fun () -> dispatch Reset),
-                  commandCanExecute = 
-                      ((amodel.Step, amodel.Count, amodel.TimerOn) |||> AVal.map3 (fun step count timerOn -> 
-                          step <> initialModel.Step || 
-                          count <> initialModel.Count || 
-                          timerOn <> initialModel.TimerOn)))
-            ]))
+        //      View.Button(text = c "Reset",
+        //          horizontalOptions = c LayoutOptions.Center,
+        //          command = c (fun () -> dispatch Reset),
+        //          commandCanExecute = 
+        //              ((amodel.Step, amodel.Count, amodel.TimerOn) |||> AVal.map3 (fun step count timerOn -> 
+        //                  step <> initialModel.Step || 
+        //                  count <> initialModel.Count || 
+        //                  timerOn <> initialModel.TimerOn)))
+        //    ]))
+        //|> AVal.constant
             
         //View.ContentPage(
         //      View.Button(text = (amodel.Count |> AVal.map (sprintf "%d")),
         //          command= c (fun () -> dispatch Increment)
         //      )
         // )
+        //|> AVal.constant
 
+        aval {
+          let! count = model.Count
+          return 
+              if count <= 1 then 
+                    View.ContentPage(
+                      View.Button(text = (model.Count |> AVal.map (sprintf "%d")),
+                          command= c (fun () -> dispatch Increment)
+                      )
+                   )
+              else
+                    View.TabbedPage (cs [
+                        for i in 1 .. count do 
+                            View.ContentPage(title = c (sprintf "Page %d" i), 
+                                content =
+                                  View.Button(text = (model.Count |> AVal.map (sprintf "Page %d - %d" i)),
+                                      command= c (fun () -> dispatch Increment)
+                                  )
+                             )
+                    ])
+        }
+
+        //View.ContentPage(
+        //  content=View.StackLayout(
+        //    children = alist {
+        //      let! count = model.Count
+        //      for i in 0 .. count do 
+        //          View.Button(text = c (sprintf "Button %d, count = %d" i count),
+        //              command= c (fun () -> dispatch Increment)
+        //          )
+        //     })
+        // )
+        //|> AVal.constant
+        
         //View.ContentPage(
         //  content=View.StackLayout(
         //    children = cs [
@@ -126,6 +161,7 @@ module App =
         //      )
         //    ])
         // )
+        //|> AVal.constant
 
     let program = 
         Program.mkProgramWithCmdMsg init update ainit adelta view mapCmdMsgToCmd
