@@ -147,7 +147,7 @@ module CodeGenerator =
                     w.printfn "                )"
                 else
 *)        
-                    w.printfn "                        (fun _ _ _ -> ())"
+                    w.printfn "                        (fun _token _childTarget  -> ())"
             
             // Update properties
             if data.Properties.Length > 0 then

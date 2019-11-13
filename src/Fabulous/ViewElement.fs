@@ -208,6 +208,8 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
         | ValueSome o, ValueSome n   when o.GetValue(token) <> n.GetValue(token) -> false
         | _ -> true
 
+    member x.Target = snd targetOpt.Value
+
     member x.Update(token: AdaptiveToken, scope: obj) =
         x.EvaluateIfNeeded token () (fun token ->
             let node = anode.GetValue(token)
@@ -234,6 +236,15 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
     abstract OnCreated : scope: obj * target: obj -> unit
 
     override x.ToString() = "updater for " + anode.ToString()
+
+type AttachedPropsUpdater(updateAttachedProps: (AdaptiveToken -> obj -> unit), childNode: ViewElement) = 
+    inherit AdaptiveObject()
+
+    member x.Update(token: AdaptiveToken, childTarget: obj) =
+        x.EvaluateIfNeeded token () (fun token ->
+            updateAttachedProps token childTarget
+        )
+    override x.ToString() = "attached props updater for " + childNode.ToString()
 
 //module ViewElement = 
 //    let ofAVal (x: aval<ViewElement>) =
