@@ -14,14 +14,62 @@ open System.Windows.Input
 [<AutoOpen>]
 module ViewUpdaters =
 
+    let updateCollectionPrim
+           (coll: 'T alist) 
+           childSetter
+           childInsert
+           childAdd
+           childRemove
+           =
+      let mutable children : IndexList<'T>  = IndexList.empty
+      let reader = coll.GetReader()
+      (fun token (target: 'Target) -> 
+        let changes = reader.GetChanges(token) 
+        for (idx, op) in IndexListDelta.toSeq changes do
+            match op with
+            | Set node ->
+
+                let (_, mid, right) = IndexList.neighbours idx children
+                match mid with
+                | Some(midIdx, _) ->
+                    match IndexList.tryGetPosition midIdx children with
+                    | Some i -> childSetter target node i
+                    | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
+                | None ->
+                    match right with
+                    | Some (rightIdx, _) ->
+                        match IndexList.tryGetPosition rightIdx children with
+                        | Some i -> childInsert target node i 
+                        | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
+                    | None -> childAdd target node
+                children <- IndexList.set idx node children
+
+            | Remove ->
+                match IndexList.tryRemove idx children with
+                | Some (node, rest) ->
+                    let (_, mid, right) = IndexList.neighbours idx children
+                    match mid, right with
+                    | Some _, Some _ -> 
+                        match IndexList.tryGetPosition idx children with
+                        | Some i -> childRemove target node i false
+                        | None -> ()
+                    | Some _, None -> 
+                        match IndexList.tryGetPosition idx children with
+                        | Some i -> childRemove target node i true
+                        | None -> ()
+                    | None, _ ->
+                        ()
+                    children <- rest
+                | None -> ()
+        )
+
     let updateViewElementCollectionPrim
            (coll: ViewElement alist) 
            (createTransform: 'TargetT -> 'ActualTargetT) 
            childSetter
            childInsert
            childAdd
-           childRemoveAt
-           =
+           childRemove =
       let mutable children : IndexList<ViewElementUpdater>  = IndexList.empty
       let reader = coll.GetReader()
       (fun token (target: 'Target) -> 
@@ -61,11 +109,11 @@ module ViewUpdaters =
                     match mid, right with
                     | Some _, Some _ -> 
                         match IndexList.tryGetPosition idx children with
-                        | Some i -> childRemoveAt target i false
+                        | Some i -> childRemove target i false
                         | None -> ()
                     | Some _, None -> 
                         match IndexList.tryGetPosition idx children with
-                        | Some i -> childRemoveAt target i true
+                        | Some i -> childRemove target i true
                         | None -> ()
                     | None, _ ->
                         ()
@@ -97,28 +145,15 @@ module ViewUpdaters =
     let updateAttachedPropertiesForCollection
            (coll: 'T alist)
            (attach: _ -> 'T -> 'TargetT -> unit) =
-        let mutable removers : IndexList<(AdaptiveToken -> unit)>  = IndexList.empty
-        let mutable subNodes : IndexList<'T>  = IndexList.empty
-        let mutable dirtyInner = Collections.Generic.HashSet<(AdaptiveToken -> unit)>()
-        let reader = coll.GetReader()
-        fun token (targetColl: IList<'TargetT>) ->
-            ()
+        let updater = 
+            updateCollectionPrim coll
+                (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
+                (fun target x i -> target.Insert(i, x))
+                (fun target x -> target.Add(x))
+                (fun target x i _isAtEnd -> target.RemoveAt(i))
 
-(*
-            for i in 0 .. coll.Length-1 do
-                let targetChild = targetColl.[i]
-                let newChild = coll.[i]
-                let prevChildOpt =
-                    match prevCollOpt with
-                    | ValueSome coll when i < coll.Length ->
-                        let child = coll.[i]
-                        if not (identical child newChild) && canReuseView child newChild then
-                            ValueSome child
-                        else
-                            ValueNone
-                    | _ -> ValueNone
-                attach prevChildOpt newChild targetChild
-*)
+        fun token (target: IList<'TargetT>) ->
+            () (* TODO *)
 
     /// Update the attached properties for each item in Layout<T>.Children
     let updateAttachedPropertiesForLayoutOfT coll attach =
@@ -140,7 +175,6 @@ module ViewUpdaters =
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
-        // TODO: fix this
         let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.ItemsView<'T>) ->
             let targetColl = 
@@ -151,38 +185,25 @@ module ViewUpdaters =
                     target.ItemsSource <- oc
                     oc
             updater token targetColl
-    //let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (prevCollOpt: ViewElement array voption) (collOpt: ViewElement array voption) (target: Xamarin.Forms.ItemsView<'T>) = 
-    //    let targetColl = 
-    //        match target.ItemsSource with 
-    //        | :? ObservableCollection<ViewElementHolder> as oc -> oc
-    //        | _ -> 
-    //            let oc = ObservableCollection<ViewElementHolder>()
-    //            target.ItemsSource <- oc
-    //            oc
-    //    updateCollectionGeneric prevCollOpt collOpt targetColl ViewElementHolder (fun _ _ _ -> ()) ViewHelpers.canReuseView (fun _ curr holder -> holder.ViewElement <- curr)
                     
     /// Update the selected items in a SelectableItemsView control, given previous and current indexes
-    let updateSelectableItemsViewSelectedItems (prevCollOptOpt: int array option voption) (collOptOpt: int array option voption) (target: Xamarin.Forms.SelectableItemsView) = 
-        failwith "TODO"
-(*
-         let targetColl = 
-            match target.SelectedItems with 
-            | :? ObservableCollection<obj> as oc -> oc
-            | _ -> 
-                let oc = ObservableCollection<obj>()
-                target.SelectedItems <- oc
-                oc
-                
-        let convert = ValueOption.bind (function None -> ValueNone | Some x -> ValueSome x)
-        let prevCollOpt = convert prevCollOptOpt
-        let collOpt = convert collOptOpt
-        
-        let findItem idx =
-            let itemsSource = target.ItemsSource :?> System.Collections.Generic.IList<ViewElementHolder>
-            itemsSource.[idx] :> obj
-        
-        updateCollectionGeneric prevCollOpt collOpt targetColl findItem (fun _ _ _ -> ()) (fun x y -> x = y) (fun _ _ _ -> ())
-*)
+    let updateSelectableItemsViewSelectedItems coll = 
+        let updater = 
+            updateCollectionPrim coll
+                (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
+                (fun target x i -> target.Insert(i, x))
+                (fun target x -> target.Add(x))
+                (fun target x i _isAtEnd -> target.RemoveAt(i))
+
+        fun token (target: Xamarin.Forms.SelectableItemsView) ->
+            let targetColl = 
+                match target.SelectedItems with 
+                | :? ObservableCollection<obj> as oc -> oc
+                | _ -> 
+                    let oc = ObservableCollection<obj>()
+                    target.SelectedItems <- oc
+                    oc
+            updater token targetColl
 
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 
@@ -197,6 +218,7 @@ module ViewUpdaters =
                     oc
             updater token targetColl
         
+(*
     let private updateViewElementHolderGroup (currShortName: string, currKey, coll: ViewElement alist) =
         let updater = updateViewElementCollection coll id
         fun token (target: ViewElementHolderGroup) ->
@@ -204,7 +226,6 @@ module ViewUpdaters =
             target.ViewElement <- currKey
             updater token target
 
-(*
     /// Update the items in a GroupedListView control, given previous and current view elements
     let updateListViewGroupedItems (coll: (string * ViewElement * ViewElement alist) alist) (target: Xamarin.Forms.ListView) = 
         let updater = updateViewElementCollection coll (fun token elem -> ViewElementHolderGroup(elem)) (fun _ _ _ -> ()) (fun (_, prevKey, _) (_, currKey, _) -> ViewHelpers.canReuseView prevKey currKey) updateViewElementHolderGroup
@@ -237,126 +258,43 @@ module ViewUpdaters =
             updater token target
 
     let updateResources (coll: (string * obj) alist) =
-        fun token (target: Xamarin.Forms.VisualElement) ->
-            // TODO - Resources
-            ()
-        (*
-    /// Update the resources of a control, given previous and current view elements describing the resources
-    let updateResources (prevCollOpt: (string * obj)[] voption) (coll: (string * obj)[] voption) (target: Xamarin.Forms.VisualElement) = 
-        match prevCollOpt, coll with 
-        | ValueNone, ValueNone -> ()
-        | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
-        | _, ValueNone -> target.Resources.Clear()
-        | _, ValueSome coll ->
-            let targetColl = target.Resources
-            if (coll = null || coll.Length = 0) then
-                targetColl.Clear()
-            else
-                for (key, newChild) in coll do 
-                    if targetColl.ContainsKey(key) then 
-                        let prevChildOpt = 
-                            match prevCollOpt with 
-                            | ValueNone -> ValueNone 
-                            | ValueSome prevColl -> 
-                                match prevColl |> Array.tryFind(fun (prevKey, _) -> key = prevKey) with 
-                                | Some (_, prevChild) -> ValueSome prevChild
-                                | None -> ValueNone
-                        if (match prevChildOpt with ValueNone -> true | ValueSome prevChild -> not (identical prevChild newChild)) then
-                            targetColl.Add(key, newChild)                            
-                        else
-                            targetColl.[key] <- newChild
-                    else
-                        targetColl.Remove(key) |> ignore
-                for (KeyValue(key, _newChild)) in targetColl do 
-                   if not (coll |> Array.exists(fun (key2, _v2) -> key = key2)) then 
-                       targetColl.Remove(key) |> ignore
-*)
+        updateCollectionPrim coll 
+           (fun (target: VisualElement) (nm, r) i -> target.Resources.[nm] <- box r)
+           (fun target (nm, r) i -> target.Resources.[nm] <- box r)
+           (fun target (nm, r) -> target.Resources.Add(nm, box r))
+           (fun target (nm, r) i _isAtEnd -> target.Resources.Remove(nm) |> ignore)
 
     /// Update the style sheets of a control, given previous and current view elements describing them
     // Note, style sheets can't be removed
-    // Note, style sheets are compared by object identity
     let updateStyleSheets (coll: StyleSheet alist) = 
-        fun token (target: Xamarin.Forms.VisualElement) ->
-            // TODO 
-            ()
-(*
-         match prevCollOpt, coll with 
-        | ValueNone, ValueNone -> ()
-        | ValueSome prevColl, ValueSome newColl when identical prevColl newColl -> ()
-        | _, ValueNone -> target.Resources.Clear()
-        | _, ValueSome coll ->
-            let targetColl = target.Resources
-            if (coll = null || coll.Length = 0) then
-                targetColl.Clear()
-            else
-                for styleSheet in coll do 
-                    let prevChildOpt = 
-                        match prevCollOpt with 
-                        | ValueNone -> None 
-                        | ValueSome prevColl -> prevColl |> Array.tryFind(fun prevStyleSheet -> identical styleSheet prevStyleSheet)
-                    match prevChildOpt with 
-                    | None -> targetColl.Add(styleSheet)                            
-                    | Some _ -> ()
-                match prevCollOpt with 
-                | ValueNone -> ()
-                | ValueSome prevColl -> 
-                    for prevStyleSheet in prevColl do 
-                        let childOpt = 
-                            match prevCollOpt with 
-                            | ValueNone -> None 
-                            | ValueSome prevColl -> prevColl |> Array.tryFind(fun styleSheet -> identical styleSheet prevStyleSheet)
-                        match childOpt with 
-                        | None -> 
-                            eprintfn "**** WARNING: style sheets may not be removed, and are compared by object identity, so should be created independently of your update or view functions ****"
-                        | Some _ -> ()
-*)
+        updateCollectionPrim coll 
+           (fun (target: VisualElement) ss i -> target.Resources.Add(ss))
+           (fun target ss i -> target.Resources.Add(ss))
+           (fun target ss -> target.Resources.Add(ss))
+           (fun target ss i _isAtEnd -> ())
 
     /// Update the styles of a control, given previous and current view elements describing them
     // Note, styles can't be removed
-    // Note, styles are compared by object identity
     let updateStyles (coll: Style alist) = 
-        fun token (target: Xamarin.Forms.VisualElement) ->
-            // TODO
-            ()
-(*
-     let targetColl = target.Resources
-            if (coll = null || coll.Length = 0) then
-                targetColl.Clear()
-            else
-                for styleSheet in coll do 
-                    let prevChildOpt = 
-                        match prevCollOpt with 
-                        | ValueNone -> None 
-                        | ValueSome prevColl -> prevColl |> Array.tryFind(fun prevStyleSheet -> identical styleSheet prevStyleSheet)
-                    match prevChildOpt with 
-                    | None -> targetColl.Add(styleSheet)                            
-                    | Some _ -> ()
-                match prevCollOpt with 
-                | ValueNone -> ()
-                | ValueSome prevColl -> 
-                    for prevStyle in prevColl do 
-                        let childOpt = 
-                            match prevCollOpt with 
-                            | ValueNone -> None 
-                            | ValueSome prevColl -> prevColl |> Array.tryFind(fun style-> identical style prevStyle)
-                        match childOpt with 
-                        | None -> 
-                            eprintfn "**** WARNING: styles may not be removed, and are compared by object identity. They should be created independently of your update or view functions ****"
-                        | Some _ -> ()
-                        *)
+        updateCollectionPrim coll
+           (fun (target: VisualElement) style i -> target.Resources.Add(style))
+           (fun target style i -> target.Resources.Add(style))
+           (fun target style -> target.Resources.Add(style))
+           (fun target style i _isAtEnd -> ())
+
     /// Incremental NavigationPage maintenance: push/pop the right pages
     let updateNavigationPages (coll: ViewElement alist) _attach =
         updateViewElementCollectionPrim
            coll 
            id
-           (fun (target: NavigationPage) child i -> System.Diagnostics.Debug.Assert(false); failwith "TODO - Set of NavigationPage")
-           (fun target child i -> System.Diagnostics.Debug.Assert(false); failwith "TODO - Insert of NavigationPage")
+           (fun (target: NavigationPage) child i -> System.Diagnostics.Debug.Assert(false); (* TODO - Set of NavigationPage *))
+           (fun target child i -> System.Diagnostics.Debug.Assert(false); (* "TODO - Insert of NavigationPage" *))
            (fun target child -> target.PushAsync(child) |> ignore)
            (fun target i isAtEnd -> 
                if isAtEnd then 
                    target.PopAsync(true) |> ignore
                else
-                   System.Diagnostics.Debug.Assert(false); failwith "TODO - Non-pop remove of NavigationPage")
+                   System.Diagnostics.Debug.Assert(false); (* "TODO - Non-pop remove of NavigationPage" *))
 
     /// Update a value if it has changed
     // TODO: restore inline
@@ -557,7 +495,7 @@ module ViewUpdaters =
 
     /// Trigger ScrollView.ScrollToAsync if needed, given the current values
     ///
-    /// TODO: this re-executes repeatedly
+    /// TODO: consider what trigger means for adaptive
     let triggerScrollToAsync (value: aval<(float * float * AnimationKind)>) =
         fun token (target: Xamarin.Forms.ScrollView) ->
             let (x, y, animationKind) = value.GetValue(token)
@@ -570,7 +508,7 @@ module ViewUpdaters =
 
     /// Trigger ItemsView.ScrollTo if needed, given the current values
     ///
-    /// TODO: this re-executes repeatedly
+    /// TODO: consider what trigger means for adaptive
     let triggerScrollTo (value: aval<(obj * obj * ScrollToPosition * AnimationKind)>) =
         fun token (target: Xamarin.Forms.ItemsView) ->
             let (x, y, scrollToPosition, animationKind) = value.GetValue(token)
@@ -582,7 +520,7 @@ module ViewUpdaters =
 
     /// Trigger Shell.GoToAsync if needed, given the current values
     ///
-    /// TODO: this re-executes repeatedly
+    /// TODO: consider what trigger means for adaptive
     let triggerShellGoToAsync (curr: aval<(ShellNavigationState * AnimationKind)>) =
         fun token (target: Xamarin.Forms.Shell) ->
             let (navigationState, animationKind) = curr.GetValue(token)
@@ -593,16 +531,14 @@ module ViewUpdaters =
             target.GoToAsync(navigationState, animated) |> ignore
 
     let updatePageShellSearchHandler (element: ViewElement) =
-        creationUpdater (fun token target created ->
-            // TODO: this will do repeated updates
-            match created with
-            | false -> 
-                let handler = element.Create(token) :?> Xamarin.Forms.SearchHandler
-                Shell.SetSearchHandler(target, handler)
-            | true -> 
-                let handler = Shell.GetSearchHandler(target)
-                // TODO make this a ViewElementUpdater?
-                element.Updater token (box handler))
+        let updater = 
+            { new ViewElementUpdater(AVal.constant element) with 
+                  member __.OnCreated(scope: obj, element: obj) =
+                      let scope = scope :?> NavigableElement
+                      let handler = element :?> Xamarin.Forms.SearchHandler
+                      Shell.SetSearchHandler(scope, handler) }
+        fun token (target: NavigableElement) -> 
+            updater.Update(token, target)
 
     let updateShellBackgroundColor (value: aval<_>) =
         valueUpdater value (fun target prevOpt curr -> 
@@ -788,11 +724,12 @@ module ViewUpdaters =
             updater token target.ToolbarItems
 
     let updateElementMenu (value : ViewElement) =
-        creationUpdater (fun token (target: Xamarin.Forms.Element) created ->
-            match created with 
-            | false -> Element.SetMenu(target, value.Create(token) :?> Menu)
-            | true -> 
-                let menu = Element.GetMenu(target)
-                // TODO make this a ViewElementUpdater?
-                value.Updater token (box menu))
+        let updater = 
+            { new ViewElementUpdater(AVal.constant value) with 
+                  member __.OnCreated(scope: obj, element: obj) =
+                      let scope = scope :?> Element
+                      let handler = element :?> Xamarin.Forms.Menu
+                      Shell.SetMenu(scope, handler) }
+        fun token (target: Element) -> 
+            updater.Update(token, target)
 
