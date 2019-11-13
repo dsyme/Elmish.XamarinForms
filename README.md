@@ -1,74 +1,47 @@
-Fabulous
+Fabulous (Adaptive version)
 =======
 
-*F# Functional App Development, using declarative dynamic UI*
+*F# Functional App Development, using declarative dynamic UI and adaptive data*
 
- [![Build Status](https://dev.azure.com/timothelariviere/Fabulous/_apis/build/status/Full%20Build?branchName=master)](https://dev.azure.com/timothelariviere/Fabulous/_build/latest?definitionId=7&branchName=master) [![Join the chat at https://gitter.im/fsprojects/Fabulous](https://badges.gitter.im/fsprojects/Fabulous.svg)](https://gitter.im/fsprojects/Fabulous?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Extends the [Fabulous](https://fsprojects.github.io/Fabulous/) programming model to use [adaptive data](https://fsprojects.github.io/FSharp.Data.Adaptive/) for high-performance updates in data-rich UIs.
 
-Never write a ViewModel class again! Conquer the world with clean dynamic UIs!
+Experimental, wet-paint, no nuget packages or templates yet.
 
-* [Documentation](https://fsprojects.github.io/Fabulous/)
-
-* [Contributor guide](DEVGUIDE.md)
-
-* [Release Notes](RELEASE_NOTES.md)
-
-This repository contains 3 differents libraries:
-
-Package | NuGet
----|---
-Fabulous | [![Fabulous NuGet version](https://badge.fury.io/nu/Fabulous.svg)](https://badge.fury.io/nu/Fabulous)  
-Fabulous.XamarinForms | [![Fabulous.XamarinForms NuGet version](https://badge.fury.io/nu/Fabulous.XamarinForms.svg)](https://badge.fury.io/nu/Fabulous.XamarinForms)  
-Fabulous.StaticView.XamarinForms | [![Fabulous.StaticView.XamarinForms NuGet version](https://badge.fury.io/nu/Fabulous.StaticView.XamarinForms.svg)](https://badge.fury.io/nu/Fabulous.StaticView.XamarinForms)
-
-## Fabulous
-
-This library aims to provide all the core abstractions and tools for writing your own app framework based on the "[model view update](https://guide.elm-lang.org/architecture/)" programming model and dynamic UI. It is a variation of [elmish](https://elmish.github.io/), an Elm architecture implemented in F#.
-
-[Learn more about Fabulous](FABULOUS.md)
-
-## Fabulous for Xamarin.Forms
-
-This library allows you to use the ultra-simple Model-View-Update architecture to build applications for iOS, Android, Mac, WPF and more using Xamarin.Forms. It is built on Fabulous.
-
-With Fabulous for Xamarin.Forms, you will be able to write complete applications fully in F#, like this:
+With Fabulous Adaptive, you can write code like this:
 ```fsharp
 type Model = { Text: string }
-type Msg = ButtonClicked
+type Msg =
+    | ButtonClicked
 
-let init () = { Text = "Hello Fabulous!" }
+let init () =
+    { Text = "Hello Fabulous!" }
 
 let update msg model =
     match msg with
     | ButtonClicked -> { model with Text = "Thanks for using Fabulous!" }
 
-let view model dispatch =
+// Make an adaptive vesion of the model. This is boilerplate. See Adaptify.
+type AdaptiveModel = { Text: aval<string> }
+
+// Initialize an adaptive vesion of the model. This is boilerplate. See Adaptify.
+let ainit (model: Model) = { Text = cval model.Text }
+
+// Update an adaptive vesion of the model. This is boilerplate. See Adaptify.
+let adelta (model: Model) (amodel: AdaptiveModel) =
+    transact (fun () -> 
+        if model.Text <> amodel.Text.Value then 
+            amodel.Text.Set model.Text
+    )
+
+// Write the view with resept to the adaptive vesion of the model.
+let view (amodel: AdaptiveModel) dispatch =
     View.ContentPage(
         View.StackLayout(
-            children=[
-                View.Image(source = "fabulous.png")
-                View.Label(text = model.Text, fontSize = 22.)
-                View.Button(text = "Click me", command = (fun () -> dispatch ButtonClicked))
+            children = cs [
+                View.Image(source = c "fabulous.png")
+                View.Label(text = model.Text, fontSize = c 22.0)
+                View.Button(text = c "Click me", command = c (fun () -> dispatch ButtonClicked))
             ]
         )
     )
 ```
-
-[Learn more about Fabulous for Xamarin.Forms](https://github.com/fsprojects/Fabulous/tree/master/Fabulous.XamarinForms)
-
-## Fabulous StaticView
-
-This library allows you to write Xamarin.Forms apps using XAML and the Model-View-Update architecture.
-
-It is not actively maintained.  
-If you wish to see more support for Fabulous.StaticView, please consider contributing.
-
-[Learn more about Fabulous StaticView](https://github.com/fsprojects/Fabulous/tree/master/Fabulous.StaticView)
-
-## Contributing
-
-Please contribute to this library through issue reports, pull requests, code reviews and discussion.
-
-Credits
------
-This library is inspired by [Elmish.WPF](https://github.com/Prolucid/Elmish.WPF), [Elmish.Forms](https://github.com/dboris/elmish-forms) and [elmish](https://github.com/elmish/elmish).
