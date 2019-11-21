@@ -67,8 +67,8 @@ module CodeGenerator =
         members, baseMembers, immediateMembers
 
     let generateMemberUpdater (targetFullName: string) (m: UpdateMember) shortName (w: StringWriter) =
-          match m with 
-          | UpdateProperty p -> 
+        match m with 
+        | UpdateProperty p -> 
             let hasApply = not (System.String.IsNullOrWhiteSpace(p.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(p.UpdateCode))
             let generateAttachedProperties (collectionData: UpdatePropertyCollectionData) =
 (*
@@ -156,7 +156,7 @@ Note we could create an intermediate AP updater for each AP for each child.
                 w.printfn "                    | ValueSome prev when prev = curr -> ()"
                 w.printfn "                    | _ -> target.%s <- %s curr)" p.Name p.ConvertModelToValue
 
-          | UpdateEvent e -> 
+        | UpdateEvent e -> 
             // TODO: restore this
             //let relatedProperties =
             //    e.RelatedProperties
@@ -166,8 +166,23 @@ Note we could create an intermediate AP updater for each AP for each child.
                 w.printfn "            let updater = eventUpdater %s %s (* ModelType = %s *) (fun (target: %s) -> target.%s)" shortName e.ConvertModelToValue e.ModelType targetFullName e.Name
             else 
                 w.printfn "            let updater = eventUpdater %s makeEventHandler (* ModelType = %s *) (fun (target: %s) -> target.%s)" shortName e.ModelType targetFullName e.Name
-          | UpdateAttachedProperty ap -> 
-                w.printfn "            let updater = (fun _ _ -> ())" // TODO
+        | UpdateAttachedProperty ap -> 
+            let hasApply = not (System.String.IsNullOrWhiteSpace(ap.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(ap.UpdateCode))
+            if ap.ModelType = "ViewElement" && not hasApply then
+                w.printfn "            let updater ="
+                w.printfn "                { new ViewElementUpdater(AVal.constant %s) with" shortName
+                w.printfn "                         member __.OnCreated (scope: obj, element: obj) ="
+                w.printfn "                             %s.Set%s(unbox scope, unbox element) }" targetFullName ap.Name
+                w.printfn "                |> (fun f token target -> f.Update(token, target))"
+            elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
+                w.printfn "            let updater = TODO" // (fun _ _ -> ())
+                //w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
+            else
+                w.printfn "            let updater ="
+                w.printfn "                ViewUpdaters.valueUpdater %s (fun target prevOpt curr ->" shortName 
+                w.printfn "                    match prevOpt with"
+                w.printfn "                    | ValueSome prev when prev = curr -> ()"
+                w.printfn "                    | _ -> %s.Set%s(target, %s curr))" targetFullName ap.Name ap.ConvertModelToValue
 
     let generateBuildFunction (data: BuildData) (w: StringWriter) =
         let members, baseMembers, immediateMembers = generateBuildMemberArgs data
