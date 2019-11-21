@@ -4,7 +4,8 @@ namespace Fabulous.CodeGen.Generator
 module Models =
     type AttributeData =
         { UniqueName: string
-          Name: string }
+          Name: string
+          ModelType: string }
     
     type ConstructType =
         { Name: string
@@ -21,36 +22,25 @@ module Models =
           ConvertInputToModel: string
           IsInherited: bool }
 
-    type BuildData =
-        { Name: string
-          BaseName: string option
-          Members: BuildMember array }
-
-    type CreateData =
-        { Name: string
-          FullName: string
-          TypeToInstantiate: string }
-
-    type UpdateMember =
-        { UniqueName: string
-          ModelType: string }
-    
     type UpdateEvent =
         { Name: string
           ShortName: string
           UniqueName: string
           ConvertModelToValue: string
           ModelType: string
-          RelatedProperties: string array }
+          RelatedProperties: string array 
+          ConvertInputToModel: string }
         
     type UpdateAttachedProperty =
         { Name: string
           UniqueName: string
+          ShortName: string
           DefaultValue: string
           OriginalType: string
           ModelType: string
           ConvertModelToValue: string
-          UpdateCode: string }
+          UpdateCode: string 
+          ConvertInputToModel: string  }
         
     type UpdatePropertyCollectionData =
         { ElementType: string
@@ -65,17 +55,29 @@ module Models =
           ModelType: string
           ConvertModelToValue: string
           UpdateCode: string
-          CollectionData: UpdatePropertyCollectionData option } 
+          CollectionData: UpdatePropertyCollectionData option
+          ConvertInputToModel: string } 
 
-    type UpdateData =
+    type UpdateMember =
+        | UpdateEvent of UpdateEvent
+        | UpdateProperty of UpdateProperty
+        | UpdateAttachedProperty of UpdateAttachedProperty
+        member x.UniqueName = match x with UpdateEvent e -> e.UniqueName | UpdateProperty p -> p.UniqueName | UpdateAttachedProperty p -> p.UniqueName
+        member x.ShortName = match x with UpdateEvent e -> e.ShortName | UpdateProperty p -> p.ShortName | UpdateAttachedProperty p -> p.ShortName
+        member x.ConvertInputToModel = match x with UpdateEvent e -> e.ConvertInputToModel | UpdateProperty p -> p.ConvertInputToModel | UpdateAttachedProperty p -> p.ConvertInputToModel
+    
+    type BuildData =
+        { Name: string
+          BaseName: string option
+          Members: BuildMember array
+          FullName: string
+          BaseFullName: string option
+          UpdateMembers : UpdateMember array }
+
+    type CreateData =
         { Name: string
           FullName: string
-          BaseName: string option
-          BaseFullName: string option
-          ImmediateMembers : UpdateMember array
-          Events: UpdateEvent array
-          Properties: UpdateProperty array
-          BuildData: BuildData }
+          TypeToInstantiate: string }
 
     type ConstructData =
         { Name: string
@@ -85,7 +87,6 @@ module Models =
     type BuilderData =
         { Build: BuildData
           Create: CreateData option
-          Update: UpdateData
           Construct: ConstructData option }
 
     type ViewerMember =
@@ -110,7 +111,9 @@ module Models =
         { LowerUniqueName: string
           UniqueName: string
           InputType: string
-          ConvertInputToModel: string }
+          ConvertInputToModel: string
+          TargetFullName: string
+          UpdateMember: UpdateMember }
         
     type GeneratorData =
         { Namespace: string

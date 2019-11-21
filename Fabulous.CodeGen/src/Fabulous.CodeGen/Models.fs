@@ -17,6 +17,9 @@ module Models =
         /// If a Name is provided, the ShortName will be automatically determined from it
         member val UniqueName: string option = None with get, set
         
+        /// The name of the member as a value
+        member val ShortName: string option = None with get, set
+        
         /// The type which the user should provide for the member
         member val InputType: string option = None with get, set
         

@@ -985,7 +985,7 @@
           "name": "CurrentPage",
           "defaultValue": "0",
           "inputType": "int",
-          "updateCode": "ViewUpdaters.updateMultiPageOfTCurrentPage<Xamarin.Forms.ContentPage>"
+          "updateCode": "ViewUpdaters.updateMultiPageOfTCurrentPage<_, Xamarin.Forms.ContentPage>"
         }
       ],
       "events": [
@@ -1019,7 +1019,7 @@
           "name": "CurrentPage",
           "defaultValue": "0",
           "inputType": "int",
-          "updateCode": "ViewUpdaters.updateMultiPageOfTCurrentPage<Xamarin.Forms.Page>"
+          "updateCode": "ViewUpdaters.updateMultiPageOfTCurrentPage<_, Xamarin.Forms.Page>"
         },
         {
           "source": "SelectedTabColor"
@@ -1585,7 +1585,7 @@
         {
           "source": "SearchCommand",
           "inputType": "string -> unit",
-          "updateCode": "ViewUpdaters.updateCommand searchCommandCanExecute (fun (_target: Xamarin.Forms.SearchBar) -> _target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
+          "updateCode": "ViewUpdaters.updateCommand searchCommandCanExecute (fun (target: Xamarin.Forms.SearchBar) -> target.Text) (fun (target: Xamarin.Forms.SearchBar) cmd -> target.SearchCommand <- cmd)"
         },
         {
           "source": null,
@@ -2087,6 +2087,7 @@
               {
                 "source": "Grow",
                 "inputType": "float",
+                "modelType": "float",
                 "convertModelToValue": "single"
               },
               {

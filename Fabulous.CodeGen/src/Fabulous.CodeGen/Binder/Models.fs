@@ -9,11 +9,6 @@ module Models =
         abstract ConvertInputToModel: string
         abstract IsInherited: bool
         
-    type IBoundMember =
-        abstract UniqueName: string
-        abstract InputType: string
-        abstract ConvertInputToModel: string
-    
     type BoundEvent =
         { Name: string
           ShortName: string
@@ -32,14 +27,11 @@ module Models =
             member this.InputType = this.InputType
             member this.ConvertInputToModel = this.ConvertInputToModel
             member this.IsInherited = this.IsInherited
-        interface IBoundMember with
-            member this.UniqueName = this.UniqueName
-            member this.InputType = this.InputType
-            member this.ConvertInputToModel = this.ConvertInputToModel
             
 
     type BoundAttachedProperty =
         { Name: string
+          ShortName: string
           UniqueName: string
           DefaultValue: string
           CanBeUpdated: bool
@@ -49,11 +41,7 @@ module Models =
           ConvertInputToModel: string
           ConvertModelToValue: string
           UpdateCode: string }
-        interface IBoundMember with
-            member this.UniqueName = this.UniqueName
-            member this.InputType = this.InputType
-            member this.ConvertInputToModel = this.ConvertInputToModel
-    
+
     type BoundPropertyCollectionData =
         { ElementType: string
           AttachedProperties: BoundAttachedProperty array }
@@ -78,11 +66,15 @@ module Models =
             member this.InputType = this.InputType
             member this.ConvertInputToModel = this.ConvertInputToModel
             member this.IsInherited = this.IsInherited
-        interface IBoundMember with
-            member this.UniqueName = this.UniqueName
-            member this.InputType = this.InputType
-            member this.ConvertInputToModel = this.ConvertInputToModel
     
+    type BoundMember = 
+        | BoundProperty of BoundProperty
+        | BoundEvent of BoundEvent
+        | BoundAttachedProperty of BoundAttachedProperty
+        member this.UniqueName = match this with BoundProperty p -> p.UniqueName | BoundEvent p -> p.UniqueName | BoundAttachedProperty p -> p.UniqueName
+        member this.InputType = match this with BoundProperty p -> p.InputType | BoundEvent p -> p.InputType| BoundAttachedProperty p -> p.InputType
+        member this.ConvertInputToModel = match this with BoundProperty p -> p.ConvertInputToModel | BoundEvent p -> p.ConvertInputToModel | BoundAttachedProperty p -> p.ConvertInputToModel
+
     type BoundType =
         { Id: string
           FullName: string

@@ -115,53 +115,8 @@ module FFImageLoadingExtension =
                     ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
                     ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
                     ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
+            let attribs = attribs.Retarget<CachedImage>()
                     
-            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
-                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
-                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
-                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, ?resources=resources,
-                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, ?styles=styles,
-                                       ?styleSheets=styleSheets, ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
-                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
-                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
-                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
-                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
-                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
-                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
-                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
-
-            // Add our own attributes. They must have unique names which must match the names below.
-            match source with None -> () | Some v -> attribs.Add (CachedImageSourceAttribKey, v)
-            match aspect with None -> () | Some v -> attribs.Add (AspectAttribKey, v)
-            match isOpaque with None -> () | Some v -> attribs.Add (IsOpaqueAttribKey, v)
-            match loadingPlaceholder with None -> () | Some v -> attribs.Add (CachedImageLoadingPlaceholderAttribKey, v)
-            match errorPlaceholder with None -> () | Some v -> attribs.Add (CachedImageErrorPlaceholderAttribKey, v)
-            match cacheType with None -> () | Some v -> attribs.Add (CachedImageCacheTypeAttribKey, v)
-            match cacheDuration with None -> () | Some v -> attribs.Add (CachedImageCacheDurationAttribKey, v)
-            match cacheKeyFactory with None -> () | Some v -> attribs.Add (CachedImageCacheKeyFactoryAttribKey, v)
-            match loadingDelay with None -> () | Some v -> attribs.Add (CachedImageLoadingDelayAttribKey, v)
-            match loadingPriority with None -> () | Some v -> attribs.Add (CachedImageLoadingPriorityAttribKey, v)
-            match customDataResolver with None -> () | Some v -> attribs.Add (CachedImageCustomDataResolverAttribKey, v)
-            match retryCount with None -> () | Some v -> attribs.Add (CachedImageRetryCountAttribKey, v)
-            match retryDelay with None -> () | Some v -> attribs.Add (CachedImageRetryDelayAttribKey, v)
-            match downsampleWidth with None -> () | Some v -> attribs.Add (CachedImageDownsampleWidthAttribKey, v)
-            match downsampleHeight with None -> () | Some v -> attribs.Add (CachedImageDownsampleHeightAttribKey, v)
-            match downsampleToViewSize with None -> () | Some v -> attribs.Add (CachedImageDownsampleToViewSizeAttribKey, v)
-            match downsampleUseDipUnits with None -> () | Some v -> attribs.Add (CachedImageDownsampleUseDipUnitsAttribKey, v)
-            match fadeAnimationEnabled with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationEnabledAttribKey, v)
-            match fadeAnimationDuration with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationDurationAttribKey, v)
-            match fadeAnimationForCachedImages with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationForCachedImagesAttribKey, v)
-            match bitmapOptimizations with None -> () | Some v -> attribs.Add (CachedImageBitmapOptimizationsAttribKey, v)
-            match invalidateLayoutAfterLoaded with None -> () | Some v -> attribs.Add (CachedImageInvalidateLayoutAfterLoadedAttribKey, v)
-            match transformPlaceholders with None -> () | Some v -> attribs.Add (CachedImageTransformPlaceholdersAttribKey, v)
-            match transformations with None -> () | Some v -> attribs.Add (CachedImageTransformationsAttribKey, v)
-            match downloadProgress with None -> () | Some v -> attribs.Add (CachedImageDownloadProgressAttribKey, v)
-            match downloadStarted with None -> () | Some v -> attribs.Add (CachedImageDownloadStartedAttribKey, v)
-            match fileWriteFinished with None -> () | Some v -> attribs.Add (CachedImageFileWriteFinishedAttribKey, v)
-            match finish with None -> () | Some v -> attribs.Add (CachedImageFinishAttribKey, v)
-            match success with None -> () | Some v -> attribs.Add (CachedImageSuccessAttribKey, v)
-            match error with None -> () | Some v -> attribs.Add (CachedImageErrorAttribKey, v)
-    
             // The incremental update method
             let updater1 = ViewExtensions.PrimitiveUpdater(source, (fun (target: CachedImage) v -> target.Source <- ViewConverters.convertFabulousImageToXamarinFormsImageSource v))
             let updater2 = ViewExtensions.PrimitiveUpdater(aspect, (fun (target: CachedImage) v -> target.Aspect <- v))
@@ -194,42 +149,40 @@ module FFImageLoadingExtension =
             let updater29 = ViewExtensions.EventUpdater(success, (fun (target: CachedImage) -> target.Success))
             let updater30 = ViewExtensions.EventUpdater(error, (fun (target: CachedImage) -> target.Error))
 
-            // The update method
-            let update token (target: CachedImage) = 
-                viewUpdater token target
-                updater1 token target
-                updater2 token target
-                updater3 token target
-                updater4 token target
-                updater5 token target
-                updater6 token target
-                updater7 token target
-                updater8 token target
-                updater9 token target
-                updater10 token target
-                updater11 token target
-                updater12 token target
-                updater13 token target
-                updater14 token target
-                updater15 token target
-                updater16 token target
-                updater17 token target
-                updater18 token target
-                updater19 token target
-                updater20 token target
-                updater21 token target
-                updater22 token target
-                updater23 token target
-                updater24 token target
-                updater25 token target
-                updater26 token target
-                updater27 token target
-                updater28 token target
-                updater29 token target
-                updater30 token target
-                
+            // Add our own attributes. They must have unique names which must match the names below.
+            match source with None -> () | Some v -> attribs.Add (CachedImageSourceAttribKey, v, updater1)
+            match aspect with None -> () | Some v -> attribs.Add (AspectAttribKey, v, updater2)
+            match isOpaque with None -> () | Some v -> attribs.Add (IsOpaqueAttribKey, v, updater3)
+            match loadingPlaceholder with None -> () | Some v -> attribs.Add (CachedImageLoadingPlaceholderAttribKey, v, updater4)
+            match errorPlaceholder with None -> () | Some v -> attribs.Add (CachedImageErrorPlaceholderAttribKey, v, updater5)
+            match cacheType with None -> () | Some v -> attribs.Add (CachedImageCacheTypeAttribKey, v, updater6)
+            match cacheDuration with None -> () | Some v -> attribs.Add (CachedImageCacheDurationAttribKey, v, updater7)
+            match cacheKeyFactory with None -> () | Some v -> attribs.Add (CachedImageCacheKeyFactoryAttribKey, v, updater8)
+            match loadingDelay with None -> () | Some v -> attribs.Add (CachedImageLoadingDelayAttribKey, v, updater9)
+            match loadingPriority with None -> () | Some v -> attribs.Add (CachedImageLoadingPriorityAttribKey, v, updater10)
+            match customDataResolver with None -> () | Some v -> attribs.Add (CachedImageCustomDataResolverAttribKey, v, updater11)
+            match retryCount with None -> () | Some v -> attribs.Add (CachedImageRetryCountAttribKey, v, updater12)
+            match retryDelay with None -> () | Some v -> attribs.Add (CachedImageRetryDelayAttribKey, v, updater13)
+            match downsampleWidth with None -> () | Some v -> attribs.Add (CachedImageDownsampleWidthAttribKey, v, updater14)
+            match downsampleHeight with None -> () | Some v -> attribs.Add (CachedImageDownsampleHeightAttribKey, v, updater15)
+            match downsampleToViewSize with None -> () | Some v -> attribs.Add (CachedImageDownsampleToViewSizeAttribKey, v, updater16)
+            match downsampleUseDipUnits with None -> () | Some v -> attribs.Add (CachedImageDownsampleUseDipUnitsAttribKey, v, updater17)
+            match fadeAnimationEnabled with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationEnabledAttribKey, v, updater18)
+            match fadeAnimationDuration with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationDurationAttribKey, v, updater19)
+            match fadeAnimationForCachedImages with None -> () | Some v -> attribs.Add (CachedImageFadeAnimationForCachedImagesAttribKey, v, updater20)
+            match bitmapOptimizations with None -> () | Some v -> attribs.Add (CachedImageBitmapOptimizationsAttribKey, v, updater21)
+            match invalidateLayoutAfterLoaded with None -> () | Some v -> attribs.Add (CachedImageInvalidateLayoutAfterLoadedAttribKey, v, updater22)
+            match transformPlaceholders with None -> () | Some v -> attribs.Add (CachedImageTransformPlaceholdersAttribKey, v, updater23)
+            match transformations with None -> () | Some v -> attribs.Add (CachedImageTransformationsAttribKey, v, updater24)
+            match downloadProgress with None -> () | Some v -> attribs.Add (CachedImageDownloadProgressAttribKey, v, updater25)
+            match downloadStarted with None -> () | Some v -> attribs.Add (CachedImageDownloadStartedAttribKey, v, updater26)
+            match fileWriteFinished with None -> () | Some v -> attribs.Add (CachedImageFileWriteFinishedAttribKey, v, updater27)
+            match finish with None -> () | Some v -> attribs.Add (CachedImageFinishAttribKey, v, updater28)
+            match success with None -> () | Some v -> attribs.Add (CachedImageSuccessAttribKey, v, updater29)
+            match error with None -> () | Some v -> attribs.Add (CachedImageErrorAttribKey, v, updater30)
+    
             // Create a ViewElement with the instruction to create and update a CachedImage
-            ViewElement.Create(CachedImage, update, attribs.Close())
+            ViewElement.Create(CachedImage, attribs.Close())
             
 #if DEBUG
     let sample =

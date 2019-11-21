@@ -84,6 +84,7 @@ module Binder =
     let bindAttachedProperty (assemblyTypeAttachedProperty: AssemblyTypeAttachedProperty) (bindingsAttachedProperty: AttachedProperty) =
         let name = Text.getValueOrDefault bindingsAttachedProperty.Name assemblyTypeAttachedProperty.Name
         { Name = name
+          ShortName = BinderHelpers.getShortName bindingsAttachedProperty.ShortName name
           UniqueName = Text.getValueOrDefault bindingsAttachedProperty.UniqueName name
           CanBeUpdated = bindingsAttachedProperty.CanBeUpdated |> Option.defaultValue true
           DefaultValue = Text.getValueOrDefault bindingsAttachedProperty.DefaultValue assemblyTypeAttachedProperty.DefaultValue
@@ -108,6 +109,7 @@ module Binder =
                     let inputType = values.[2]
                            
                     { Name = name
+                      ShortName = BinderHelpers.getShortName bindingsAttachedProperty.ShortName name
                       UniqueName = Text.getValueOrDefault bindingsAttachedProperty.UniqueName name
                       CanBeUpdated = bindingsAttachedProperty.CanBeUpdated |> Option.defaultValue true
                       DefaultValue = defaultValue

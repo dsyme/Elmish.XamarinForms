@@ -38,17 +38,31 @@ type AttributeKey<'T> internal (keyv: int) =
 
     override x.ToString() = x.Name
 
+type AttributeValue(key: int, value: obj, update: AdaptiveToken -> obj -> unit) =
+    member x.KeyValue = key
+    member x.Value = value
+    member x.Update(token, target) = update token target
+
+type AttributeValue<'T>(key: AttributeKey<'T>, value: 'T, update: AdaptiveToken -> obj -> unit) =
+    inherit AttributeValue(key.KeyValue, value, update)
+    member x.Key = key
+    member x.Value = value
+    member x.Update(token, target) = update token target
+
+type AttributeValue<'T, 'Target>(key: AttributeKey<'T>, value: 'T, update: AdaptiveToken -> 'Target -> unit) =
+    inherit AttributeValue<'T>(key, value, (fun token (target: obj) -> update token (unbox target)))
+
 /// A description of a visual element
 type AttributesBuilder (attribCount: int) = 
 
     let mutable count = 0
-    let mutable attribs = Array.zeroCreate<KeyValuePair<int, obj>>(attribCount)    
+    let mutable attribs = Array.zeroCreate<AttributeValue>(attribCount)    
 
     /// Get the attributes of the visual element
     [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
     member __.Attributes = 
         if isNull attribs then [| |] 
-        else attribs |> Array.map (fun kvp -> KeyValuePair(AttributeKey<int>.GetName kvp.Key, kvp.Value))
+        else attribs |> Array.map (fun kvp -> KeyValuePair(AttributeKey<int>.GetName kvp.KeyValue, kvp.Value))
 
     /// Get the attributes of the visual element
     member __.Close() : _[] = 
@@ -57,12 +71,32 @@ type AttributesBuilder (attribCount: int) =
         res
 
     /// Produce a new visual element with an adjusted attribute
-    member __.Add(key: AttributeKey<'T>, value: 'T) = 
+    member __.Add(attrib: AttributeValue) = 
         if isNull attribs then failwithf "The attribute builder has already been closed"
         if count >= attribs.Length then failwithf "The attribute builder was not large enough for the added attributes, it was given size %d. Did you get the attribute count right?" attribs.Length
-        attribs.[count] <- KeyValuePair(key.KeyValue, box value)
+        attribs.[count] <- attrib
         count <- count + 1
 
+
+type AttributesBuilder<'Target> (builder: AttributesBuilder) = 
+    new (attribCount: int) = AttributesBuilder<'Target>(AttributesBuilder(attribCount))
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.RootHidden)>]
+    member this.Attributes = this.Attributes
+
+    /// Produce a new visual element with an adjusted attribute
+    member this.Add(attrib: AttributeValue<'T, 'Target>) = 
+        builder.Add(attrib :> AttributeValue)
+
+    /// Produce a new visual element with an adjusted attribute
+    member this.Add(key: AttributeKey<'T>, value: 'T, update: AdaptiveToken -> 'Target -> unit) = 
+        builder.Add(AttributeValue<'T, 'Target>(key, value, update))
+
+    member __.Close() : _[] = builder.Close()
+
+    /// Cast to a builder for a different kind of target, usually a sub-type to add further attributes
+    member this.Retarget<'Target2>() : AttributesBuilder<'Target2> =
+        AttributesBuilder<'Target2>(builder)
 
 type ViewRef() = 
     let handle = System.WeakReference<obj>(null)
@@ -93,7 +127,7 @@ type ViewRef<'T when 'T : not struct>() =
         | _ -> None
 
 /// An adaptive description of a visual element
-type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToken -> obj -> unit), attribs: KeyValuePair<int, obj>[]) = 
+type ViewElement (targetType: Type, create: (unit -> obj), attribs: AttributeValue[]) = 
     
     [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
     let create = create
@@ -101,8 +135,8 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
     [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
     let targetType = targetType
 
-    static member Create<'T> (create: (unit -> 'T), update: (AdaptiveToken -> 'T -> unit), attribs: KeyValuePair<int, obj>[]) =
-        ViewElement(typeof<'T>, (create >> box), (fun token target -> update token (unbox target)), attribs)
+    static member Create<'T> (create: (unit -> 'T), attribs: AttributeValue[]) =
+        ViewElement(typeof<'T>, (create >> box), attribs)
 
     [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
     static member val _CreatedAttribKey : AttributeKey<aval<obj -> unit>> = AttributeKey<_>("Created")
@@ -123,7 +157,7 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
     /// Get an attribute of the visual element
     member x.TryGetAttributeKeyed<'T>(key: AttributeKey<'T>) : 'T voption = 
         attribs 
-        |> Array.tryPick (fun kvp -> if (kvp.Key = key.KeyValue) then Some (unbox kvp.Value) else None) 
+        |> Array.tryPick (fun kvp -> if (kvp.KeyValue = key.KeyValue) then Some (unbox kvp.Value) else None) 
         |> function None -> ValueNone | Some x -> ValueSome x
 
     /// Get an attribute of the visual element
@@ -138,23 +172,25 @@ type ViewElement (targetType: Type, create: (unit -> obj), update: (AdaptiveToke
 
     /// Differentially update a visual element given the previous settings
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
-    member x.Updater token target = update token target
+    member x.Updater token target = 
+        for a in attribs do
+           a.Update(token, target)
 
     /// Create the UI element from the view description
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
     member x.Create(token: AdaptiveToken) = create()
 
     /// Produce a new visual element with an adjusted attribute
-    member __.WithAttribute(key: AttributeKey<'T>, value: 'T) =
+    member __.WithAttribute(attrib: AttributeValue<'T>) =
         let duplicateViewElement newAttribsLength attribIndex =
             let attribs2 = Array.zeroCreate newAttribsLength
             Array.blit attribs 0 attribs2 0 attribs.Length
-            attribs2.[attribIndex] <- KeyValuePair(key.KeyValue, box value)
-            ViewElement(targetType, create, update, attribs2)
+            attribs2.[attribIndex] <- (attrib :> AttributeValue)
+            ViewElement(targetType, create, attribs2)
         
         let n = attribs.Length
         
-        let existingAttrIndexOpt = attribs |> Array.tryFindIndex (fun attr -> attr.Key = key.KeyValue)
+        let existingAttrIndexOpt = attribs |> Array.tryFindIndex (fun attr -> attr.KeyValue = attrib.KeyValue)
         match existingAttrIndexOpt with
         | Some i ->
             duplicateViewElement n i // duplicate and replace existing attribute
@@ -244,7 +280,7 @@ type AttachedPropsUpdater(updateAttachedProps: (AdaptiveToken -> obj -> unit), c
         x.EvaluateIfNeeded token () (fun token ->
             updateAttachedProps token childTarget
         )
-    override x.ToString() = "attached props updater for " + childNode.ToString()
+    override x.ToString() = "AttachedPropsUpdater for " + childNode.ToString()
 
 //module ViewElement = 
 //    let ofAVal (x: aval<ViewElement>) =

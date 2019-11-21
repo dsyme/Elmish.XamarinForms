@@ -59,46 +59,25 @@ module MapsExtension =
                                        ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
                                        ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
 
-            // Add our own attributes. They must have unique names which must match the names below.
-            match pins with None -> () | Some v -> attribs.Add(MapPinsAttribKey, v) 
-            match hasScrollEnabled with None -> () | Some v -> attribs.Add(MapHasScrollEnabledAttribKey, v) 
-            match isShowingUser with None -> () | Some v -> attribs.Add(MapIsShowingUserAttribKey, v) 
-            match mapType with None -> () | Some v -> attribs.Add(MapTypeAttribKey, v) 
-            match hasZoomEnabled with None -> () | Some v -> attribs.Add(MapHasZoomEnabledAttribKey, v) 
-            match requestedRegion with None -> () | Some v -> attribs.Add(MapRequestingRegionAttribKey, v) 
+            let attribs = attribs.Retarget<Map>()
 
-            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
-                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
-                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
-                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, (*?resources=resources,*)
-                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, (*?styles=styles,*)
-                                       (*?styleSheets=styleSheets, *) 
-                                       ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
-                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
-                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
-                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
-                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
-                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
-                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
-                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
-            // The update method
             let updater1 = ViewExtensions.PrimitiveUpdater(hasScrollEnabled, (fun (target: Map) v -> target.HasScrollEnabled <- v))
             let updater2 = ViewExtensions.PrimitiveUpdater(isShowingUser, (fun (target: Map) v -> target.IsShowingUser <- v))
             let updater3 = ViewExtensions.PrimitiveUpdater(mapType, (fun (target: Map) v -> target.MapType <- v))
             let updater4 = ViewExtensions.PrimitiveUpdater(hasZoomEnabled, (fun (target: Map) v -> target.HasZoomEnabled <- v))
             let updater5 = ViewExtensions.ElementCollectionUpdater(pins, (fun (target: Map) -> target.Pins))
             let updater6 = ViewExtensions.PrimitiveUpdater(requestedRegion, (fun (target: Map) v -> target.MoveToRegion(v)))
-            let update token (target: Map) = 
-                viewUpdater token target
-                updater1 token target
-                updater2 token target
-                updater3 token target
-                updater4 token target
-                updater5 token target
-                updater6 token target
+
+            // Add our own attributes. They must have unique names which must match the names below.
+            match pins with None -> () | Some v -> attribs.Add(MapPinsAttribKey, v, updater1) 
+            match hasScrollEnabled with None -> () | Some v -> attribs.Add(MapHasScrollEnabledAttribKey, v, updater2) 
+            match isShowingUser with None -> () | Some v -> attribs.Add(MapIsShowingUserAttribKey, v, updater3) 
+            match mapType with None -> () | Some v -> attribs.Add(MapTypeAttribKey, v, updater4) 
+            match hasZoomEnabled with None -> () | Some v -> attribs.Add(MapHasZoomEnabledAttribKey, v, updater5) 
+            match requestedRegion with None -> () | Some v -> attribs.Add(MapRequestingRegionAttribKey, v, updater6) 
 
             // The element
-            ViewElement.Create<Xamarin.Forms.Maps.Map>(Map, update, attribs.Close())
+            ViewElement.Create<Xamarin.Forms.Maps.Map>(Map, attribs.Close())
 
         /// Describes a Pin in the view
         static member Pin(?position: aval<Position>, ?label: aval<string>, ?pinType: aval<PinType>, ?address: aval<string>) = 
@@ -110,26 +89,21 @@ module MapsExtension =
             let attribCount = match pinType with Some _ -> attribCount + 1 | None -> attribCount
             let attribCount = match address with Some _ -> attribCount + 1 | None -> attribCount
 
-            let attribs = AttributesBuilder(attribCount)
-
-            // Add our own attributes. They must have unique names which must match the names below.
-            match position with None -> () | Some v -> attribs.Add(PinPositionAttribKey, v) 
-            match label with None -> () | Some v -> attribs.Add(PinLabelAttribKey, v) 
-            match pinType with None -> () | Some v -> attribs.Add(PinTypeAttribKey, v) 
-            match address with None -> () | Some v -> attribs.Add(PinAddressAttribKey, v) 
+            let attribs = AttributesBuilder<Pin>(attribCount)
 
             let updater1 = ViewExtensions.PrimitiveUpdater(position, (fun (target: Pin) v -> target.Position <- v))
             let updater2 = ViewExtensions.PrimitiveUpdater(label, (fun (target: Pin) v -> target.Label <- v))
             let updater3 = ViewExtensions.PrimitiveUpdater(pinType, (fun (target: Pin) v -> target.Type <- v))
             let updater4 = ViewExtensions.PrimitiveUpdater(address, (fun (target: Pin) v -> target.Address <- v))
-            let update token (target: Pin) = 
-                updater1 token target
-                updater2 token target
-                updater3 token target
-                updater4 token target
+
+            // Add our own attributes. They must have unique names which must match the names below.
+            match position with None -> () | Some v -> attribs.Add(PinPositionAttribKey, v, updater1) 
+            match label with None -> () | Some v -> attribs.Add(PinLabelAttribKey, v, updater2) 
+            match pinType with None -> () | Some v -> attribs.Add(PinTypeAttribKey, v, updater3) 
+            match address with None -> () | Some v -> attribs.Add(PinAddressAttribKey, v, updater4) 
 
             // The element
-            ViewElement.Create<Xamarin.Forms.Maps.Pin>(Pin, update, attribs.Close())
+            ViewElement.Create<Xamarin.Forms.Maps.Pin>(Pin, attribs.Close())
 
 #if DEBUG 
     let sample1 = View.Map(hasZoomEnabled = c true, hasScrollEnabled = c true)

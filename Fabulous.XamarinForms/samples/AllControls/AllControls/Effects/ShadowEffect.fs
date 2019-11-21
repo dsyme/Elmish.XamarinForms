@@ -28,25 +28,19 @@ module ShadowEffectViewExtension =
             let attribCount = match distanceX with Some _ -> attribCount + 1 | None -> attribCount
             let attribCount = match distanceY with Some _ -> attribCount + 1 | None -> attribCount
             
-            let attribs = AttributesBuilder(attribCount)
+            let attribs = AttributesBuilder<ShadowEffect>(attribCount)
                 
-            match radius with None -> () | Some v -> attribs.Add(RadiusAttribKey, v)
-            match color with None -> () | Some v -> attribs.Add(ColorAttribKey, v)
-            match distanceX with None -> () | Some v -> attribs.Add(DistanceXAttribKey, v)
-            match distanceY with None -> () | Some v -> attribs.Add(DistanceYAttribKey, v)
-            
-            let create () = ShadowEffect()
-            
             let updater1 = ViewExtensions.PrimitiveUpdater(radius, (fun (target: ShadowEffect) v -> target.Radius <- v))
             let updater2 = ViewExtensions.PrimitiveUpdater(color, (fun (target: ShadowEffect) v -> target.Color <- v))
             let updater3 = ViewExtensions.PrimitiveUpdater(distanceX, (fun (target: ShadowEffect) v -> target.DistanceX <- v))
             let updater4 = ViewExtensions.PrimitiveUpdater(distanceY, (fun (target: ShadowEffect) v -> target.DistanceY <- v))
 
-            let update token target =
-                updater1 token target
-                updater2 token target
-                updater3 token target
-                updater4 token target
-                
-            ViewElement.Create(create, update, attribs.Close())
+            match radius with None -> () | Some v -> attribs.Add(RadiusAttribKey, v, updater1)
+            match color with None -> () | Some v -> attribs.Add(ColorAttribKey, v, updater2)
+            match distanceX with None -> () | Some v -> attribs.Add(DistanceXAttribKey, v, updater3)
+            match distanceY with None -> () | Some v -> attribs.Add(DistanceYAttribKey, v, updater4)
+            
+            let create () = ShadowEffect()
+
+            ViewElement.Create(create, attribs.Close())
                 

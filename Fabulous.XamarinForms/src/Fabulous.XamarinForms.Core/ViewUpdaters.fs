@@ -66,7 +66,7 @@ module ViewUpdaters =
     let updateViewElementCollectionPrim
            (coll: ViewElement alist) 
            (createTransform: 'TargetT -> 'ActualTargetT) 
-           updateAttachedProps
+           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit)
            childSetter
            childInsert
            childAdd
@@ -98,11 +98,12 @@ module ViewUpdaters =
                                     | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
                                 | None -> childAdd target child 
                     }
-                let attachedPropsUpdater = AttachedPropsUpdater(updateAttachedProps, childNode)
+                let attachedPropsUpdater =
+                    AttachedPropsUpdater((fun token child -> updateAttachedProps token (unbox<'ActualTargetT> child)), childNode)
 
                 // Creates the child for the new element if necessary
                 childUpdater.Update(token, ())
-                attachedPropsUpdater.Update(token, unbox<'ActualTargetT> childUpdater.Target)
+                attachedPropsUpdater.Update(token, childUpdater.Target)
                 children <- IndexList.set idx (childUpdater, attachedPropsUpdater) children
 
             | Remove ->
@@ -122,7 +123,7 @@ module ViewUpdaters =
         // An update may have been requested because of a change in a child element
         for (childUpdater, attachedPropsUpdater) in children do
             childUpdater.Update(token, ())
-            attachedPropsUpdater.Update(token, unbox<'ActualTargetT> childUpdater.Target)
+            attachedPropsUpdater.Update(token, childUpdater.Target)
         )
 
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
@@ -130,7 +131,7 @@ module ViewUpdaters =
     let updateViewElementCollection
            (coll: ViewElement alist) 
            (createTransform: 'TargetT -> 'ActualTargetT) 
-           updateAttachedProps
+           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit)
         =
      // TODO: actually use the attach function....
         updateViewElementCollectionPrim
@@ -145,7 +146,7 @@ module ViewUpdaters =
     /// Update the attached properties for each item in an already updated collection
     let updateAttachedPropertiesForCollection
            (coll: 'T alist)
-           (attach: _ -> 'T -> 'TargetT -> unit) =
+           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit) =
         let updater = 
             updateCollectionPrim coll
                 (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
@@ -154,12 +155,13 @@ module ViewUpdaters =
                 (fun target x i _isAtEnd -> target.RemoveAt(i))
 
         fun token (target: IList<'TargetT>) ->
-            () (* TODO *)
+            () (* TODO - call updateAttachedProps *)
 
     /// Update the attached properties for each item in Layout<T>.Children
-    let updateAttachedPropertiesForLayoutOfT coll attach =
-        let updater = updateAttachedPropertiesForCollection coll attach
-        fun token (target: Xamarin.Forms.Layout<'T>) -> updater token target.Children
+    let updateAttachedPropertiesForLayoutOfT coll updateAttachedProps =
+        let updater = updateAttachedPropertiesForCollection coll updateAttachedProps
+        fun token (target: Xamarin.Forms.Layout<'T>) ->
+            updater token target.Children
                     
     /// Update the items in a ItemsView control, given previous and current view elements
     let updateItemsViewItems (coll: ViewElement alist) = 
@@ -382,8 +384,8 @@ module ViewUpdaters =
                 prevCanExecuteValueOpt <- ValueSome canExecuteValue
 
     /// Update the CurrentPage of a control, given previous and current values
-    let updateMultiPageOfTCurrentPage<'a when 'a :> Xamarin.Forms.Page> (value: aval<_>) = 
-        valueUpdater value (fun (target: Xamarin.Forms.MultiPage<'a>) prevOpt curr ->
+    let updateMultiPageOfTCurrentPage<'Target, 'PageKind when 'PageKind :> Xamarin.Forms.Page and 'Target :> Xamarin.Forms.MultiPage<'PageKind>> (value: aval<_>) = 
+        valueUpdater value (fun (target: 'Target) prevOpt curr ->
             match prevOpt with
             | ValueSome prev when prev = curr -> ()
             | _ -> target.CurrentPage <- target.Children.[curr])

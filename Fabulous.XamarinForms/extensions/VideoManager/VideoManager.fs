@@ -50,41 +50,22 @@ module VideoManagerExtension =
                                        ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
                                        ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
 
-            // Add our own attributes.
-            match source with None -> () | Some v -> attribs.Add(SourceAttribKey, v)
-            match videoAspect with None -> () | Some v -> attribs.Add(VideoAspectAttribKey, v)
-            match showControls with None -> () | Some v -> attribs.Add(ShowControlsAttribKey, v)
-
-            let viewUpdater = ViewBuilders.UpdaterView (?gestureRecognizers=gestureRecognizers, ?horizontalOptions=horizontalOptions, ?margin=margin,
-                                       ?verticalOptions=verticalOptions, ?anchorX=anchorX, ?anchorY=anchorY, ?backgroundColor=backgroundColor, ?behaviors=behaviors,
-                                       ?flowDirection=flowDirection, ?height=height, ?inputTransparent=inputTransparent, ?isEnabled=isEnabled, ?isTabStop=isTabStop,
-                                       ?isVisible=isVisible, ?minimumHeight=minimumHeight, ?minimumWidth=minimumWidth, ?opacity=opacity, ?resources=resources,
-                                       ?rotation=rotation, ?rotationX=rotationX, ?rotationY=rotationY, ?scale=scale, ?scaleX=scaleX, ?scaleY=scaleY, ?styles=styles,
-                                       ?styleSheets=styleSheets, ?tabIndex=tabIndex, ?translationX=translationX, ?translationY=translationY, ?visual=visual, ?width=width,
-                                       ?style=style, ?styleClasses=styleClasses, ?shellBackButtonBehavior=shellBackButtonBehavior, ?shellBackgroundColor=shellBackgroundColor,
-                                       ?shellDisabledColor=shellDisabledColor, ?shellForegroundColor=shellForegroundColor, ?shellFlyoutBehavior=shellFlyoutBehavior,
-                                       ?shellNavBarIsVisible=shellNavBarIsVisible, ?shellSearchHandler=shellSearchHandler, ?shellTabBarBackgroundColor=shellTabBarBackgroundColor,
-                                       ?shellTabBarDisabledColor=shellTabBarDisabledColor, ?shellTabBarForegroundColor=shellTabBarForegroundColor,
-                                       ?shellTabBarIsVisible=shellTabBarIsVisible, ?shellTabBarTitleColor=shellTabBarTitleColor, ?shellTabBarUnselectedColor=shellTabBarUnselectedColor,
-                                       ?shellTitleColor=shellTitleColor, ?shellTitleView=shellTitleView, ?shellUnselectedColor=shellUnselectedColor, ?automationId=automationId,
-                                       ?classId=classId, ?effects=effects, ?menu=menu, ?ref=ref, ?styleId=styleId, ?tag=tag, ?focused=focused, ?unfocused=unfocused, ?created=created)
-
-            // The create method
-            let create () = new VideoView()
+            let attribs = attribs.Retarget<VideoView>()
 
             let updater1 = ViewExtensions.PrimitiveUpdater(source, (fun (target: VideoView) v -> target.Source <- v))
             let updater2 = ViewExtensions.PrimitiveUpdater(videoAspect, (fun (target: VideoView) v -> target.VideoAspect <- v))
             let updater3 = ViewExtensions.PrimitiveUpdater(showControls, (fun (target: VideoView) v -> target.ShowControls <- v))
 
-            // The update method
-            let update token (target: VideoView) = 
-                viewUpdater token target
-                updater1 token target
-                updater2 token target
-                updater3 token target
+            // Add our own attributes.
+            match source with None -> () | Some v -> attribs.Add(SourceAttribKey, v, updater1)
+            match videoAspect with None -> () | Some v -> attribs.Add(VideoAspectAttribKey, v, updater2)
+            match showControls with None -> () | Some v -> attribs.Add(ShowControlsAttribKey, v, updater3)
+
+            // The create method
+            let create () = new VideoView()
 
             // The element
-            ViewElement.Create(create, update, attribs.Close())
+            ViewElement.Create(create, attribs.Close())
 
 #if DEBUG
     let sample1 =

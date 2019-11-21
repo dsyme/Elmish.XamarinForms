@@ -125,6 +125,7 @@ module ViewHelpers =
         | None -> failwithf "No element with automation id '%s' found" automationId
         | Some viewElement -> viewElement
 
+#if false
     let ContentsAttribKey = AttributeKey<(obj -> ViewElement)> "Stateful_Contents"
 
     let localStateTable = System.Runtime.CompilerServices.ConditionalWeakTable<obj, obj option>()
@@ -169,6 +170,7 @@ module ViewHelpers =
                                         view : ('InternalModel -> ('InternalMessage -> unit) -> ViewElement)) =
             let internalDispatch (state: 'InternalModel ref) msg = state.Value <- update msg state.Value
             View.Stateful (init = (fun () -> ref (init ())), contents = (fun state -> view state.Value (internalDispatch state)))
+#endif
 
     // Keep a table to make sure we create a unique ViewElement for each external object
     let externalsTable = System.Runtime.CompilerServices.ConditionalWeakTable<obj, obj>()
@@ -184,10 +186,7 @@ module ViewHelpers =
             | _ -> 
                 let attribs = AttributesBuilder(0)
                 let create () = box externalObj 
-                let update token (_target: obj) = ()
-                let res = ViewElement(externalObj.GetType(), create, update, attribs.Close())
+                let res = ViewElement(externalObj.GetType(), create, attribs.Close())
                 externalsTable.Add(externalObj, res)
                 res
 
-
-    //let ThicknessC (v: Thickness) = c (Thickness v)
