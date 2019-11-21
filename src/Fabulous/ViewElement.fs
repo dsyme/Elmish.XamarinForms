@@ -273,15 +273,6 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
 
     override x.ToString() = "updater for " + anode.ToString()
 
-type AttachedPropsUpdater(updateAttachedProps: (AdaptiveToken -> obj -> unit), childNode: ViewElement) = 
-    inherit AdaptiveObject()
-
-    member x.Update(token: AdaptiveToken, childTarget: obj) =
-        x.EvaluateIfNeeded token () (fun token ->
-            updateAttachedProps token childTarget
-        )
-    override x.ToString() = "AttachedPropsUpdater for " + childNode.ToString()
-
-//module ViewElement = 
-//    let ofAVal (x: aval<ViewElement>) =
-//        ViewElement()
+//module ViewElement =
+//     let bind aval f =
+//         ViewElement(AVal.bind aval )

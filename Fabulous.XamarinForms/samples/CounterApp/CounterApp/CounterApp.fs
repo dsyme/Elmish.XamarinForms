@@ -68,6 +68,15 @@ module App =
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
     let view (model: AdaptiveModel) dispatch =  
+        View.ContentPage(
+          content = View.Grid(rowdefs= c [for i in 1 .. 6 -> Star], 
+                        coldefs = c [for i in 1 .. 6 -> Star], 
+                        children = cs [ 
+                            for i in 1 .. 6 do 
+                                for j in 1 .. 6 -> 
+                                    let color = Color((1.0/float i), (1.0/float j), (1.0/float (i+j)), 1.0) 
+                                    View.BoxView(c color).Row(c (i-1)).Column(c (j-1)) ] ))
+        |> AVal.constant
         //View.ContentPage(
         //  content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
         //    children = cs [
@@ -119,26 +128,26 @@ module App =
         // )
         //|> AVal.constant
 
-        aval {
-          let! count = model.Count
-          return 
-              if count <= 1 then 
-                    View.ContentPage(
-                      View.Button(text = (model.Count |> AVal.map (sprintf "%d")),
-                          command= c (fun () -> dispatch Increment)
-                      )
-                   )
-              else
-                    View.TabbedPage (cs [
-                        for i in 1 .. count do 
-                            View.ContentPage(title = c (sprintf "Page %d" i), 
-                                content =
-                                  View.Button(text = (model.Count |> AVal.map (sprintf "Page %d - %d" i)),
-                                      command= c (fun () -> dispatch Increment)
-                                  )
-                             )
-                    ])
-        }
+        //aval {
+        //  let! count = model.Count
+        //  return 
+        //      if count <= 1 then 
+        //            View.ContentPage(
+        //              View.Button(text = (model.Count |> AVal.map (sprintf "%d")),
+        //                  command= c (fun () -> dispatch Increment)
+        //              )
+        //           )
+        //      else
+        //            View.TabbedPage (cs [
+        //                for i in 1 .. count do 
+        //                    View.ContentPage(title = c (sprintf "Page %d" i), 
+        //                        content =
+        //                          View.Button(text = (model.Count |> AVal.map (sprintf "Page %d - %d" i)),
+        //                              command= c (fun () -> dispatch Increment)
+        //                          )
+        //                     )
+        //            ])
+        //}
 
         //View.ContentPage(
         //  content=View.StackLayout(

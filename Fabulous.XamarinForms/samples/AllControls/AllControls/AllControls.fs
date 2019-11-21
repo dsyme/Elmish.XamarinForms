@@ -132,6 +132,7 @@ type Msg =
     | FrameTapped 
     | FrameTapped2 
     | UpdateNewGridSize of double * GestureStatus
+    | SetGridSize of int
     | UpdateGridPortal of int * int
     // For NavigationPage demo
     | GoHomePage
@@ -183,23 +184,19 @@ module MyExtension =
             let attribCount = match text with Some _ -> attribCount + 1 | None -> attribCount
             let attribCount = match fontFamily with Some _ -> attribCount + 1 | None -> attribCount
             let attribs = ViewBuilders.BuildView(attribCount, ?backgroundColor = backgroundColor, ?rotation = rotation) 
+            let attribs = attribs.Retarget<Xamarin.Forms.Label>()
+
+            let updater1 = ViewExtensions.PrimitiveUpdater(text, (fun (target: Xamarin.Forms.Label) v -> target.Text <- v))
+            let updater2 = ViewExtensions.PrimitiveUpdater(fontFamily, (fun (target: Xamarin.Forms.Label) v -> target.FontFamily <- v))
 
             // Add our own attributes. They must have unique names.
-            match text with None -> () | Some v -> attribs.Add(TestLabelTextAttribKey, v) 
-            match fontFamily with None -> () | Some v -> attribs.Add(TestLabelFontFamilyAttribKey, v) 
+            match text with None -> () | Some v -> attribs.Add(TestLabelTextAttribKey, v, updater1) 
+            match fontFamily with None -> () | Some v -> attribs.Add(TestLabelFontFamilyAttribKey, v, updater2) 
 
             // The creation method
             let create () = new Xamarin.Forms.Label()
 
-            let baseUpdater = ViewBuilders.UpdaterView(?backgroundColor = backgroundColor, ?rotation = rotation) 
-            let updater1 = ViewExtensions.PrimitiveUpdater(text, (fun (target: Xamarin.Forms.Label) v -> target.Text <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(fontFamily, (fun (target: Xamarin.Forms.Label) v -> target.FontFamily <- v))
-            let update token target =
-                baseUpdater token target
-                updater1 token target
-                updater2 token target
-
-            ViewElement.Create<Xamarin.Forms.Label>(create, update, attribs.Close())
+            ViewElement.Create<Xamarin.Forms.Label>(create, attribs.Close())
 
     // Test some adhoc functional abstractions
     type View with 
@@ -312,6 +309,7 @@ module App =
             | GestureStatus.Completed -> let sz = int (model.NewGridSize + 0.5) in { model with GridSize = sz; NewGridSize = float sz }, Cmd.none
             | GestureStatus.Canceled -> { model with NewGridSize = double model.GridSize }, Cmd.none
             | _ -> model, Cmd.none
+        | SetGridSize sz -> { model with GridSize = sz }, Cmd.none
         | UpdateGridPortal (x, y) -> { model with GridPortal = (x, y) }, Cmd.none
         // For NavigationPage
         | GoHomePage -> { model with PageStack = [ Some "Home" ] }, Cmd.none
@@ -653,19 +651,24 @@ module App =
                              MainPageButton
                             ])
 
-                     //View.NonScrollingContentPage(c "Grid+Pinch", 
-                     //  cs [ View.Label(text = (model.NewGridSize |> Aval.map (sprintf "Grid (nxn, pinch, size = %f):")))
-                     //       // The Grid doesn't change during the pinch...
-                     //       View.Grid(rowdefs= c [for i in 1 .. gridSize -> Star], coldefs = c [for i in 1 .. gridSize -> Star], 
-                     //             children = cs [ 
-                     //                 for i in 1 .. gridSize do 
-                     //                     for j in 1 .. gridSize -> 
-                     //                        let color = Color((1.0/float i), (1.0/float j), (1.0/float (i+j)), 1.0) 
-                     //                        View.BoxView(color).Row(i-1).Column(j-1) ])
-                     //       MainPageButton
-                     //     ], 
-                     //     gestureRecognizers = cs [ View.PinchGestureRecognizer(pinchUpdated = c (fun pinchArgs -> 
-                     //                                  dispatch (UpdateNewGridSize (pinchArgs.Scale, pinchArgs.Status)))) ] )
+                     View.NonScrollingContentPage(c "Grid+Pinch", 
+                       alist { 
+                           let! gridSize = model.GridSize
+                           View.Label(text = (model.NewGridSize |> AVal.map (sprintf "Grid (nxn, pinch, size = %f):")))
+                           // The Grid doesn't change during the pinch...
+                           View.Grid(rowdefs= c [ for i in 1 .. gridSize -> Star ], 
+                                coldefs = c [ for i in 1 .. gridSize -> Star ], 
+                                children = cs [ 
+                                    for i in 1 .. gridSize do 
+                                       for j in 1 .. gridSize -> 
+                                           let color = Color((1.0/float i), (1.0/float j), (1.0/float (i+j)), 1.0) 
+                                           View.BoxView(c color).Row(c (i-1)).Column(c (j-1)) ] )
+                           View.Button(text = c (sprintf "Increase to %d" (gridSize+1)), command = c (fun _ -> dispatch (SetGridSize (gridSize + 1))))
+                           View.Button(text = c (sprintf "Decrease to %d" (gridSize-1)), command = c (fun _ -> dispatch (SetGridSize (gridSize - 1))))
+                           MainPageButton
+                       }, 
+                       gestureRecognizers = cs [ View.PinchGestureRecognizer(pinchUpdated = c (fun pinchArgs -> 
+                                                    dispatch (UpdateNewGridSize (pinchArgs.Scale, pinchArgs.Status)))) ] )
 
                   //let dx, dy = gridPortal
                      //View.NonScrollingContentPage(c "Grid+Pan", 

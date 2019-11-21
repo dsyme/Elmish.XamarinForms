@@ -70,75 +70,14 @@ module CodeGenerator =
         match m with 
         | UpdateProperty p -> 
             let hasApply = not (System.String.IsNullOrWhiteSpace(p.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(p.UpdateCode))
-            let generateAttachedProperties (collectionData: UpdatePropertyCollectionData) =
-(*
-                if collectionData.AttachedProperties.Length > 0 then
-                    w.printfn "                        (let updater = (fun _token _childTarget  -> ())"
-                    for ap in collectionData.AttachedProperties do
-                        let hasApply = not (System.String.IsNullOrWhiteSpace(ap.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(ap.UpdateCode))
-                        w.printfn "                         match %s with" ap.Nam
-                        w.printfn "                         | None -> updater"
-                        w.printfn "                         | Some %s ->" shortName
-                        w.printfn "                        (fun _token _childTarget  -> "
-Ok this needs more thought.  Attached properties are really weird, going back to the property bag
-to get current/previous values.  This ould be kind of slow, also each is deal with in turn.
-
-What's the ideal behaviour here? FOr examples
-   Grid([ element.Row(c 3) ] 
-
-We have one AP updater for each child element in the collection. It sits in the collection
-but doesn't know staticlly what APs may be present.... Its job is to mediate
-changes in all the various AP values for that child element w.r.t. this collection.
-
-It feels like we can assume the presence/absence of APs for the child remains constant. So
-we iterate looking for all possible APs, apply these. If any changes the AP updater becomes
-dirty and will re-iterate all possible APs for that child and re-apply them and/or update them.
-
-That sounds expensive but it's similar to the fact that when one property changes value in a ViewElement
-we run property update on every property statically present in that ViewElement
-
-Note we could create an intermediate AP updater for each AP for each child.
-
-
-
-                    w.printfn "                let prev%sOpt = match prevChildOpt with ValueNone -> ValueNone | ValueSome prevChild -> prevChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
-                    w.printfn "                let curr%sOpt = newChild.TryGetAttributeKeyed<%s>(ViewAttributes.%sAttribKey)" ap.UniqueName ap.ModelType ap.UniqueName
-                        if ap.ModelType = "ViewElement" && not hasApply then
-                            w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
-                            w.printfn "                // For structured objects, dependsOn on reference equality"
-                            w.printfn "                | ValueSome prevValue, ValueSome newValue when identical prevValue newValue -> ()"
-                            w.printfn "                | ValueSome prevValue, ValueSome newValue when canReuseView prevValue newValue ->"
-                            w.printfn "                    newValue.UpdateIncremental(prevValue, (%s.Get%s(targetChild)))" targetFullName ap.Name
-                            w.printfn "                | _, ValueSome newValue ->"
-                            w.printfn "                    %s.Set%s(targetChild, (newValue.Create() :?> %s))" targetFullName ap.Name ap.OriginalType
-                            w.printfn "                | ValueSome _, ValueNone ->"
-                            w.printfn "                    %s.Set%s(targetChild, null)" targetFullName ap.Name
-                            w.printfn "                | ValueNone, ValueNone -> ()"
-                        
-                        elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
-                            w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
-                        
-                        else
-                            w.printfn "                match prev%sOpt, curr%sOpt with" ap.UniqueName ap.UniqueName
-                            w.printfn "                | ValueSome prevChildValue, ValueSome currChildValue when prevChildValue = currChildValue -> ()"
-                            w.printfn "                | _, ValueSome currChildValue -> %s.Set%s(targetChild, %s currChildValue)" targetFullName ap.Name ap.ConvertModelToValue
-                            w.printfn "                | ValueSome _, ValueNone -> %s.Set%s(targetChild, %s)" targetFullName ap.Name ap.DefaultValue
-                            w.printfn "                | _ -> ()"
-                
-                        w.printfn "                )"
-                else
-*)                    
-                    w.printfn "                        (fun _token _childTarget  -> ())"
             match p.CollectionData with 
             | Some collectionData when not hasApply ->
                 w.printfn "            let updater ="
                 w.printfn "                ViewUpdaters.updateViewElementCollection %s FSharp.Core.Operators.id" shortName
-                generateAttachedProperties collectionData
                 w.printfn "                |> (fun f token (target: %s) -> f token target.%s)" (targetFullName.Replace("'T", "_")) p.Name 
             | Some collectionData ->
                 w.printfn "            let updater ="
                 w.printfn "                %s %s" p.UpdateCode shortName
-                generateAttachedProperties collectionData
             | None when p.ModelType = "ViewElement" && not hasApply -> 
                 w.printfn "            let updater ="
                 w.printfn "                { new ViewElementUpdater(AVal.constant %s) with" shortName

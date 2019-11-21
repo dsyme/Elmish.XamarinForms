@@ -14,7 +14,7 @@ open System.Windows.Input
 [<AutoOpen>]
 module ViewUpdaters =
 
-    let updateCollectionPrim
+    let updateCollection
            (coll: 'T alist) 
            childSetter
            childInsert
@@ -66,12 +66,11 @@ module ViewUpdaters =
     let updateViewElementCollectionPrim
            (coll: ViewElement alist) 
            (createTransform: 'TargetT -> 'ActualTargetT) 
-           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit)
            childSetter
            childInsert
            childAdd
            childRemove  =
-      let mutable children : IndexList<ViewElementUpdater * AttachedPropsUpdater>  = IndexList.empty
+      let mutable children : IndexList<ViewElementUpdater>  = IndexList.empty
       let reader = coll.GetReader()
       (fun token (target: 'Target) -> 
         let changes = reader.GetChanges(token) 
@@ -98,13 +97,10 @@ module ViewUpdaters =
                                     | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
                                 | None -> childAdd target child 
                     }
-                let attachedPropsUpdater =
-                    AttachedPropsUpdater((fun token child -> updateAttachedProps token (unbox<'ActualTargetT> child)), childNode)
 
                 // Creates the child for the new element if necessary
                 childUpdater.Update(token, ())
-                attachedPropsUpdater.Update(token, childUpdater.Target)
-                children <- IndexList.set idx (childUpdater, attachedPropsUpdater) children
+                children <- IndexList.set idx (childUpdater) children
 
             | Remove ->
                 match IndexList.tryRemove idx children with
@@ -121,9 +117,8 @@ module ViewUpdaters =
                 | None -> ()
 
         // An update may have been requested because of a change in a child element
-        for (childUpdater, attachedPropsUpdater) in children do
+        for childUpdater in children do
             childUpdater.Update(token, ())
-            attachedPropsUpdater.Update(token, childUpdater.Target)
         )
 
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
@@ -131,41 +126,33 @@ module ViewUpdaters =
     let updateViewElementCollection
            (coll: ViewElement alist) 
            (createTransform: 'TargetT -> 'ActualTargetT) 
-           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit)
         =
      // TODO: actually use the attach function....
         updateViewElementCollectionPrim
            coll 
            createTransform 
-           updateAttachedProps
            (fun (targetColl: IList<'ActualTargetT>) child i -> targetColl.[i] <- child)
            (fun targetColl child i -> targetColl.Insert(i, child))
            (fun targetColl child -> targetColl.Add(child))
            (fun targetColl i _isAtEnd -> targetColl.RemoveAt(i))
 
     /// Update the attached properties for each item in an already updated collection
-    let updateAttachedPropertiesForCollection
-           (coll: 'T alist)
-           (updateAttachedProps: AdaptiveToken -> 'ActualTargetT -> unit) =
-        let updater = 
-            updateCollectionPrim coll
-                (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
-                (fun target x i -> target.Insert(i, x))
-                (fun target x -> target.Add(x))
-                (fun target x i _isAtEnd -> target.RemoveAt(i))
-
-        fun token (target: IList<'TargetT>) ->
-            () (* TODO - call updateAttachedProps *)
+    let updateIList (coll: 'T alist) =
+        updateCollection coll
+            (fun (target: IList<_>) x i -> target.[i] <- x)
+            (fun target x i -> target.Insert(i, x))
+            (fun target x -> target.Add(x))
+            (fun target x i _isAtEnd -> target.RemoveAt(i))
 
     /// Update the attached properties for each item in Layout<T>.Children
-    let updateAttachedPropertiesForLayoutOfT coll updateAttachedProps =
-        let updater = updateAttachedPropertiesForCollection coll updateAttachedProps
+    let updateLayoutChildren coll =
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.Layout<'T>) ->
             updater token target.Children
                     
     /// Update the items in a ItemsView control, given previous and current view elements
     let updateItemsViewItems (coll: ViewElement alist) = 
-        let updater = updateViewElementCollection coll id (fun _ _ -> ())
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.ItemsView) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -178,7 +165,7 @@ module ViewUpdaters =
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
-        let updater = updateViewElementCollection coll id (fun _ _ -> ())
+        let updater = updateViewElementCollection coll id 
         fun token (target: Xamarin.Forms.ItemsView<'T>) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -192,7 +179,7 @@ module ViewUpdaters =
     /// Update the selected items in a SelectableItemsView control, given previous and current indexes
     let updateSelectableItemsViewSelectedItems coll = 
         let updater = 
-            updateCollectionPrim coll
+            updateCollection coll
                 (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
                 (fun target x i -> target.Insert(i, x))
                 (fun target x -> target.Add(x))
@@ -210,7 +197,7 @@ module ViewUpdaters =
 
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 
-        let updater = updateViewElementCollection coll id (fun _ _ -> ())
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.SearchHandler) ->
             let targetColl = 
                 match target.ItemsSource with 
@@ -255,13 +242,13 @@ module ViewUpdaters =
 *)
 
     /// Update the items of a TableSectionBase<'T> control, given previous and current view elements
-    let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) attach =
-        let updater = updateViewElementCollection coll id attach
+    let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
+        let updater = updateViewElementCollection coll id 
         fun token (target: Xamarin.Forms.TableSectionBase<'T>) ->
             updater token target
 
     let updateResources (coll: (string * obj) alist) =
-        updateCollectionPrim coll 
+        updateCollection coll 
            (fun (target: VisualElement) (nm, r) i -> target.Resources.[nm] <- box r)
            (fun target (nm, r) i -> target.Resources.[nm] <- box r)
            (fun target (nm, r) -> target.Resources.Add(nm, box r))
@@ -270,7 +257,7 @@ module ViewUpdaters =
     /// Update the style sheets of a control, given previous and current view elements describing them
     // Note, style sheets can't be removed
     let updateStyleSheets (coll: StyleSheet alist) = 
-        updateCollectionPrim coll 
+        updateCollection coll 
            (fun (target: VisualElement) ss i -> target.Resources.Add(ss))
            (fun target ss i -> target.Resources.Add(ss))
            (fun target ss -> target.Resources.Add(ss))
@@ -279,18 +266,17 @@ module ViewUpdaters =
     /// Update the styles of a control, given previous and current view elements describing them
     // Note, styles can't be removed
     let updateStyles (coll: Style alist) = 
-        updateCollectionPrim coll
+        updateCollection coll
            (fun (target: VisualElement) style i -> target.Resources.Add(style))
            (fun target style i -> target.Resources.Add(style))
            (fun target style -> target.Resources.Add(style))
            (fun target style i _isAtEnd -> ())
 
     /// Incremental NavigationPage maintenance: push/pop the right pages
-    let updateNavigationPages (coll: ViewElement alist) attach =
+    let updateNavigationPages (coll: ViewElement alist) =
         updateViewElementCollectionPrim
            coll 
            id
-           attach
            (fun (target: NavigationPage) child i -> System.Diagnostics.Debug.Assert(false); (* TODO - Set of NavigationPage *))
            (fun target child i -> System.Diagnostics.Debug.Assert(false); (* "TODO - Insert of NavigationPage" *))
            (fun target child -> target.PushAsync(child) |> ignore)
@@ -434,7 +420,7 @@ module ViewUpdaters =
             | _ -> Xamarin.Forms.MenuItem.SetAccelerator(target, Xamarin.Forms.Accelerator.FromString curr))
 
     /// Update the items of a Shell, given previous and current view elements
-    let updateShellItems (coll: ViewElement alist) attach =
+    let updateShellItems (coll: ViewElement alist) =
         let transformRealChild (child: obj) =
             match child with
             | :? ShellContent as shellContent -> ShellItem.op_Implicit shellContent
@@ -458,18 +444,18 @@ module ViewUpdaters =
                 updater token realTarget
 *)
 
-        let updater = updateViewElementCollection coll transformRealChild attach
+        let updater = updateViewElementCollection coll transformRealChild 
         fun token (target: Xamarin.Forms.Shell) ->
             updater token target.Items 
         
     /// Update the menu items of a ShellContent, given previous and current view elements
     let updateShellContentMenuItems (coll: ViewElement alist) =
-        let updater = updateViewElementCollection coll id (fun _ _ -> ())
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.ShellContent) ->
             updater token target.MenuItems 
 
     /// Update the items of a ShellItem, given previous and current view elements
-    let updateShellItemItems (coll: ViewElement alist) attach =
+    let updateShellItemItems (coll: ViewElement alist) =
         let transformRealChild (child: obj) =
             match child with
             | :? ShellContent as shellContent -> ShellSection.op_Implicit shellContent
@@ -487,13 +473,13 @@ module ViewUpdaters =
         //            | _ -> target :> BaseShellItem
         //        updater token realTarget
 
-        let updater = updateViewElementCollection coll transformRealChild attach
+        let updater = updateViewElementCollection coll transformRealChild
         fun token (target: Xamarin.Forms.ShellItem) ->
             updater token target.Items
 
     /// Update the items of a ShellSection, given previous and current view elements
-    let updateShellSectionItems (coll: ViewElement alist) attach =
-        let updater = updateViewElementCollection coll id attach
+    let updateShellSectionItems (coll: ViewElement alist) =
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.ShellSection) ->
             updater token target.Items
 
@@ -708,22 +694,22 @@ module ViewUpdaters =
             if target.SelectionLength <> curr then 
                 target.SelectionLength <- value.GetValue(token)
         
-    let updateMenuChildren (coll: ViewElement alist) attach =
-        let updater = updateViewElementCollection coll id attach
+    let updateMenuChildren (coll: ViewElement alist) =
+        let updater = updateViewElementCollection coll id 
         fun token (target: Xamarin.Forms.Menu) ->
             updater token target
         
-    let updateElementEffects (coll: ViewElement alist) attach =
+    let updateElementEffects (coll: ViewElement alist) =
         let createTransform (child: obj) =
             match child with
             | :? CustomEffect as customEffect -> Effect.Resolve(customEffect.Name)
             | effect -> effect :?> Xamarin.Forms.Effect
-        let updater = updateViewElementCollection coll createTransform  attach
+        let updater = updateViewElementCollection coll createTransform
         fun token (target: Xamarin.Forms.Element) ->
             updater token target.Effects
 
-    let updatePageToolbarItems (coll: ViewElement alist) attach =
-        let updater = updateViewElementCollection coll id attach
+    let updatePageToolbarItems (coll: ViewElement alist) =
+        let updater = updateViewElementCollection coll id
         fun token (target: Xamarin.Forms.Page) ->
             updater token target.ToolbarItems
 

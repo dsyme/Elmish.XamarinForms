@@ -2038,7 +2038,7 @@
           "name": "Children",
           "inputType": "ViewElement alist",
           "defaultValue": "[]",
-          "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
+          "updateCode": "ViewUpdaters.updateLayoutChildren",
           "collection": {
             "elementType": "Xamarin.Forms.View",
             "attachedProperties": [
@@ -2071,7 +2071,7 @@
           "name": "Children",
           "defaultValue": "[]",
           "inputType": "ViewElement alist",
-          "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
+          "updateCode": "ViewUpdaters.updateLayoutChildren",
           "collection": {
             "elementType": "Xamarin.Forms.View",
             "attachedProperties": [
@@ -2122,7 +2122,7 @@
           "name": "Children",
           "defaultValue": "[]",
           "inputType": "ViewElement alist",
-          "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
+          "updateCode": "ViewUpdaters.updateLayoutChildren",
           "collection": {
             "elementType": "Xamarin.Forms.View",
             "attachedProperties": [
@@ -2173,7 +2173,7 @@
           "name": "Children",
           "defaultValue": "[]",
           "inputType": "ViewElement alist",
-          "updateCode": "ViewUpdaters.updateAttachedPropertiesForLayoutOfT",
+          "updateCode": "ViewUpdaters.updateLayoutChildren",
           "collection": {
             "elementType": "Xamarin.Forms.View",
             "attachedProperties": [
