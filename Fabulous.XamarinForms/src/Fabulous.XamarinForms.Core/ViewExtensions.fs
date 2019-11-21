@@ -34,21 +34,17 @@ type ViewExtensions() =
                 // setter target (defaultArg defaultValue Unchecked.defaultof<_>)
 
     /// Recursively update a nested view element on a target control, given a previous and current view element description
-    static member inline ElementUpdater(sourceOpt: ViewElement option, target: 'Target, getter: 'Target -> 'T, setter: 'Target -> 'T -> unit) = 
+    static member inline ElementUpdater(sourceOpt: ViewElement option, setter: 'Target -> 'T -> unit) = 
         match sourceOpt with 
-        | None -> (fun _ -> ())
-        | Some source -> 
-            let updater = 
-                { new ViewElementUpdater(AVal.constant source) with 
-                        member __.OnCreated (target, element: obj) = setter (target :?> 'Target) (element :?> 'T) }
-            updater.Update
+        | None -> (fun _ _ -> ())
+        | Some source -> ViewElementUpdater.Create source setter
 
     /// Recursively update a collection of nested view element on a target control, given a previous and current view element description
     static member inline ElementCollectionUpdater(collOpt: ViewElement alist option, getter: 'Target -> 'TCollection)  =
         match collOpt with 
         | None -> (fun _ _ -> ())
         | Some coll -> 
-            let updater = updateViewElementCollection coll id //ViewHelpers.canReuseView createChildUpdater
+            let updater = updateElementCollection coll id //ViewHelpers.canReuseView createChildUpdater
             fun token target -> 
                updater token (getter target)
 

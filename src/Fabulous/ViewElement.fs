@@ -273,6 +273,15 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
 
     override x.ToString() = "updater for " + anode.ToString()
 
+    static member Create node (onCreated: 'Target -> 'Child -> unit) =
+        let updater = 
+            { new ViewElementUpdater(AVal.constant node) with 
+                member __.OnCreated(scope: obj, element: obj) =
+                    onCreated (unbox<'Target> scope) (unbox<'Child> element) }
+        fun token (target: 'Target) -> 
+            updater.Update(token, target)
+
+// TODO - add combinators to allow building ViewElement that bind etc.
 //module ViewElement =
 //     let bind aval f =
 //         ViewElement(AVal.bind aval )

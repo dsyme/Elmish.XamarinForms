@@ -73,17 +73,13 @@ module CodeGenerator =
             match p.CollectionData with 
             | Some collectionData when not hasApply ->
                 w.printfn "            let updater ="
-                w.printfn "                ViewUpdaters.updateViewElementCollection %s FSharp.Core.Operators.id" shortName
+                w.printfn "                ViewUpdaters.updateElementCollection %s FSharp.Core.Operators.id" shortName
                 w.printfn "                |> (fun f token (target: %s) -> f token target.%s)" (targetFullName.Replace("'T", "_")) p.Name 
             | Some collectionData ->
                 w.printfn "            let updater ="
                 w.printfn "                %s %s" p.UpdateCode shortName
             | None when p.ModelType = "ViewElement" && not hasApply -> 
-                w.printfn "            let updater ="
-                w.printfn "                { new ViewElementUpdater(AVal.constant %s) with" shortName
-                w.printfn "                         member __.OnCreated (scope: obj, element: obj) ="
-                w.printfn "                             (scope :?> %s).%s <- (element :?> _) }" targetFullName p.Name
-                w.printfn "                |> (fun f token target -> f.Update(token, target))"
+                w.printfn "            let updater = ViewElementUpdater.Create %s (fun (target: %s) child -> target.%s <- child)" shortName targetFullName p.Name
             | None when not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) ->
                 if not (String.IsNullOrWhiteSpace(p.ConvertModelToValue)) then 
                     w.printfn "            let %s = AVal.map %s %s" shortName p.ConvertModelToValue shortName
@@ -108,11 +104,7 @@ module CodeGenerator =
         | UpdateAttachedProperty ap -> 
             let hasApply = not (System.String.IsNullOrWhiteSpace(ap.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(ap.UpdateCode))
             if ap.ModelType = "ViewElement" && not hasApply then
-                w.printfn "            let updater ="
-                w.printfn "                { new ViewElementUpdater(AVal.constant %s) with" shortName
-                w.printfn "                         member __.OnCreated (scope: obj, element: obj) ="
-                w.printfn "                             %s.Set%s(unbox scope, unbox element) }" targetFullName ap.Name
-                w.printfn "                |> (fun f token target -> f.Update(token, target))"
+                w.printfn "            let updater = ViewElementUpdater.Create %s (fun target content -> %s.Set%s(target, content))" shortName targetFullName ap.Name
             elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
                 w.printfn "            let updater = TODO" // (fun _ _ -> ())
                 //w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
