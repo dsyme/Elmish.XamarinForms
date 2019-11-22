@@ -37,7 +37,7 @@ type ViewExtensions() =
     static member inline ElementUpdater(sourceOpt: ViewElement option, setter: 'Target -> 'T -> unit) = 
         match sourceOpt with 
         | None -> (fun _ _ -> ())
-        | Some source -> ViewElementUpdater.Create source setter
+        | Some source -> ViewElementUpdater.Create source id setter
 
     /// Recursively update a collection of nested view element on a target control, given a previous and current view element description
     static member inline ElementCollectionUpdater(collOpt: ViewElement alist option, getter: 'Target -> 'TCollection)  =

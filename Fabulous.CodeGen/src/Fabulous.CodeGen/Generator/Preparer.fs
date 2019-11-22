@@ -36,7 +36,8 @@ module Preparer =
               ConvertModelToValue = e.ConvertModelToValue
               ConvertInputToModel = e.ConvertInputToModel
               ModelType = e.ModelType
-              RelatedProperties = relatedProperties }
+              RelatedProperties = relatedProperties
+              CanBeUpdated = e.CanBeUpdated }
             |> UpdateEvent
         
         | BoundProperty p -> 
@@ -49,6 +50,7 @@ module Preparer =
               ConvertModelToValue = p.ConvertModelToValue
               ConvertInputToModel = p.ConvertInputToModel
               UpdateCode = p.UpdateCode
+              CanBeUpdated = p.CanBeUpdated
               CollectionData =
                   p.CollectionData
                   |> Option.map (fun cd ->
@@ -64,7 +66,8 @@ module Preparer =
                                   ModelType = ap.ModelType
                                   ConvertModelToValue = ap.ConvertModelToValue
                                   ConvertInputToModel = ap.ConvertInputToModel
-                                  UpdateCode = ap.UpdateCode }) }) }
+                                  UpdateCode = ap.UpdateCode
+                                  CanBeUpdated = ap.CanBeUpdated }) }) }
             |> UpdateProperty
         | BoundAttachedProperty ap -> 
             UpdateAttachedProperty
@@ -74,6 +77,7 @@ module Preparer =
                   DefaultValue = ap.DefaultValue
                   OriginalType = ap.OriginalType
                   ModelType = ap.ModelType
+                  CanBeUpdated = ap.CanBeUpdated
                   ConvertModelToValue = ap.ConvertModelToValue
                   ConvertInputToModel = ap.ConvertInputToModel
                   UpdateCode = ap.UpdateCode }
@@ -90,8 +94,8 @@ module Preparer =
         let events = boundType.Events |> Array.map toBuildMember
         let members = Array.concat [ properties; events ]
         
-        let immediateEvents = boundType.Events |> Array.filter (fun e -> not e.IsInherited && e.CanBeUpdated)
-        let immediateProperties = boundType.Properties |> Array.filter (fun p -> not p.IsInherited && p.CanBeUpdated)
+        let immediateEvents = boundType.Events |> Array.filter (fun e -> not e.IsInherited)
+        let immediateProperties = boundType.Properties |> Array.filter (fun p -> not p.IsInherited)
         
         let updateEvents = immediateEvents |> Array.map (BoundEvent >> toUpdateMember boundType)
         let updateProperties = immediateProperties |> Array.map (BoundProperty >> toUpdateMember boundType)

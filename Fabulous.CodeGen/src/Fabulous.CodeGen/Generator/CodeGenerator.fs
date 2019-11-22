@@ -68,6 +68,8 @@ module CodeGenerator =
 
     let generateMemberUpdater (targetFullName: string) (m: UpdateMember) shortName (w: StringWriter) =
         match m with 
+        | _ when not m.CanBeUpdated ->
+            w.printfn "            let updater = (fun _ _ -> ())"
         | UpdateProperty p -> 
             let hasApply = not (System.String.IsNullOrWhiteSpace(p.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(p.UpdateCode))
             match p.CollectionData with 
@@ -79,7 +81,7 @@ module CodeGenerator =
                 w.printfn "            let updater ="
                 w.printfn "                %s %s" p.UpdateCode shortName
             | None when p.ModelType = "ViewElement" && not hasApply -> 
-                w.printfn "            let updater = ViewElementUpdater.Create %s (fun (target: %s) child -> target.%s <- child)" shortName targetFullName p.Name
+                w.printfn "            let updater = ViewElementUpdater.Create %s FSharp.Core.Operators.id (fun (target: %s) child -> target.%s <- child)" shortName targetFullName p.Name
             | None when not (System.String.IsNullOrWhiteSpace(p.UpdateCode)) ->
                 if not (String.IsNullOrWhiteSpace(p.ConvertModelToValue)) then 
                     w.printfn "            let %s = AVal.map %s %s" shortName p.ConvertModelToValue shortName
@@ -104,7 +106,7 @@ module CodeGenerator =
         | UpdateAttachedProperty ap -> 
             let hasApply = not (System.String.IsNullOrWhiteSpace(ap.ConvertModelToValue)) || not (System.String.IsNullOrWhiteSpace(ap.UpdateCode))
             if ap.ModelType = "ViewElement" && not hasApply then
-                w.printfn "            let updater = ViewElementUpdater.Create %s (fun target content -> %s.Set%s(target, content))" shortName targetFullName ap.Name
+                w.printfn "            let updater = ViewElementUpdater.Create %s FSharp.Core.Operators.id (fun target content -> %s.Set%s(target, content))" shortName targetFullName ap.Name
             elif not (System.String.IsNullOrWhiteSpace(ap.UpdateCode)) then
                 w.printfn "            let updater = TODO" // (fun _ _ -> ())
                 //w.printfn "                %s prev%sOpt curr%sOpt targetChild" ap.UniqueName ap.UniqueName ap.UpdateCode
@@ -127,12 +129,15 @@ module CodeGenerator =
                 w.printfn "        let attribCount = match %s with Some _ -> attribCount + 1 | None -> attribCount" m.Name
             w.printfn ""
 
-        w.printfn "        let attribBuilder ="
         match data.BaseName with 
         | None ->
+            w.printfn "        let attribBuilder ="
             w.printfn "            new AttributesBuilder<%s>(attribCount)" data.FullName
         | Some nameOfBaseCreator ->
-            w.printfn "            ViewBuilders.Build%s(attribCount, %s).Retarget<%s>()" nameOfBaseCreator baseMembers data.FullName
+            w.printfn "        let attribBuilderBase ="
+            w.printfn "            ViewBuilders.Build%s(attribCount, %s)" nameOfBaseCreator baseMembers
+            w.printfn "        let attribBuilder = attribBuilderBase.Retarget<%s>()" data.FullName
+            w.printfn "        let _ = (fun () -> attribBuilderBase.Sample :?> %s) |> ignore // enforce subtype relationship" data.FullName
 
         for m in data.UpdateMembers do
             w.printfn "        match %s with" m.ShortName
@@ -269,8 +274,8 @@ module CodeGenerator =
         w.printfn ""
         w
 
-    let memberSupportsWith (nm: string) = 
-        match nm with 
+    let memberSupportsWith (m: ViewExtensionsData) = 
+        match m.UniqueName with 
         | "Created" | "Ref" | "Tag" -> false
         // MINOR TODO: Command and CommandCanExecute are linked attributes and can't be updated using 'With'
         // All in all this is a minor limitation
@@ -286,7 +291,7 @@ module CodeGenerator =
         w.printfn "    type ViewElement with"
 
         for m in data do
-            if memberSupportsWith m.UniqueName then
+            if memberSupportsWith m then
                 w.printfn ""
                 w.printfn "        /// Adjusts the %s property in the visual element" m.UniqueName
                 w.printfn "        member x.%s(value: %s) ="
@@ -300,20 +305,20 @@ module CodeGenerator =
 
         let memberArgs =
             data
-            |> Array.filter (fun m -> memberSupportsWith m.UniqueName)
+            |> Array.filter memberSupportsWith
             |> Array.mapi (fun index m -> sprintf "%s%s?%s: %s" (if index > 0 then ", " else "") (if index > 0 && index % 5 = 0 then newLine else "") m.LowerUniqueName (adaptType m.InputType))
             |> Array.fold (+) ""
 
         w.printfn ""
         w.printfn "        member %sx.With(%s) =" inlineFlag memberArgs
         for m in data do
-            if memberSupportsWith m.UniqueName then
+            if memberSupportsWith m then
                 w.printfn "            let x = match %s with None -> x | Some opt -> x.%s(opt)" m.LowerUniqueName m.UniqueName
         w.printfn "            x"
         w.printfn ""
 
         for m in data do
-            if memberSupportsWith m.UniqueName then
+            if memberSupportsWith m then
                 w.printfn "    /// Adjusts the %s property in the visual element" m.UniqueName
                 w.printfn "    let %s (value: %s) (x: ViewElement) = x.%s(value)" m.LowerUniqueName (adaptType m.InputType) m.UniqueName
         w

@@ -98,6 +98,8 @@ type AttributesBuilder<'Target> (builder: AttributesBuilder) =
     member this.Retarget<'Target2>() : AttributesBuilder<'Target2> =
         AttributesBuilder<'Target2>(builder)
 
+    member this.Sample = Unchecked.defaultof<'Target>
+
 type ViewRef() = 
     let handle = System.WeakReference<obj>(null)
 
@@ -199,8 +201,7 @@ type ViewElement (targetType: Type, create: (unit -> obj), attribs: AttributeVal
 
     override x.ToString() = sprintf "%s(...)" x.TargetType.Name //(x.GetHashCode())
 
-[<AbstractClass>]
-type ViewElementUpdater(anode: aval<ViewElement>) = 
+type ViewElementUpdater(anode: aval<ViewElement>, onCreated: obj -> obj -> unit, childTransform: obj -> obj) = 
     inherit AdaptiveObject()
     let mutable targetOpt = None
 
@@ -255,9 +256,9 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
             | _ -> 
                 Debug.WriteLine (sprintf "Create %O" node.TargetType)
 
-                let target = node.Create(token)
+                let target = node.Create(token) |> childTransform
                 targetOpt <- Some (node, target)
-                x.OnCreated (scope, target)
+                onCreated scope target
                 node.Updater token target
 
                 match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
@@ -269,17 +270,18 @@ type ViewElementUpdater(anode: aval<ViewElement>) =
                 | ValueNone -> ()
         )
 
-    abstract OnCreated : scope: obj * target: obj -> unit
-
     override x.ToString() = "updater for " + anode.ToString()
 
-    static member Create node (onCreated: 'Target -> 'Child -> unit) =
+    static member CreateAdaptive node  (childTransform: 'ChildTarget -> 'ActualChildTarget) (onCreated: 'Target -> 'ActualChildTarget -> unit)=
         let updater = 
-            { new ViewElementUpdater(AVal.constant node) with 
-                member __.OnCreated(scope: obj, element: obj) =
-                    onCreated (unbox<'Target> scope) (unbox<'Child> element) }
+            new ViewElementUpdater(node, 
+                  (fun (scope: obj) (child: obj) -> onCreated (unbox<'Target> scope) (unbox<'ActualChildTarget> child)), 
+                  (fun (childObj: obj) -> childTransform (unbox<'ChildTarget> childObj) |> box))
         fun token (target: 'Target) -> 
             updater.Update(token, target)
+
+    static member Create node (childTransform: 'ChildTarget -> 'ActualChildTarget) (onCreated: 'Target -> 'ActualChildTarget -> unit)=
+        ViewElementUpdater.CreateAdaptive (AVal.constant node) childTransform onCreated 
 
 // TODO - add combinators to allow building ViewElement that bind etc.
 //module ViewElement =

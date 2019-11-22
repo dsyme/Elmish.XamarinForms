@@ -18,7 +18,7 @@ module CollectionHelpers =
             // POSSIBLE IMPROVEMENT: don't use a linear search
             items |> Seq.tryFindIndex (fun item2 -> identical item item2)
         | _ -> None
-
+(*
     /// Try and find a specific grouped ListView item
     let tryFindGroupedListViewItem (sender: obj) (item: obj) =
         match item with 
@@ -35,6 +35,7 @@ module CollectionHelpers =
                 |> Seq.indexed
                 |> Seq.tryPick (fun (j, item2) -> if identical item item2 then Some (i,j) else None))
         | _ -> None
+*)
 
 [<AutoOpen>]
 module ViewConverters =        
@@ -150,6 +151,7 @@ module ViewConverters =
             CollectionHelpers.tryFindListViewItem sender args.Item |> Option.iter f
         )
     
+#if GROUPLIST
     let makeListViewGroupedItemSelectedEventHandler f =
         System.EventHandler<Xamarin.Forms.SelectedItemChangedEventArgs>(fun sender args ->
             CollectionHelpers.tryFindGroupedListViewItem sender args.SelectedItem |> f
@@ -159,7 +161,8 @@ module ViewConverters =
         System.EventHandler<Xamarin.Forms.ItemTappedEventArgs>(fun sender args ->
             CollectionHelpers.tryFindGroupedListViewItem sender args.Item |> Option.iter f
         )
-        
+#endif        
+
     let makeMasterDetailPageIsPresentedChangedEventHandler f =
         System.EventHandler(fun sender args ->
             let masterDetailPage = sender :?> Xamarin.Forms.MasterDetailPage

@@ -418,6 +418,8 @@ module App =
         let MainPageButton = 
             View.Button(text = c "Main page", 
                         command = c (fun () -> dispatch (SetRootPageKind (Choice false))), 
+                        minimumWidth = c 100.0,
+                        minimumHeight = c 40.0,
                         horizontalOptions = c LayoutOptions.CenterAndExpand)
 
         let! rootPageKind = model.RootPageKind
@@ -696,14 +698,17 @@ module App =
                                   verticalOptions = c LayoutOptions.FillAndExpand) 
                            MainPageButton ])
                  ])
-        | _ -> 
-           return View.ContentPage(title = c "NYI", content = MainPageButton)
-(*
         | Tabbed2 ->
-           View.TabbedPage(useSafeArea=c true, children =cs [
+           return 
+            View.TabbedPage(useSafeArea=c true, children = cs [
                 View.ScrollingContentPage(c "Picker", 
                   cs [ View.Label(text = c "Picker:")
-                       View.Picker(title = c "Choose Color:", textColor=snd pickerItems.[pickedColorIndex], selectedIndex=pickedColorIndex, items=(List.map fst pickerItems), horizontalOptions = c LayoutOptions.CenterAndExpand, selectedIndexChanged=(fun (i, item) -> dispatch (PickerItemChanged i)))
+                       View.Picker(title = c "Choose Color:", 
+                           textColor= (model.PickedColorIndex |> AVal.map (fun idx -> snd pickerItems.[idx])),
+                           selectedIndex = model.PickedColorIndex , 
+                           items= c (List.map fst pickerItems), 
+                           horizontalOptions = c LayoutOptions.CenterAndExpand, 
+                           selectedIndexChanged = c (fun (i, item) -> dispatch (PickerItemChanged i)))
                        MainPageButton
                      ])
                       
@@ -717,61 +722,62 @@ module App =
                                    yield View.ViewCell(
                                         view = View.Label(
                                             formattedText = View.FormattedString(cs [
-                                                View.Span(text = c "Visual ", backgroundColor = Color.Green)
-                                                View.Span(text = c "Studio ", fontSize = FontSize 10.)
+                                                View.Span(text = c "Visual ", backgroundColor = c Color.Green)
+                                                View.Span(text = c "Studio ", fontSize = c (FontSize 10.0))
                                             ])
                                         )
                                    ) 
-                                   yield View.TextCell "Emacs"
+                                   yield View.TextCell (c "Emacs")
                                    yield View.ViewCell(
                                         view = View.Label(
                                             formattedText = View.FormattedString(cs [
-                                                View.Span(text = c "Visual ", fontAttributes=FontAttributes.Bold)
-                                                View.Span(text = c "Studio ", fontAttributes=FontAttributes.Italic)
-                                                View.Span(text = c "Code", foregroundColor = Color.Blue)
+                                                View.Span(text = c "Visual ", fontAttributes = c FontAttributes.Bold)
+                                                View.Span(text = c "Studio ", fontAttributes = c FontAttributes.Italic)
+                                                View.Span(text = c "Code", foregroundColor = c Color.Blue)
                                             ])
                                         )
                                    )
-                                   yield View.TextCell "Rider" ], 
+                                   yield View.TextCell (c "Rider") ], 
                            horizontalOptions = c LayoutOptions.CenterAndExpand, 
-                           itemSelected=(fun idx -> dispatch (ListViewSelectedItemChanged idx)))
+                           itemSelected = c (fun idx -> dispatch (ListViewSelectedItemChanged idx)))
                     ])
 
                       
                 View.ScrollingContentPage(c "SearchBar", 
                   cs [ View.Label(text = c "SearchBar:")
                        View.SearchBar(
-                            placeholder = "Enter search term",
-                            searchCommand = (fun searchBarText -> dispatch (ExecuteSearch searchBarText)),
-                            searchCommandCanExecute = true) 
-                       View.Label(text = c "You searched for " + searchTerm) 
+                            placeholder = c "Enter search term",
+                            searchCommand = c (fun searchBarText -> dispatch (ExecuteSearch searchBarText)),
+                            searchCommandCanExecute = c true) 
+                       View.Label(text = (model.SearchTerm |> AVal.map (fun searchTerm -> "You searched for " + searchTerm)))
                        MainPageButton ])
 
-                View.NonScrollingContentPage(c "ListViewGrouped", 
-                    cs [ View.Label(text = c "ListView (grouped):")
-                         View.ListViewGrouped(
-                             showJumpList=true,
-                             items= 
-                                [ 
-                                    "B", View.TextCell "B", [ View.TextCell "Baboon"; View.TextCell "Blue Monkey" ]
-                                    "C", View.TextCell "C", [ View.TextCell "Capuchin Monkey"; View.TextCell "Common Marmoset" ]
-                                    "G", View.TextCell "G", [ View.TextCell "Gibbon"; View.TextCell "Golden Lion Tamarin" ]
-                                    "H", View.TextCell "H", [ View.TextCell "Howler Monkey" ]
-                                    "J", View.TextCell "J", [ View.TextCell "Japanese Macaque" ]
-                                    "M", View.TextCell "M", [ View.TextCell "Mandrill" ]
-                                    "P", View.TextCell "P", [ View.TextCell "Proboscis Monkey"; View.TextCell "Pygmy Marmoset" ]
-                                    "R", View.TextCell "R", [ View.TextCell "Rhesus Macaque" ]
-                                    "S", View.TextCell "S", [ View.TextCell "Spider Monkey"; View.TextCell "Squirrel Monkey" ]
-                                    "V", View.TextCell "V", [ View.TextCell "Vervet Monkey" ]
-                                ], 
-                             horizontalOptions = c LayoutOptions.CenterAndExpand,
-                             itemSelected=(fun idx -> dispatch (ListViewGroupedSelectedItemChanged idx)))
-                         MainPageButton
-                       ])
+                //View.NonScrollingContentPage(c "ListViewGrouped", 
+                //    cs [ View.Label(text = c "ListView (grouped):")
+                //         View.ListViewGrouped(
+                //             showJumpList=true,
+                //             items= 
+                //                [ 
+                //                    "B", View.TextCell "B", [ View.TextCell "Baboon"; View.TextCell "Blue Monkey" ]
+                //                    "C", View.TextCell "C", [ View.TextCell "Capuchin Monkey"; View.TextCell "Common Marmoset" ]
+                //                    "G", View.TextCell "G", [ View.TextCell "Gibbon"; View.TextCell "Golden Lion Tamarin" ]
+                //                    "H", View.TextCell "H", [ View.TextCell "Howler Monkey" ]
+                //                    "J", View.TextCell "J", [ View.TextCell "Japanese Macaque" ]
+                //                    "M", View.TextCell "M", [ View.TextCell "Mandrill" ]
+                //                    "P", View.TextCell "P", [ View.TextCell "Proboscis Monkey"; View.TextCell "Pygmy Marmoset" ]
+                //                    "R", View.TextCell "R", [ View.TextCell "Rhesus Macaque" ]
+                //                    "S", View.TextCell "S", [ View.TextCell "Spider Monkey"; View.TextCell "Squirrel Monkey" ]
+                //                    "V", View.TextCell "V", [ View.TextCell "Vervet Monkey" ]
+                //                ], 
+                //             horizontalOptions = c LayoutOptions.CenterAndExpand,
+                //             itemSelected=(fun idx -> dispatch (ListViewGroupedSelectedItemChanged idx)))
+                //         MainPageButton
+                //       ])
 
                ])
         | Tabbed3 ->
-           View.TabbedPage(useSafeArea=c true, 
+           return
+             View.TabbedPage(useSafeArea=c true, 
               children= cs [ 
                    View.ContentPage(title = c "FlexLayout", useSafeArea = c true,
                        padding = c (Thickness (10.0, 20.0, 10.0, 5.0)), 
@@ -779,43 +785,68 @@ module App =
                            View.FlexLayout(
                             direction = c FlexDirection.Column,
                             children = cs [
-                                View.ScrollView(orientation=ScrollOrientation.Both,
+                                View.ScrollView(orientation = c ScrollOrientation.Both,
                                   content = View.FlexLayout(
                                       children = cs [
                                           View.Frame(height = c 480.0, width = c 300.0, 
                                               content = View.FlexLayout( direction = c FlexDirection.Column,
                                                   children = cs [ 
-                                                      View.Label(text = c "Seated Monkey", margin = c (Thickness (0.0, 8.0)), fontSize=Named NamedSize.Large, textColor = c Color.Blue)
-                                                      View.Label(text = c "This monkey is laid back and relaxed, and likes to watch the world go by.", margin=Thickness (0.0, 4.0), textColor = c Color.Black)
-                                                      View.Label(text = c "  • Often smiles mysteriously", margin = Thickness (0.0, 4.0), textColor = c Color.Black)
-                                                      View.Label(text = c "  • Sleeps sitting up", margin=Thickness (0.0, 4.0), textColor = c Color.Black)
-                                                      View.Image(height=240.0, 
-                                                          width=160.0, 
-                                                          source=Path "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Vervet_monkey_Krugersdorp_game_reserve_%285657678441%29.jpg/160px-Vervet_monkey_Krugersdorp_game_reserve_%285657678441%29.jpg"
-                                                      ).Order(-1).AlignSelf(FlexAlignSelf.Center)
-                                                      View.Label(margin=Thickness (0.0, 4.0)).Grow(1.0)
-                                                      View.Button(text = c "Learn More", fontSize=Named NamedSize.Large, textColor = c Color.White, backgroundColor = c Color.Green, cornerRadius=20) ]),
+                                                      View.Label(text = c "Seated Monkey", margin = c (Thickness (0.0, 8.0)), 
+                                                          fontSize = c (Named NamedSize.Large),
+                                                          textColor = c Color.Blue)
+                                                      View.Label(text = c "This monkey is laid back and relaxed, and likes to watch the world go by.",
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
+                                                      View.Label(text = c "  • Often smiles mysteriously",
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
+                                                      View.Label(text = c "  • Sleeps sitting up", 
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
+                                                      View.Image(height = c 240.0, 
+                                                          width = c 160.0, 
+                                                          source = c  (Path "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Vervet_monkey_Krugersdorp_game_reserve_%285657678441%29.jpg/160px-Vervet_monkey_Krugersdorp_game_reserve_%285657678441%29.jpg")
+                                                      ).Order(c -1).AlignSelf(c FlexAlignSelf.Center)
+                                                      View.Label(margin= c (Thickness (0.0, 4.0))).Grow(c 1.0)
+                                                      View.Button(text = c "Learn More",
+                                                          fontSize = c (Named NamedSize.Large),
+                                                          textColor = c Color.White,
+                                                          backgroundColor = c Color.Green,
+                                                          cornerRadius = c 20) ]),
                                               backgroundColor = c Color.LightYellow,
                                               borderColor = c Color.Blue,
-                                              margin=Thickness 10.0,
+                                              margin = c (Thickness 10.0),
                                               cornerRadius = c 15.0)
                                           View.Frame(height = c 480.0, width = c 300.0, 
-                                              content = View.FlexLayout( direction=FlexDirection.Column,
+                                              content = View.FlexLayout( direction = c FlexDirection.Column,
                                                   children = cs [ 
-                                                      View.Label(text = c "Banana Monkey", margin=Thickness (0.0, 8.0), fontSize=Named NamedSize.Large, textColor = c Color.Blue)
-                                                      View.Label(text = c "Watch this monkey eat a giant banana.", margin=Thickness (0.0, 4.0), textColor = c Color.Black)
-                                                      View.Label(text = c "  • More fun than a barrel of monkeys", margin=Thickness (0.0, 4.0), textColor = c Color.Black)
-                                                      View.Label(text = c "  • Banana not included", margin=Thickness (0.0, 4.0), textColor = c Color.Black)
+                                                      View.Label(text = c "Banana Monkey", 
+                                                          margin = c (Thickness (0.0, 8.0)), 
+                                                          fontSize = c (Named NamedSize.Large),
+                                                          textColor = c Color.Blue)
+                                                      View.Label(text = c "Watch this monkey eat a giant banana.", 
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
+                                                      View.Label(text = c "  • More fun than a barrel of monkeys",
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
+                                                      View.Label(text = c "  • Banana not included",
+                                                          margin = c (Thickness (0.0, 4.0)),
+                                                          textColor = c Color.Black)
                                                       View.Image(height = c 213.0, 
                                                           width = c 320.0, 
                                                           source = c (Path "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Crab_eating_macaque_in_Ubud_with_banana.JPG/320px-Crab_eating_macaque_in_Ubud_with_banana.JPG")
-                                                      ).Order(-1).AlignSelf(FlexAlignSelf.Center)
-                                                      View.Label(margin = c (Thickness (0.0, 4.0))).Grow(1.0)
-                                                      View.Button(text = c "Learn More", fontSize=Named NamedSize.Large, textColor = c Color.White, backgroundColor = c Color.Green, cornerRadius=20) ]),
+                                                      ).Order(c -1).AlignSelf(c FlexAlignSelf.Center)
+                                                      View.Label(margin = c (Thickness (0.0, 4.0))).Grow(c 1.0)
+                                                      View.Button(text = c "Learn More",
+                                                          fontSize = c (Named NamedSize.Large),
+                                                          textColor = c Color.White,
+                                                          backgroundColor = c Color.Green,
+                                                          cornerRadius = c 20) ]),
                                               backgroundColor = c Color.LightYellow,
-                                              borderColor=Color.Blue,
-                                              margin=Thickness 10.0,
-                                              cornerRadius=15.0)
+                                              borderColor = c Color.Blue,
+                                              margin = c (Thickness 10.0),
+                                              cornerRadius = c 15.0)
                                           
                                       ] ))
                                 MainPageButton
@@ -824,7 +855,7 @@ module App =
                    View.ScrollingContentPage(c "TableView", cs [
                       View.Label(text = c "TableView:")
                       View.TableView(
-                        horizontalOptions = LayoutOptions.StartAndExpand,
+                        horizontalOptions = c LayoutOptions.StartAndExpand,
                         root = View.TableRoot(
                             items = cs [
                                 View.TableSection(
@@ -871,26 +902,28 @@ module App =
                        padding = c (Thickness (10.0, 20.0, 10.0, 5.0)), 
                        content= View.StackLayout(
                            children = cs [ 
-                               View.Label(text = c "AbsoluteLayout Demo", fontSize = Named NamedSize.Large, horizontalOptions = LayoutOptions.Center)
-                               View.AbsoluteLayout(backgroundColor = Color.Blue.WithLuminosity(0.9), 
-                                   verticalOptions = LayoutOptions.FillAndExpand, 
+                               View.Label(text = c "AbsoluteLayout Demo",
+                                   fontSize = c (Named NamedSize.Large), horizontalOptions = c LayoutOptions.Center)
+                               View.AbsoluteLayout(backgroundColor = c (Color.Blue.WithLuminosity(0.9)), 
+                                   verticalOptions = c LayoutOptions.FillAndExpand, 
                                    children = cs [
                                       View.Label(text = c "Top Left", textColor = c Color.Black)
-                                          .LayoutFlags(AbsoluteLayoutFlags.PositionProportional)
-                                          .LayoutBounds(Rectangle(0.0, 0.0, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize))
+                                          .LayoutFlags(c AbsoluteLayoutFlags.PositionProportional)
+                                          .LayoutBounds(c (Rectangle(0.0, 0.0, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize)))
                                       View.Label(text = c "Centered", textColor = c Color.Black)
-                                          .LayoutFlags(AbsoluteLayoutFlags.PositionProportional)
-                                          .LayoutBounds(Rectangle(0.5, 0.5, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize))
+                                          .LayoutFlags(c AbsoluteLayoutFlags.PositionProportional)
+                                          .LayoutBounds(c (Rectangle(0.5, 0.5, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize)))
                                       View.Label(text = c "Bottom Right", textColor = c Color.Black)
-                                          .LayoutFlags(AbsoluteLayoutFlags.PositionProportional)
-                                          .LayoutBounds(Rectangle(1.0, 1.0, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize)) ])
+                                          .LayoutFlags(c AbsoluteLayoutFlags.PositionProportional)
+                                          .LayoutBounds(c (Rectangle(1.0, 1.0, AbsoluteLayout.AutoSize, AbsoluteLayout.AutoSize))) ])
                                MainPageButton
                             ]))
 
                 ])
          
         | Navigation -> 
-
+          let! pageStack = model.PageStack
+          return
          // NavigationPage example
               View.NavigationPage(pages=
                    cs [ for page in List.rev pageStack do
@@ -949,10 +982,11 @@ module App =
                      poppedToRoot = c (fun args -> dispatch GoHomePage)  )
 
         | MasterDetail -> 
+          return
          // MasterDetail where the Master acts as a hamburger-style menu
             View.MasterDetailPage(
-               masterBehavior=MasterBehavior.Popover, 
-               isPresented=isMasterPresented, 
+               masterBehavior = c MasterBehavior.Popover, 
+               isPresented = model.IsMasterPresented, 
                isPresentedChanged = c (fun b -> dispatch (IsMasterPresentedChanged b)), 
                master = 
                  View.ContentPage(useSafeArea = c true, title = c "Master", 
@@ -970,23 +1004,25 @@ module App =
                       content = 
                         View.StackLayout(backgroundColor = c Color.Gray, 
                           children = 
-                              cs [ View.Label(text = c "Detail " + detailPage, textColor = c Color.White, backgroundColor = c Color.Navy)
+                              cs [ View.Label(text = c "Detail <detailPage>", textColor = c Color.White, backgroundColor = c Color.Navy)
                                    View.Button(text = c "Main page", textColor = c Color.White, backgroundColor = c Color.Navy, command = c (fun () -> dispatch (SetRootPageKind (Choice false))), horizontalOptions = c LayoutOptions.CenterAndExpand, verticalOptions = c LayoutOptions.End)  ]) 
                           ).HasNavigationBar(c true).HasBackButton(c true) ], 
                    poppedToRoot = c (fun args -> dispatch (IsMasterPresentedChanged true) ) ) ) 
 
          | InfiniteScrollList -> 
+          return
                View.ScrollingContentPage(c "ListView (InfiniteScrollList)", cs [
                    MainPageButton
                    View.Label(text = c "InfiniteScrollList:")
                    View.ListView(
-                       items = cs [ for i in 1 .. max -> View.TextCell("Item " + string i, textColor=(if i % 3 = 0 then Color.CadetBlue else Color.LightCyan)) ], 
+                       items = alist { let! max = model.InfiniteScrollMaxRequested in  for i in 1 .. max -> View.TextCell(c ("Item " + string i), textColor=c (if i % 3 = 0 then Color.CadetBlue else Color.LightCyan)) }, 
                        horizontalOptions = c LayoutOptions.CenterAndExpand, 
                        // Every time the last element is needed, grow the set of data to be at least 10 bigger then that index 
-                       itemAppearing = c (fun idx -> if idx >= max - 2 then dispatch (SetInfiniteScrollMaxIndex (idx + 10) ) )  )
+                       itemAppearing = aval { let! max = model.InfiniteScrollMaxRequested in return (fun idx -> if idx >= max - 2 then dispatch (SetInfiniteScrollMaxIndex (idx + 10) ) ) } )
                  ] )
 
          | Animations -> 
+          return
                View.ScrollingContentPage(c "Animations", cs [ 
                     View.Label(text = c "Rotate", created = c (fun l -> l.RotateTo (360.0, 2000u) |> ignore)) 
                     View.Label(text = c "Hello!", ref=c animatedLabelRef) 
@@ -996,16 +1032,19 @@ module App =
                     View.Button(text = c "Main page", cornerRadius = c 5, command = c (fun () -> dispatch (SetRootPageKind (Choice false))), horizontalOptions = c LayoutOptions.CenterAndExpand, verticalOptions = c LayoutOptions.End)
                   ] )
          | WebCall ->
-            let data = match model.WebCallData with
-                        | Some v -> v
-                        | None -> ""
+            let! callData = model.WebCallData
+            let data = 
+                match callData with
+                | Some v -> v
+                | None -> ""
 
-            View.ContentPage(
+            return
+              View.ContentPage(
                 content = View.StackLayout(
                     children = cs [
                         View.Button(text = c "Get Data", command = c (fun () -> dispatch ReceiveData))
                         View.ActivityIndicator(isRunning = model.IsRunning)
-                        View.Label(text = data)
+                        View.Label(text = c data)
                         MainPageButton
                     ]
             ))
@@ -1013,25 +1052,26 @@ module App =
             let scrollToValue (x, y) animated =
                 (x, y, animated)
 
-            View.ContentPage(
+            return
+              View.ContentPage(
                 content = View.StackLayout(
                     children = cs [
                         MainPageButton
-                        View.Label(text = (sprintf "Is scrolling: %b" model.IsScrolling))
-                        View.Button(text = c "Scroll to top", command = c (fun() -> dispatch (ScrollFabulous (0.0, 0.0, Animated))))
+                        View.Label(text = (model.IsScrolling |> AVal.map (fun isScrolling -> sprintf "Is scrolling: %b" isScrolling)))
+                        View.Button(text = c "Scroll to top", command = c (fun () -> dispatch (ScrollFabulous (0.0, 0.0, Animated))))
                         View.ScrollView(
                             ref = c scrollViewRef,
-                            ?scrollTo= (if model.IsScrollingWithFabulous then Some (scrollToValue model.ScrollPosition model.AnimatedScroll) else None),
+                            //?scrollTo= (model.IsScrollingWithFabulous |> AVal.map (fun isScrollingWithFabulous -> Some (scrollToValue model.ScrollPosition model.AnimatedScroll) else None),
                             scrolled = c (fun args -> dispatch (Scrolled (args.ScrollX, args.ScrollY))),
                             content = View.StackLayout(
                                 children = cs [
-                                    yield View.Button(text = c "Scroll animated with Fabulous", command = c (fun() -> dispatch (ScrollFabulous (0.0, 750.0, Animated))))
-                                    yield View.Button(text = c "Scroll not animated with Fabulous", command = c (fun() -> dispatch (ScrollFabulous (0.0, 750.0, NotAnimated))))
-                                    yield View.Button(text = c "Scroll animated with Xamarin.Forms", command = c (fun() -> dispatch (ScrollXamarinForms (0.0, 750.0, Animated))))
-                                    yield View.Button(text = c "Scroll not animated with Xamarin.Forms", command = c (fun() -> dispatch (ScrollXamarinForms (0.0, 750.0, NotAnimated))))
+                                    yield View.Button(text = c "Scroll animated with Fabulous", command = c (fun () -> dispatch (ScrollFabulous (0.0, 750.0, Animated))))
+                                    yield View.Button(text = c "Scroll not animated with Fabulous", command = c (fun () -> dispatch (ScrollFabulous (0.0, 750.0, NotAnimated))))
+                                    yield View.Button(text = c "Scroll animated with Xamarin.Forms", command = c (fun () -> dispatch (ScrollXamarinForms (0.0, 750.0, Animated))))
+                                    yield View.Button(text = c "Scroll not animated with Xamarin.Forms", command = c (fun () -> dispatch (ScrollXamarinForms (0.0, 750.0, NotAnimated))))
 
                                     for i = 0 to 75 do
-                                        yield View.Label(text=(sprintf "Item %i" i))
+                                        yield View.Label(text = c (sprintf "Item %i" i))
                                 ]
                             )
                         )
@@ -1039,6 +1079,7 @@ module App =
                 ) 
             )
          | ShellView ->
+          return
             
             match Device.RuntimePlatform with
                 | Device.iOS | Device.Android -> 
@@ -1055,6 +1096,7 @@ module App =
                 | _ -> View.ContentPage(content = View.Label(text = c "Your Platform does not support Shell"))
 
          | CollectionView ->
+          return
             match Device.RuntimePlatform with
                 | Device.iOS | Device.Android -> 
                     View.ContentPage(content=View.StackLayout(children = cs [
@@ -1083,6 +1125,7 @@ module App =
                                         ]))
 
          | CarouselView ->
+          return
             match Device.RuntimePlatform with
                 | Device.iOS | Device.Android -> 
                     View.ContentPage(content=
@@ -1112,9 +1155,11 @@ module App =
                                         ]))
                 
         | Effects ->
+          return
             updateViewEffects ()
             
         | RefreshView ->
+          return
             View.ContentPage(
                 View.RefreshView(
                     isRefreshing = model.RefreshViewIsRefreshing,
@@ -1123,12 +1168,11 @@ module App =
                         View.BoxView(
                             height = c 150.,
                             width = c 150.,
-                            color = c (if model.RefreshViewIsRefreshing then Color.Red else Color.Blue)
+                            color = (model.RefreshViewIsRefreshing |> AVal.map (fun isRefreshing -> if isRefreshing then Color.Red else Color.Blue))
                         )
                     )
                 )
             )
-*)
         }
 
     let ainit (model: Model) : AdaptiveModel = 

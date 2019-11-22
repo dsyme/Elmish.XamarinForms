@@ -14,13 +14,7 @@ open System.Windows.Input
 [<AutoOpen>]
 module ViewUpdaters =
 
-    let updateCollection
-           (coll: 'T alist) 
-           childSetter
-           childInsert
-           childAdd
-           childRemove
-           =
+    let updateCollection (coll: 'T alist) childSetter childInsert childAdd childRemove childUpdate =
       let mutable children : IndexList<'T>  = IndexList.empty
       let reader = coll.GetReader()
       (fun token (target: 'Target) -> 
@@ -61,15 +55,20 @@ module ViewUpdaters =
                         ()
                     children <- rest
                 | None -> ()
+
+        match childUpdate with 
+        | None -> ()
+        | Some f -> 
+            children |> IndexList.toSeqIndexed |> Seq.iter (fun (i,_) ->
+                match IndexList.tryGetPosition i children with
+                | Some i -> f token target i 
+                | None -> ())
         )
 
     let updateElementCollectionPrim
            (coll: ViewElement alist) 
-           (createTransform: 'ChildTarget -> 'ActualChildTarget) 
-           childSetter
-           childInsert
-           childAdd
-           childRemove  =
+           (childTransform: 'ChildTarget -> 'ActualChildTarget) 
+           childSetter childInsert childAdd childRemove  =
       let mutable children : IndexList<(AdaptiveToken -> unit -> unit)>  = IndexList.empty
       let reader = coll.GetReader()
       (fun token (target: 'Target) -> 
@@ -79,8 +78,7 @@ module ViewUpdaters =
             | Set childNode ->
 
                 let childUpdater = 
-                    ViewElementUpdater.Create childNode (fun _scope (child: 'ChildTarget) ->
-                            let child = createTransform child
+                    ViewElementUpdater.Create childNode childTransform (fun _scope (child: 'ActualChildTarget) ->
                         // OnCreated may get called multiple times if the thing is re-created
                             let (_, mid, right) = IndexList.neighbours idx children
                             match mid with
@@ -121,14 +119,12 @@ module ViewUpdaters =
 
     /// Incremental list maintenance: given a collection, and a previous version of that collection, perform
     /// a reduced number of clear/add/remove/insert operations
-    let updateElementCollection
-           (coll: ViewElement alist) 
-           (createTransform: 'ChildTarget -> 'ActualChildTarget) 
+    let updateElementCollection (coll: ViewElement alist) (childTransform: 'ChildTarget -> 'ActualChildTarget) 
         =
      // TODO: actually use the attach function....
         updateElementCollectionPrim
            coll 
-           createTransform 
+           childTransform 
            (fun (targetColl: IList<'ActualChildTarget>) child i -> targetColl.[i] <- child)
            (fun targetColl child i -> targetColl.Insert(i, child))
            (fun targetColl child -> targetColl.Add(child))
@@ -141,6 +137,7 @@ module ViewUpdaters =
             (fun target x i -> target.Insert(i, x))
             (fun target x -> target.Add(x))
             (fun target x i _isAtEnd -> target.RemoveAt(i))
+            None
 
     /// Update the attached properties for each item in Layout<T>.Children
     let updateLayoutChildren coll =
@@ -150,26 +147,38 @@ module ViewUpdaters =
                     
     /// Update the items in a ItemsView control, given previous and current view elements
     let updateItemsViewItems (coll: ViewElement alist) = 
-        let updater = updateElementCollection coll id
+        let updater = 
+            updateCollection  coll 
+                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].ViewElement <- x)
+                (fun target x i -> target.Insert(i, ViewElementHolder x))
+                (fun target x -> target.Add(ViewElementHolder x))
+                (fun target _x i _isAtEnd -> target.RemoveAt(i))
+                (Some (fun token target i -> target.[i].Update(token)))
         fun token (target: Xamarin.Forms.ItemsView) ->
             let targetColl = 
                 match target.ItemsSource with 
-                | :? ObservableCollection<ViewElementUpdater> as oc -> oc
+                | :? ObservableCollection<ViewElementHolder> as oc -> oc
                 | _ -> 
-                    let oc = ObservableCollection<ViewElementUpdater>()
+                    let oc = ObservableCollection<ViewElementHolder>()
                     target.ItemsSource <- oc
                     oc
             updater token targetColl
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
-        let updater = updateElementCollection coll id 
+        let updater = 
+            updateCollection  coll 
+                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].ViewElement <- x)
+                (fun target x i -> target.Insert(i, ViewElementHolder x))
+                (fun target x -> target.Add(ViewElementHolder x))
+                (fun target _x i _isAtEnd -> target.RemoveAt(i))
+                (Some (fun token target i -> target.[i].Update(token)))
         fun token (target: Xamarin.Forms.ItemsView<'T>) ->
             let targetColl = 
                 match target.ItemsSource with 
-                | :? ObservableCollection<ViewElementUpdater> as oc -> oc
+                | :? ObservableCollection<ViewElementHolder> as oc -> oc
                 | _ -> 
-                    let oc = ObservableCollection<ViewElementUpdater>()
+                    let oc = ObservableCollection<ViewElementHolder>()
                     target.ItemsSource <- oc
                     oc
             updater token targetColl
@@ -182,6 +191,7 @@ module ViewUpdaters =
                 (fun target x i -> target.Insert(i, x))
                 (fun target x -> target.Add(x))
                 (fun target x i _isAtEnd -> target.RemoveAt(i))
+                None
 
         fun token (target: Xamarin.Forms.SelectableItemsView) ->
             let targetColl = 
@@ -206,7 +216,8 @@ module ViewUpdaters =
                     oc
             updater token targetColl
         
-(*
+#if GROUPLIST
+
     let private updateViewElementHolderGroup (currShortName: string, currKey, coll: ViewElement alist) =
         let updater = updateElementCollection coll id
         fun token (target: ViewElementHolderGroup) ->
@@ -237,7 +248,7 @@ module ViewUpdaters =
         | ValueSome prev, ValueSome curr when prev <> curr -> updateTarget curr
         | ValueSome _ -> target.GroupShortNameBinding <- null
         | _, _ -> ()
-*)
+#endif
 
     /// Update the items of a TableSectionBase<'T> control, given previous and current view elements
     let updateTableSectionBaseOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
@@ -251,6 +262,7 @@ module ViewUpdaters =
            (fun target (nm, r) i -> target.Resources.[nm] <- box r)
            (fun target (nm, r) -> target.Resources.Add(nm, box r))
            (fun target (nm, r) i _isAtEnd -> target.Resources.Remove(nm) |> ignore)
+           None
 
     /// Update the style sheets of a control, given previous and current view elements describing them
     // Note, style sheets can't be removed
@@ -260,6 +272,7 @@ module ViewUpdaters =
            (fun target ss i -> target.Resources.Add(ss))
            (fun target ss -> target.Resources.Add(ss))
            (fun target ss i _isAtEnd -> ())
+           None
 
     /// Update the styles of a control, given previous and current view elements describing them
     // Note, styles can't be removed
@@ -269,6 +282,7 @@ module ViewUpdaters =
            (fun target style i -> target.Resources.Add(style))
            (fun target style -> target.Resources.Add(style))
            (fun target style i _isAtEnd -> ())
+           None
 
     /// Incremental NavigationPage maintenance: push/pop the right pages
     let updateNavigationPages (coll: ViewElement alist) =
@@ -519,7 +533,7 @@ module ViewUpdaters =
             target.GoToAsync(navigationState, animated) |> ignore
 
     let updatePageShellSearchHandler (element: ViewElement) =
-        ViewElementUpdater.Create element (fun (target: #NavigableElement) handler -> Shell.SetSearchHandler(target, handler))
+        ViewElementUpdater.Create element id (fun (target: #NavigableElement) handler -> Shell.SetSearchHandler(target, handler))
 
     let updateShellBackgroundColor (value: aval<_>) =
         valueUpdater value (fun target prevOpt curr -> 
@@ -570,10 +584,10 @@ module ViewUpdaters =
             | _ -> Shell.SetTabBarForegroundColor(target, curr))
 
     let updateShellBackButtonBehavior (value: ViewElement) =
-        ViewElementUpdater.Create value (fun (target: #NavigableElement) handler -> Shell.SetBackButtonBehavior(target, handler))
+        ViewElementUpdater.Create value id (fun (target: #NavigableElement) handler -> Shell.SetBackButtonBehavior(target, handler))
 
     let updateShellTitleView (value: ViewElement) =
-        ViewElementUpdater.Create value (fun (target: #NavigableElement) handler -> Shell.SetTitleView(target, handler))
+        ViewElementUpdater.Create value id (fun (target: #NavigableElement) handler -> Shell.SetTitleView(target, handler))
 
     let updateShellFlyoutBehavior (value: aval<_>) =
         valueUpdater value (fun target prevOpt curr -> 
@@ -673,11 +687,11 @@ module ViewUpdaters =
             updater token target
         
     let updateElementEffects (coll: ViewElement alist) =
-        let createTransform (child: obj) =
+        let childTransform (child: obj) =
             match child with
             | :? CustomEffect as customEffect -> Effect.Resolve(customEffect.Name)
             | effect -> effect :?> Xamarin.Forms.Effect
-        let updater = updateElementCollection coll createTransform
+        let updater = updateElementCollection coll childTransform
         fun token (target: Xamarin.Forms.Element) ->
             updater token target.Effects
 
@@ -687,5 +701,5 @@ module ViewUpdaters =
             updater token target.ToolbarItems
 
     let updateElementMenu (value : ViewElement) =
-        ViewElementUpdater.Create value (fun (target: Element) handler -> Element.SetMenu(target, handler))
+        ViewElementUpdater.Create value id (fun (target: Element) handler -> Element.SetMenu(target, handler))
 

@@ -29,7 +29,8 @@ module Models =
           ConvertModelToValue: string
           ModelType: string
           RelatedProperties: string array 
-          ConvertInputToModel: string }
+          ConvertInputToModel: string
+          CanBeUpdated: bool }
         
     type UpdateAttachedProperty =
         { Name: string
@@ -40,7 +41,8 @@ module Models =
           ModelType: string
           ConvertModelToValue: string
           UpdateCode: string 
-          ConvertInputToModel: string  }
+          ConvertInputToModel: string
+          CanBeUpdated: bool   }
         
     type UpdatePropertyCollectionData =
         { ElementType: string
@@ -56,7 +58,8 @@ module Models =
           ConvertModelToValue: string
           UpdateCode: string
           CollectionData: UpdatePropertyCollectionData option
-          ConvertInputToModel: string } 
+          ConvertInputToModel: string 
+          CanBeUpdated: bool } 
 
     type UpdateMember =
         | UpdateEvent of UpdateEvent
@@ -65,6 +68,7 @@ module Models =
         member x.UniqueName = match x with UpdateEvent e -> e.UniqueName | UpdateProperty p -> p.UniqueName | UpdateAttachedProperty p -> p.UniqueName
         member x.ShortName = match x with UpdateEvent e -> e.ShortName | UpdateProperty p -> p.ShortName | UpdateAttachedProperty p -> p.ShortName
         member x.ConvertInputToModel = match x with UpdateEvent e -> e.ConvertInputToModel | UpdateProperty p -> p.ConvertInputToModel | UpdateAttachedProperty p -> p.ConvertInputToModel
+        member x.CanBeUpdated = match x with UpdateEvent e -> e.CanBeUpdated | UpdateProperty p -> p.CanBeUpdated | UpdateAttachedProperty p -> p.CanBeUpdated
     
     type BuildData =
         { Name: string

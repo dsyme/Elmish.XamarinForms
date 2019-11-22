@@ -59,8 +59,8 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
     
     // The updater is an active AdaptiveObject receiving update notifications from the adaptive model.
     // It must be captured kept alive, see the KeepAlive call below.
-    let updater = { new ViewElementUpdater(viewInfo) with member __.OnCreated (_scope, target) = host.SetRootView(target) }
-    do updater.Update(AdaptiveToken.Top, host)
+    let updater = ViewElementUpdater.CreateAdaptive viewInfo id (fun _scope target -> host.SetRootView(target))
+    do updater AdaptiveToken.Top host
  
     // Start Elmish dispatch loop  
     let rec processMsg msg = 
@@ -81,7 +81,7 @@ type ProgramRunner<'arg, 'model, 'amodel, 'msg>(host: IHost, program: Program<'a
 
     and updateView updatedModel = 
         program.adelta updatedModel amodel
-        updater.Update(AdaptiveToken.Top, host)
+        updater AdaptiveToken.Top host
                       
     do 
         // Set up the global dispatch function

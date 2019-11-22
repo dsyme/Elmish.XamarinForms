@@ -22,6 +22,7 @@ type IViewElementHolder =
 type ViewElementHolder(viewElement: ViewElement) =
     let ev = new Event<_,_>()
     let mutable data = viewElement
+    let mutable updater = ViewElementUpdater.Create data id (fun _ _ -> ())
 
     interface IViewElementHolder with
         member x.ViewElement = data
@@ -31,7 +32,12 @@ type ViewElementHolder(viewElement: ViewElement) =
         with get() = data
         and set(value) =
             data <- value
+            updater <- ViewElementUpdater.Create data id (fun _ _ -> ())
             ev.Trigger(x, PropertyChangedEventArgs "ViewElement")
+
+    member x.Update(token)  = updater token ()
+
+#if GROUPLIST
 
 [<AllowNullLiteral>]
 type ViewElementHolderGroup(shortName: string, viewElement: ViewElement, items: ViewElement[]) =
@@ -58,6 +64,7 @@ type ViewElementHolderGroup(shortName: string, viewElement: ViewElement, items: 
             ev.Trigger(x, PropertyChangedEventArgs "ShortName")
             
     member __.Items = items
+#endif
 
 module BindableHelpers =
     let createOnBindingContextChanged (bindableObject: BindableObject) =
