@@ -189,9 +189,13 @@ module App =
 
     /// The dynamic 'view' function giving the updated content for the view
     let view (model: AdaptiveModel) dispatch =
-      let res = getGameResult model
-      let canPlay = model.Board |> AMap.mapA (fun _ v -> canPlayCell res v)
+
+      // Compute the view maps - derived adaptive information 
+      let gameResult = getGameResult model
+      let canPlay = model.Board |> AMap.mapA (fun _ v -> canPlayCell gameResult v)
       let imagesForCells = model.Board |> AMap.map (fun _ v -> imageForCell v)
+
+      // Give the view
       View.NavigationPage(barBackgroundColor = c Color.LightBlue, 
         barTextColor = c Color.Black,
         pages = cs [
