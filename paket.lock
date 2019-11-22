@@ -4,7 +4,7 @@ GROUP androidapp
 RESTRICTION: == monoandroid9.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
     FSharp.Data (3.0)
       FSharp.Core (>= 4.3.4)
     Newtonsoft.Json (11.0.2)
@@ -890,7 +890,7 @@ GROUP gtkapp
 RESTRICTION: == net471
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
     FSharp.Data (3.0)
       FSharp.Core (>= 4.0.0.1)
     Newtonsoft.Json (11.0.2)
@@ -904,7 +904,7 @@ GROUP iosapp
 RESTRICTION: == monotouch
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
       System.Collections (>= 4.0.11)
       System.Console (>= 4.0)
       System.Diagnostics.Debug (>= 4.0.11)
@@ -1047,7 +1047,7 @@ GROUP macosapp
 RESTRICTION: == xamarinmac
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
     FSharp.Data (3.0)
       FSharp.Core (>= 4.3.4)
     Newtonsoft.Json (11.0.2)
@@ -1057,7 +1057,7 @@ GROUP neutral
 RESTRICTION: == netstandard2.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
     Microsoft.NETCore.Platforms (3.0)
     NETStandard.Library (2.0.3)
       Microsoft.NETCore.Platforms (>= 1.1)
@@ -1086,7 +1086,7 @@ GROUP wpfapp
 RESTRICTION: == net472
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    FSharp.Core (4.6.2)
+    FSharp.Core (4.7.0)
     FSharp.Data (3.0)
       FSharp.Core (>= 4.0.0.1)
     Newtonsoft.Json (11.0.2)

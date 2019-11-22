@@ -1,6 +1,6 @@
 <Project>
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="4.6.2" />
+        <PackageReference Update="FSharp.Core" Version="4.7.0" />
         <PackageReference Update="FSharp.Data" Version="3.0.0" />
         <PackageReference Update="Xamarin.Forms" Version="4.3.0.908675" />
         <PackageReference Update="Xamarin.Forms.Platform.WPF" Version="4.3.0.908675" />

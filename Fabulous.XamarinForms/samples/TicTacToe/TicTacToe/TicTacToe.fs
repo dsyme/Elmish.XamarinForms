@@ -1,4 +1,13 @@
 ﻿// Copyright 2018-2019 Fabulous contributors. See LICENSE.md for license.
+
+// Notes on adaptive version:
+// In this kind of sample, there is a bunch of game logic implemented on top of the model.
+// Much of this affects the view, e.g. "is this a legitimate move" or "has someone won the game".
+// In this case, you have to either
+//    1. write thse computations using the adaptive model, OR
+//    2. the information needs to be computed and stored in the immutable model on each update, and the adaption process will
+//       apply changes
+
 namespace TicTacToe
 
 open Fabulous
@@ -47,7 +56,7 @@ type Model =
       /// Who is next to play
       NextUp: Player
 
-      /// The state of play on the board
+       /// The state of play on the board
       Board: Board
 
       /// The state of play on the board
@@ -60,6 +69,7 @@ type Model =
     }
 
 type AdaptiveBoard = cmap<Pos, GameCell>
+
 [<RequireQualifiedAccess>]
 type AdaptiveModel = 
     { 
@@ -68,6 +78,13 @@ type AdaptiveModel =
       GameScore: cval<(int * int)>
       VisualBoardSize: cval<double option>
     }
+
+module List =
+   let existsA (f: 'T -> aval<bool>) xs =  AList.existsA f (AList.ofList xs)
+   let forallA (f: 'T -> aval<bool>) xs =  AList.forallA f (AList.ofList xs)
+
+module AMap =
+    let find f x = AMap.tryFind f x |> AVal.map Option.get 
 
 /// The model, update and view content of the app. This is placed in an 
 /// independent model to facilitate unit testing.
@@ -86,9 +103,6 @@ module App =
           GameScore = (0,0)
           VisualBoardSize = Some 400.0 }
 
-    /// Check if there are any more moves available in the game
-    let anyMoreMoves board = board |> Map.exists (fun _ c -> c = Empty)
-    
     let lines =
         [
             // rows
@@ -100,43 +114,28 @@ module App =
             yield [(0,2); (1,1); (2,0)]
         ]
 
-    /// Determine if a line is a winning line.
-    let getLine (board: AdaptiveBoard) (line: Pos list) =
-        alist { for p in line do let! v = AMap.tryFind p board in yield v.Value }
-
-    /// Determine if a line is a winning line.
-    let getLineWinner (line: alist<GameCell>) =
-        aval { 
-            let! winX = line |> AList.forall (function Full X -> true | _ -> false) 
-            if winX then return Some X else
-            let! winO = line |> AList.forall (function Full O -> true | _ -> false) 
-            if winO then return Some O else
-            return None
-        }
-
     /// Determine the game result, if any.
     let getGameResult (model: AdaptiveModel) =
-        aval {
-            let board = model.Board
-            match lines |> Seq.tryPick (getLine board >> getLineWinner) with
-            | Some p -> return Win p
-            | _ -> 
-               if anyMoreMoves board then return StillPlaying
-               else return Draw
-        }
+        let board = model.Board
+        let xwin = lines |> List.existsA (List.forallA (fun pos -> AMap.tryFind pos board |> AVal.map (function Some (Full X) -> true | _ -> false) ))
+        let owin = lines |> List.existsA (List.forallA (fun pos -> AMap.tryFind pos board |> AVal.map (function Some (Full O) -> true | _ -> false) ))
+        let moreMoves = board  |> AMap.exists (fun _ v -> v = Empty)
+        (xwin, owin, moreMoves) |||> AVal.map3 (fun xwin owin moreMoves ->
+            if xwin then Win X else
+            if owin then Win O else
+            if moreMoves then StillPlaying
+            else Draw
+        )
 
     /// Get a message to show the current game result
     let getMessage (model: AdaptiveModel) = 
-        aval { 
-            match! getGameResult model with 
-            | StillPlaying -> 
-                let! nextUp = model.NextUp
-                return (sprintf "%s's turn" nextUp.Name)
-            | Win p -> 
-                return sprintf "%s wins!" p.Name
-            | Draw -> 
-                return "It is a draw!"
-        }
+        let result = getGameResult model
+        (result, model.NextUp) ||> AVal.map2 (fun result nextUp ->
+            match result with
+            | StillPlaying -> sprintf "%s's turn" nextUp.Name
+            | Win p -> sprintf "%s wins!" p.Name
+            | Draw -> "It is a draw!"
+        )
 
     /// The 'update' function to update the model
     let update gameOver msg model =
@@ -185,16 +184,14 @@ module App =
 
     /// A condition used in the 'view' function to check if we can play in a cell.
     /// The visual contents of a cell depends on this condition.
-    let canPlay (model: AdaptiveModel) pos =
-        aval {
-            let board = model.Board
-            let! res = getGameResult model
-            let cell = board.[pos]
-            return (cell = Empty) && (res = StillPlaying)
-        }
+    let canPlayCell (res: aval<GameResult>) cell =
+        res |> AVal.map (fun res -> (cell = Empty) && (res = StillPlaying))
 
     /// The dynamic 'view' function giving the updated content for the view
     let view (model: AdaptiveModel) dispatch =
+      let res = getGameResult model
+      let canPlay = model.Board |> AMap.mapA (fun _ v -> canPlayCell res v)
+      let imagesForCells = model.Board |> AMap.map (fun _ v -> imageForCell v)
       View.NavigationPage(barBackgroundColor = c Color.LightBlue, 
         barTextColor = c Color.Black,
         pages = cs [
@@ -209,31 +206,30 @@ module App =
                         yield View.BoxView(c Color.Black).Column(c 1).RowSpan(c 5)
                         yield View.BoxView(c Color.Black).Column(c 3).RowSpan(c 5)
 
-                        let! board = model.Board
                         for ((row,col) as pos) in positions do
-                            let! cp = canPlay model pos
+                            let! cp = AMap.find pos canPlay
                             let item = 
                                 if cp then 
                                     View.Button(command = c (fun () -> dispatch (Play pos)), 
                                         backgroundColor = c Color.LightBlue, 
                                         margin = c (Thickness 10.0), 
-                                        horizontalOptions = c LayoutOptions.CenterAndExpand,
-                                        verticalOptions = c LayoutOptions.CenterAndExpand)
+                                        horizontalOptions = c LayoutOptions.FillAndExpand,
+                                        verticalOptions = c LayoutOptions.FillAndExpand)
                                 else
-                                    View.Image(source = c (imageForCell board.[pos]),
+                                    View.Image(source = AMap.find pos imagesForCells,
                                         margin = c (Thickness 10.0), 
-                                        horizontalOptions = c LayoutOptions.Center,
-                                        verticalOptions = c LayoutOptions.Center)
+                                        horizontalOptions = c LayoutOptions.FillAndExpand,
+                                        verticalOptions = c LayoutOptions.FillAndExpand)
                             yield item.Row(c (row*2)).Column(c (col*2)) 
                        },
 
                     rowSpacing = c 0.0,
                     columnSpacing = c 0.0,
                     horizontalOptions = c LayoutOptions.CenterAndExpand,
-                    verticalOptions = c LayoutOptions.CenterAndExpand
-                    //?width = model.VisualBoardSize,
-                    //?height = model.VisualBoardSize
-                    ).Row(c 0)
+                    verticalOptions = c LayoutOptions.CenterAndExpand,
+                    width = (model.VisualBoardSize |> AVal.map (function None -> 100.0 | Some v -> v)),
+                    height = (model.VisualBoardSize |> AVal.map (function None -> 100.0 | Some v -> v))
+                  ).Row(c 0)
 
                 View.Label(text = getMessage model, 
                     margin = c (Thickness 10.0), 
@@ -249,17 +245,13 @@ module App =
                     backgroundColor = c Color.LightBlue,
                     textColor = c Color.Black,
                     fontSize = c (Named NamedSize.Large)).Row(c 2)
-              ])
+              ]),
 
              //// This requests a square board based on the width we get allocated on the device 
-             //sizeAllocated = c (fun (width, height) ->
-             //  match model.VisualBoardSize with 
-             //  | None -> 
-             //      let sz = min width height - 80.0
-             //      dispatch (SetVisualBoardSize sz)
-             //  | Some _ -> 
-             //      () )
-                   )])
+             sizeAllocated = c (fun (width, height) ->
+                   let sz = min width height - 80.0
+                   dispatch (SetVisualBoardSize sz))
+            )])
       |> AVal.constant
 
     // Display a modal message giving the game result. This is doing a UI
@@ -272,7 +264,7 @@ module App =
 
     let ainit (model: Model) : AdaptiveModel = 
         { NextUp = cval model.NextUp
-          Board = cval model.Board
+          Board = cmap (HashMap.ofMap model.Board)
           GameScore = cval model.GameScore  
           VisualBoardSize = cval model.VisualBoardSize  }
 
@@ -280,8 +272,7 @@ module App =
         transact (fun () -> 
             if model.NextUp <> amodel.NextUp.Value then 
                 amodel.NextUp.Value <- model.NextUp
-            if model.Board <> amodel.Board.Value then 
-                amodel.Board.Value <- model.Board
+            amodel.Board.Value <- HashMap.ofMap model.Board
             if model.GameScore <> amodel.GameScore.Value then 
                 amodel.GameScore.Value <- model.GameScore
             if model.VisualBoardSize <> amodel.VisualBoardSize.Value then 

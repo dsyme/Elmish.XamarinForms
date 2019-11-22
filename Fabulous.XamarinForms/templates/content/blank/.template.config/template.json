@@ -180,7 +180,7 @@
       "type": "parameter",
       "dataType": "string",
       "replaces": "FSharpCorePkgVersion",
-      "defaultValue": "4.6.2"
+      "defaultValue": "4.7.0"
     },
     "OpenTKPkgVersion": {
       "type": "parameter",

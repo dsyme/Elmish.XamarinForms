@@ -29,7 +29,7 @@ group neutral
   github fsprojects/FSharp.Compiler.PortaCode:master src/ProcessCommandLine.fs
   github fsprojects/FSharp.Compiler.PortaCode:master tests/PortaCodeTests.fs
 
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Xamarin.Forms.Maps 4.3.0.908675
   nuget SkiaSharp
@@ -42,7 +42,7 @@ group neutral
 group androidapp
   framework: monoandroid90
   source https://api.nuget.org/v3/index.json
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Xamarin.Android.FSharp.ResourceProvider 1.0.0.28
   nuget Newtonsoft.Json 11.0.2
@@ -54,7 +54,7 @@ group androidapp
 group iosapp
   framework: monotouch
   source https://api.nuget.org/v3/index.json
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Newtonsoft.Json 11.0.2
   nuget FSharp.Data 3.0.0
@@ -63,7 +63,7 @@ group iosapp
 group macosapp
   framework: xamarinmac20
   source https://api.nuget.org/v3/index.json
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Newtonsoft.Json 11.0.2
   nuget FSharp.Data 3.0.0
@@ -71,7 +71,7 @@ group macosapp
 group wpfapp
   framework: net472
   source https://api.nuget.org/v3/index.json
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Xamarin.Forms.Platform.WPF 4.3.0.908675 
   nuget Newtonsoft.Json 11.0.2
@@ -80,7 +80,7 @@ group wpfapp
 group gtkapp
   framework: net471
   source https://api.nuget.org/v3/index.json
-  nuget FSharp.Core 4.6.2
+  nuget FSharp.Core 4.7.0
   nuget Xamarin.Forms 4.3.0.908675
   nuget Xamarin.Forms.Platform.GTK 4.3.0.908675 
   nuget Newtonsoft.Json 11.0.2
