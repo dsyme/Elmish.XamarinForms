@@ -14,7 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Core" />
-    <PackageReference Include="FSharp.Data.Adaptive" Version="0.0.5-prerelease06" />
+    <PackageReference Include="FSharp.Data.Adaptive" Version="0.0.9" />
   </ItemGroup>
   <Import Project="..\..\Packages.targets" />
 </Project>

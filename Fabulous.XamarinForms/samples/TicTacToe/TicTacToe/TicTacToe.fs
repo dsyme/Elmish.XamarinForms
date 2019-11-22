@@ -5,7 +5,7 @@ open Fabulous
 open Fabulous.XamarinForms
 open Fabulous.XamarinForms.LiveUpdate
 open Xamarin.Forms
-open Xamarin.Forms
+open FSharp.Data.Adaptive
 
 /// Represents a player and a player's move
 type Player = 
@@ -59,6 +59,16 @@ type Model =
       VisualBoardSize: double option
     }
 
+type AdaptiveBoard = cmap<Pos, GameCell>
+[<RequireQualifiedAccess>]
+type AdaptiveModel = 
+    { 
+      NextUp: cval<Player>
+      Board: AdaptiveBoard
+      GameScore: cval<(int * int)>
+      VisualBoardSize: cval<double option>
+    }
+
 /// The model, update and view content of the app. This is placed in an 
 /// independent model to facilitate unit testing.
 module App = 
@@ -74,10 +84,10 @@ module App =
         { NextUp = X
           Board = initialBoard
           GameScore = (0,0)
-          VisualBoardSize = None }
+          VisualBoardSize = Some 400.0 }
 
     /// Check if there are any more moves available in the game
-    let anyMoreMoves m = m.Board |> Map.exists (fun _ c -> c = Empty)
+    let anyMoreMoves board = board |> Map.exists (fun _ c -> c = Empty)
     
     let lines =
         [
@@ -91,29 +101,42 @@ module App =
         ]
 
     /// Determine if a line is a winning line.
-    let getLine (board: Board) line =
-        line |> List.map (fun p -> board.[p])
+    let getLine (board: AdaptiveBoard) (line: Pos list) =
+        alist { for p in line do let! v = AMap.tryFind p board in yield v.Value }
 
     /// Determine if a line is a winning line.
-    let getLineWinner line =
-        if line |> List.forall (function Full X -> true | _ -> false) then Some X
-        elif line |> List.forall (function Full O -> true | _ -> false) then Some O
-        else None
+    let getLineWinner (line: alist<GameCell>) =
+        aval { 
+            let! winX = line |> AList.forall (function Full X -> true | _ -> false) 
+            if winX then return Some X else
+            let! winO = line |> AList.forall (function Full O -> true | _ -> false) 
+            if winO then return Some O else
+            return None
+        }
 
     /// Determine the game result, if any.
-    let getGameResult model =
-        match lines |> Seq.tryPick (getLine model.Board >> getLineWinner) with
-        | Some p -> Win p
-        | _ -> 
-           if anyMoreMoves model then StillPlaying
-           else Draw
+    let getGameResult (model: AdaptiveModel) =
+        aval {
+            let board = model.Board
+            match lines |> Seq.tryPick (getLine board >> getLineWinner) with
+            | Some p -> return Win p
+            | _ -> 
+               if anyMoreMoves board then return StillPlaying
+               else return Draw
+        }
 
     /// Get a message to show the current game result
-    let getMessage model = 
-        match getGameResult model with 
-        | StillPlaying -> sprintf "%s's turn" model.NextUp.Name
-        | Win p -> sprintf "%s wins!" p.Name
-        | Draw -> "It is a draw!"
+    let getMessage (model: AdaptiveModel) = 
+        aval { 
+            match! getGameResult model with 
+            | StillPlaying -> 
+                let! nextUp = model.NextUp
+                return (sprintf "%s's turn" nextUp.Name)
+            | Win p -> 
+                return sprintf "%s wins!" p.Name
+            | Draw -> 
+                return "It is a draw!"
+        }
 
     /// The 'update' function to update the model
     let update gameOver msg model =
@@ -128,22 +151,22 @@ module App =
                 { model with VisualBoardSize = Some size }
 
         // Make an announcement in the middle of the game. 
-        let result = getGameResult newModel
-        if result <> StillPlaying then 
-            gameOver (getMessage newModel)
+        //let result = getGameResult newModel
+        //if result <> StillPlaying then 
+        //    gameOver (getMessage newModel)
 
-        let newModel2 = 
-            let (x,y) = newModel.GameScore
-            match result with 
-            | Win p -> { newModel with GameScore = (if p = X then (x+1, y) else (x, y+1)) }
-            | _ -> newModel
+        //let newModel2 = 
+        //    let (x,y) = newModel.GameScore
+        //    match result with 
+        //    | Win p -> { newModel with GameScore = (if p = X then (x+1, y) else (x, y+1)) }
+        //    | _ -> newModel
             
         // Return the new model.
-        newModel2
+        newModel
 
     /// A helper used in the 'view' function to get the name 
     /// of the Xaml resource for the image for a player
-    let imageForPos cell =
+    let imageForCell cell =
         let path =
             match cell with
             | Full X -> 
@@ -162,56 +185,82 @@ module App =
 
     /// A condition used in the 'view' function to check if we can play in a cell.
     /// The visual contents of a cell depends on this condition.
-    let canPlay model cell = (cell = Empty) && (getGameResult model = StillPlaying)
+    let canPlay (model: AdaptiveModel) pos =
+        aval {
+            let board = model.Board
+            let! res = getGameResult model
+            let cell = board.[pos]
+            return (cell = Empty) && (res = StillPlaying)
+        }
 
     /// The dynamic 'view' function giving the updated content for the view
-    let view model dispatch =
-      View.NavigationPage(barBackgroundColor = Color.LightBlue, 
-        barTextColor = Color.Black,
-        pages=
-          [View.ContentPage(
-            View.Grid(rowdefs=[ Star; Auto; Auto ],
-              children=[
-                View.Grid(rowdefs=[ Star; Absolute 5.0; Star; Absolute 5.0; Star ], coldefs=[ Star; Absolute 5.0; Star; Absolute 5.0; Star ],
-                    children=[
-                        yield View.BoxView(Color.Black).Row(1).ColumnSpan(5)
-                        yield View.BoxView(Color.Black).Row(3).ColumnSpan(5)
-                        yield View.BoxView(Color.Black).Column(1).RowSpan(5)
-                        yield View.BoxView(Color.Black).Column(3).RowSpan(5)
+    let view (model: AdaptiveModel) dispatch =
+      View.NavigationPage(barBackgroundColor = c Color.LightBlue, 
+        barTextColor = c Color.Black,
+        pages = cs [
+           View.ContentPage(
+            View.Grid(rowdefs = c [ Star; Auto; Auto ],
+              children = cs [
+                View.Grid(rowdefs = c [ Star; Absolute 5.0; Star; Absolute 5.0; Star ],
+                    coldefs = c [ Star; Absolute 5.0; Star; Absolute 5.0; Star ],
+                    children = alist {
+                        yield View.BoxView(c Color.Black).Row(c 1).ColumnSpan(c 5)
+                        yield View.BoxView(c Color.Black).Row(c 3).ColumnSpan(c 5)
+                        yield View.BoxView(c Color.Black).Column(c 1).RowSpan(c 5)
+                        yield View.BoxView(c Color.Black).Column(c 3).RowSpan(c 5)
 
-                        for ((row,col) as pos) in positions ->
+                        let! board = model.Board
+                        for ((row,col) as pos) in positions do
+                            let! cp = canPlay model pos
                             let item = 
-                                if canPlay model model.Board.[pos] then 
-                                    View.Button(command=(fun () -> dispatch (Play pos)), backgroundColor=Color.LightBlue)
+                                if cp then 
+                                    View.Button(command = c (fun () -> dispatch (Play pos)), 
+                                        backgroundColor = c Color.LightBlue, 
+                                        margin = c (Thickness 10.0), 
+                                        horizontalOptions = c LayoutOptions.CenterAndExpand,
+                                        verticalOptions = c LayoutOptions.CenterAndExpand)
                                 else
-                                    View.Image(source=imageForPos model.Board.[pos],
-                                     margin=Thickness(10.0), horizontalOptions=LayoutOptions.Center,
-                                     verticalOptions=LayoutOptions.Center)
-                            item.Row(row*2).Column(col*2) ],
+                                    View.Image(source = c (imageForCell board.[pos]),
+                                        margin = c (Thickness 10.0), 
+                                        horizontalOptions = c LayoutOptions.Center,
+                                        verticalOptions = c LayoutOptions.Center)
+                            yield item.Row(c (row*2)).Column(c (col*2)) 
+                       },
 
-                    rowSpacing=0.0,
-                    columnSpacing=0.0,
-                    horizontalOptions=LayoutOptions.Center,
-                    verticalOptions=LayoutOptions.Center,
-                    ?width = model.VisualBoardSize,
-                    ?height = model.VisualBoardSize).Row(0)
+                    rowSpacing = c 0.0,
+                    columnSpacing = c 0.0,
+                    horizontalOptions = c LayoutOptions.CenterAndExpand,
+                    verticalOptions = c LayoutOptions.CenterAndExpand
+                    //?width = model.VisualBoardSize,
+                    //?height = model.VisualBoardSize
+                    ).Row(c 0)
 
-                View.Label(text=getMessage model, margin=Thickness(10.0), textColor=Color.Black, 
-                    horizontalOptions=LayoutOptions.Center,
-                    verticalOptions=LayoutOptions.Center,
-                    horizontalTextAlignment=TextAlignment.Center, verticalTextAlignment=TextAlignment.Center, fontSize=Named NamedSize.Large).Row(1)
+                View.Label(text = getMessage model, 
+                    margin = c (Thickness 10.0), 
+                    textColor = c Color.Black, 
+                    horizontalOptions = c LayoutOptions.Center,
+                    verticalOptions = c LayoutOptions.Center,
+                    horizontalTextAlignment = c TextAlignment.Center, 
+                    verticalTextAlignment = c TextAlignment.Center,
+                    fontSize = c (Named NamedSize.Large)).Row(c 1)
 
-                View.Button(command=(fun () -> dispatch Restart), text="Restart game", backgroundColor=Color.LightBlue, textColor=Color.Black, fontSize=Named NamedSize.Large).Row(2)
-              ]),
+                View.Button(command = c (fun () -> dispatch Restart),
+                    text = c "Restart game",
+                    backgroundColor = c Color.LightBlue,
+                    textColor = c Color.Black,
+                    fontSize = c (Named NamedSize.Large)).Row(c 2)
+              ])
 
-             // This requests a square board based on the width we get allocated on the device 
-             sizeAllocated=(fun (width, height) ->
-               match model.VisualBoardSize with 
-               | None -> 
-                   let sz = min width height - 80.0
-                   dispatch (SetVisualBoardSize sz)
-               | Some _ -> 
-                   () ))])
+             //// This requests a square board based on the width we get allocated on the device 
+             //sizeAllocated = c (fun (width, height) ->
+             //  match model.VisualBoardSize with 
+             //  | None -> 
+             //      let sz = min width height - 80.0
+             //      dispatch (SetVisualBoardSize sz)
+             //  | Some _ -> 
+             //      () )
+                   )])
+      |> AVal.constant
 
     // Display a modal message giving the game result. This is doing a UI
     // action in the model update, which is ok for modal messages. We factor
@@ -220,8 +269,26 @@ module App =
     let gameOver msg =
         Application.Current.MainPage.DisplayAlert("Game over", msg, "OK") |> ignore
 
+
+    let ainit (model: Model) : AdaptiveModel = 
+        { NextUp = cval model.NextUp
+          Board = cval model.Board
+          GameScore = cval model.GameScore  
+          VisualBoardSize = cval model.VisualBoardSize  }
+
+    let adelta (model: Model) (amodel: AdaptiveModel) =
+        transact (fun () -> 
+            if model.NextUp <> amodel.NextUp.Value then 
+                amodel.NextUp.Value <- model.NextUp
+            if model.Board <> amodel.Board.Value then 
+                amodel.Board.Value <- model.Board
+            if model.GameScore <> amodel.GameScore.Value then 
+                amodel.GameScore.Value <- model.GameScore
+            if model.VisualBoardSize <> amodel.VisualBoardSize.Value then 
+                amodel.VisualBoardSize.Value <- model.VisualBoardSize)
+
     let program = 
-        Program.mkSimple init (update gameOver) view
+        Program.mkSimple init (update gameOver) ainit adelta view
         |> Program.withConsoleTrace
 
 #if TESTEVAL
