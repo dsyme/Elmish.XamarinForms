@@ -5,7 +5,7 @@ Fabulous (Adaptive version)
 
 Extends the [Fabulous](https://fsprojects.github.io/Fabulous/) programming model to use [adaptive data](https://fsprojects.github.io/FSharp.Data.Adaptive/) for high-performance updates in data-rich UIs.
 
-Experimental, wet-paint, no nuget packages or templates yet. Originated from [this discussion].
+Experimental, wet-paint, no nuget packages or templates yet. Originated from [this discussion](https://github.com/fsprojects/Fabulous/issues/258).
 See also corresponding work on [Fable.Elmish.Adaptive](https://github.com/krauthaufen/Fable.Elmish.Adaptive/).
 
 With Fabulous Adaptive, you can write code like this:
