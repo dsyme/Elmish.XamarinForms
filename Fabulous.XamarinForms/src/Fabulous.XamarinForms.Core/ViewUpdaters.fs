@@ -129,15 +129,6 @@ module ViewUpdaters =
            (fun targetColl child -> targetColl.Add(child))
            (fun targetColl i _isAtEnd -> targetColl.RemoveAt(i))
 
-    /// Update the attached properties for each item in an already updated collection
-    let updateIList (coll: 'T alist) =
-        updateCollection coll
-            (fun (target: IList<_>) x i -> target.[i] <- x)
-            (fun target x i -> target.Insert(i, x))
-            (fun target x -> target.Add(x))
-            (fun target x i _isAtEnd -> target.RemoveAt(i))
-            None
-
     /// Update the attached properties for each item in Layout<T>.Children
     let updateLayoutChildren coll =
         let updater = updateElementCollection coll id
@@ -146,64 +137,72 @@ module ViewUpdaters =
                     
     /// Update the items in a ItemsView control, given previous and current view elements
     let updateItemsViewItems (coll: ViewElement alist) = 
-        let updater = 
-            updateCollection  coll 
-                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].SetViewElement x)
-                (fun target x i -> target.Insert(i, ViewElementHolder x))
-                (fun target x -> target.Add(ViewElementHolder x))
-                (fun target _x i _isAtEnd -> target.RemoveAt(i))
-                (Some (fun token target i -> target.[i].Update(token)))
-        fun token (target: Xamarin.Forms.ItemsView) ->
-            let targetColl = 
-                match target.ItemsSource with 
-                | :? ObservableCollection<ViewElementHolder> as oc -> oc
-                | _ -> 
-                    let oc = ObservableCollection<ViewElementHolder>()
-                    target.ItemsSource <- oc
-                    oc
-            updater token targetColl
+        let targetColl (target: Xamarin.Forms.ItemsView) = 
+            match target.ItemsSource with 
+            | :? ObservableCollection<ViewElementHolder> as oc -> oc
+            | _ -> 
+                let oc = ObservableCollection<ViewElementHolder>()
+                target.ItemsSource <- oc
+                oc
+        updateCollection  coll 
+            (fun target x i -> (targetColl target).[i].SetViewElement x)
+            (fun target x i -> (targetColl target).Insert(i, ViewElementHolder x))
+            (fun target x -> (targetColl target).Add(ViewElementHolder x))
+            (fun target _x i _isAtEnd -> (targetColl target).RemoveAt(i))
+            (Some (fun token target i -> (targetColl target).[i].Update(token)))
                     
     /// Update the items in a ItemsView<'T> control, given previous and current view elements
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
-        let updater = 
-            updateCollection  coll 
-                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].SetViewElement x)
-                (fun target x i -> target.Insert(i, ViewElementHolder x))
-                (fun target x -> target.Add(ViewElementHolder x))
-                (fun target _x i _isAtEnd -> target.RemoveAt(i))
-                (Some (fun token target i -> target.[i].Update(token)))
-        fun token (target: Xamarin.Forms.ItemsView<'T>) ->
-            let targetColl = 
-                match target.ItemsSource with 
-                | :? ObservableCollection<ViewElementHolder> as oc -> oc
-                | _ -> 
-                    let oc = ObservableCollection<ViewElementHolder>()
-                    target.ItemsSource <- oc
-                    oc
-            updater token targetColl
+        let targetColl (target: Xamarin.Forms.ItemsView<'T>) =
+            match target.ItemsSource with 
+            | :? ObservableCollection<ViewElementHolder> as oc -> oc
+            | _ -> 
+                let oc = ObservableCollection<ViewElementHolder>()
+                target.ItemsSource <- oc
+                oc
+        updateCollection  coll 
+            (fun target x i -> (targetColl target).[i].SetViewElement x)
+            (fun target x i -> (targetColl target).Insert(i, ViewElementHolder x))
+            (fun target x -> (targetColl target).Add(ViewElementHolder x))
+            (fun target _x i _isAtEnd -> (targetColl target).RemoveAt(i))
+            (Some (fun token target i -> (targetColl target).[i].Update(token)))
                     
-    let updateObservableCollection coll getter setter = 
-        let updater = 
-            updateCollection coll
-                (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
-                (fun target x i -> target.Insert(i, x))
-                (fun target x -> target.Add(x))
-                (fun target x i _isAtEnd -> target.RemoveAt(i))
-                None
+    let updateObservableCollection coll getter setter add remove = 
+        let getTargetColl (target: 'Target) =
+            match (getter target : IList<'T>) with 
+            | :? ObservableCollection<'T> as oc -> oc
+            | _ -> 
+                let oc = ObservableCollection<'T>()
+                setter target (oc :> IList<'T>)
+                oc
+        updateCollection coll
+            (fun target x i -> 
+                let targetColl = getTargetColl target
+                remove target targetColl.[i]
+                add target x
+                targetColl.[i] <- x)
+            (fun target x i -> 
+                let targetColl = getTargetColl target
+                add target x
+                targetColl.Insert(i, x))
+            (fun target x -> 
+                let targetColl = getTargetColl target
+                add target x
+                targetColl.Add(x))
+            (fun target x i _isAtEnd -> 
+                let targetColl = getTargetColl target
+                remove target targetColl.[i]
+                targetColl.RemoveAt(i))
+            None
 
-        fun token (target: 'Target) ->
-            let targetColl = 
-                match (getter target : IList<'T>) with 
-                | :? ObservableCollection<'T> as oc -> oc
-                | _ -> 
-                    let oc = ObservableCollection<'T>()
-                    setter target (oc :> IList<'T>)
-                    oc
-            updater token targetColl
 
     /// Update the selected items in a SelectableItemsView control, given previous and current indexes
     let updateSelectableItemsViewSelectedItems coll = 
-        updateObservableCollection coll (fun (target: Xamarin.Forms.SelectableItemsView) -> target.SelectedItems) (fun target v -> target.SelectedItems <- v) 
+        updateObservableCollection coll 
+           (fun (target: Xamarin.Forms.SelectableItemsView) -> target.SelectedItems) 
+           (fun target v -> target.SelectedItems <- v) 
+           (fun _ _ -> ())
+           (fun _ _ -> ())
 
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 

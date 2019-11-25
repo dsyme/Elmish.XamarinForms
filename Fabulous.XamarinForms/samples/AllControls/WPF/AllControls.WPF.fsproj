@@ -4,6 +4,9 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net472</TargetFramework>
         <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+      <PreferredNativeSkiaSharp>x64</PreferredNativeSkiaSharp>
+      <PlatformTarget>x64</PlatformTarget>
+
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="System.Xml.Linq" />
@@ -23,6 +26,9 @@
     <ItemGroup>
         <PackageReference Include="FSharp.Core" />
         <PackageReference Include="FSharp.Data" />
+        <PackageReference Include="SkiaSharp.Views.Forms" Version="1.68.1" />
+        <PackageReference Include="SkiaSharp.Views.Forms.WPF" Version="1.68.1" />
+        <PackageReference Include="SkiaSharp.Views.WPF" Version="1.68.1" />
         <PackageReference Include="Xamarin.Forms.Platform.WPF" />
     </ItemGroup>
     <ItemGroup>

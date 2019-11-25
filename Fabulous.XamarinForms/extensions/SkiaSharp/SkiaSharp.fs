@@ -72,6 +72,22 @@ module SkiaSharpExtension =
             ViewElement.Create(create, attribs.Close())
 
 
+// Mucking about with a data-driven canvas view just to get a feel for what's possible
+//
+// In this demo the redraw is skipped for elements off-screen, e.g. if you resize the screen to make the canvas 
+// viewport smaller.
+//
+// If you want to go further in speeding up rendering see this:
+//    https://forums.xamarin.com/discussion/91436/how-to-achieve-advanced-performance
+//
+// ... I am quickly approaching the point where I need to speed up my rendering. Right now, I draw
+// ... everything from scratch on every PaintCanvas call. I am pretty sure I need to stop doing that
+// ... and instead break things up into layers where each layer is its own bitmap. A layer would only 
+// ... redraw itself from primitives when it changes. All other times, it just blasts its saved bitmap
+// ... onto the main canvas.
+//
+// This doesn't do anything like this
+
 [<AutoOpen>]
 module SkiaSharpExtension2 = 
 
@@ -82,12 +98,16 @@ module SkiaSharpExtension2 =
     open SkiaSharp.Views.Forms
     open System.Collections.Generic
 
+    // This is an experiment to show data-driven Canvas drawing
     type SKShape =
-        | Draw of (SKCanvas -> unit)
-        static member Circle (width: double, height: double) =
-            Draw (fun canvas -> 
-                use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
-                canvas.DrawCircle(float32 (width / 2.0), float32 (height / 2.0), 100.0f, paint))
+        | Draw of SKRect * (SKPaintSurfaceEventArgs -> unit)
+        member this.Paint = (match this with Draw(_, paint) -> paint) 
+        member this.BB = (match this with Draw(bb, _) -> bb) 
+        static member Circle (centre: SKPoint, radius: single, width: single) =
+            let bb = SKRect(centre.X - radius - width/2.0f, centre.Y - radius - width/2.0f, centre.X + radius + width/2.0f, centre.Y + radius + width/2.0f )
+            Draw (bb, fun args -> 
+                use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = width)
+                args.Surface.Canvas.DrawCircle(centre, radius, paint))
 
     type CustomSKCanvasView() = 
         inherit SKCanvasView()
@@ -138,7 +158,22 @@ module SkiaSharpExtension2 =
 
             let updater1 = ViewExtensions.ValueUpdater(enableTouchEvents, (fun (target: CustomSKCanvasView) v -> target.EnableTouchEvents <- v))
             let updater2 = ViewExtensions.ValueUpdater(ignorePixelScaling, (fun (target: CustomSKCanvasView) v -> target.IgnorePixelScaling <- v))
-            let updater3 = ViewExtensions.CollectionUpdater(shapes, (fun (target: CustomSKCanvasView) -> target.Shapes), (fun target v -> target.Shapes <- v))
+            let updater3 = 
+                ViewExtensions.CollectionUpdater(shapes, 
+                    (fun (target: CustomSKCanvasView) -> 
+                        target.Shapes), 
+                    (fun target v -> 
+                        target.Shapes <- v),
+                    add = (fun target p -> 
+                        let viewport = SKRect(0.0f, 0.0f, float32 target.Width, float32 target.Height)
+                        // If a point is added outside the visible region do not invalidate
+                        if viewport.IntersectsWith(p.BB) then
+                            target.InvalidateSurface()),
+                    remove = (fun target p -> 
+                        // If a point is removed outside the visible region do not invalidate
+                        let viewport = SKRect(0.0f, 0.0f, float32 target.Width, float32 target.Height)
+                        if viewport.IntersectsWith(p.BB) then
+                            target.InvalidateSurface()))
             let updater4 = ViewExtensions.EventUpdater(touch, (fun (target: CustomSKCanvasView) -> target.Touch))
 
             // Add our own attributes. They must have unique names which must match the names below.
@@ -149,7 +184,19 @@ module SkiaSharpExtension2 =
 
             // The create method
             let create () = 
-                new SkiaSharp.Views.Forms.SKCanvasView()
+                let t = new CustomSKCanvasView()
+                t.PaintSurface.Add(fun args -> 
+                    match t.Shapes with 
+                    | null -> ()
+                    | shapes -> 
+                        // In this demo the redraw is skipped for elements off-screen, e.g. if you resize the screen to make the canvas 
+                        // viewport smaller
+                        let clipBounds = args.Surface.Canvas.LocalClipBounds
+                        for shape in shapes do
+                            if shape.BB.IntersectsWith(clipBounds) then 
+                                System.Diagnostics.Debug.WriteLine(sprintf "repaint one shape, bb = %A" shape.BB)
+                                shape.Paint args)
+                t
 
             // The element
             ViewElement.Create(create, attribs.Close())

@@ -72,7 +72,7 @@ type Model =
     IsScrolling: bool
     // For RefreshView
     RefreshViewIsRefreshing: bool
-    SKSurfaceTouchCount: int
+    SKPoints: IndexList<SKPoint>
     }
 
 type AdaptiveModel = 
@@ -110,7 +110,7 @@ type AdaptiveModel =
       IsScrollingWithFabulous: bool cval
       IsScrolling: bool cval
       RefreshViewIsRefreshing: bool cval
-      SKSurfaceTouchCount: int cval
+      SKPoints: SKPoint clist
       }
 
 type Msg = 
@@ -157,7 +157,7 @@ type Msg =
     | AnimationPoked
     | AnimationPoked2
     | AnimationPoked3
-    | SKSurfaceTouched
+    | SKSurfaceTouched of SKPoint
     | SetCarouselCurrentPage of int
     | SetTabbed1CurrentPage of int
     | ReceivedLowMemoryWarning
@@ -250,7 +250,7 @@ module App =
           IsScrollingWithFabulous = false
           IsScrolling = false
           RefreshViewIsRefreshing = false 
-          SKSurfaceTouchCount = 0 }, Cmd.none
+          SKPoints = IndexList.empty  }, Cmd.none
 
     let getWebData =
         async {
@@ -288,7 +288,7 @@ module App =
     
     let update msg (model: Model) =
         match msg with
-        | SKSurfaceTouched -> { model with SKSurfaceTouchCount = model.SKSurfaceTouchCount + 1 }, Cmd.none
+        | SKSurfaceTouched point -> { model with SKPoints = model.SKPoints.Add(point) }, Cmd.none
         | Increment -> { model with Count = model.Count + 1 }, Cmd.none
         | Decrement -> { model with Count = model.Count - 1}, Cmd.none
         | IncrementForSlider -> { model with CountForSlider = model.CountForSlider + model.StepForSlider }, Cmd.none
@@ -612,18 +612,26 @@ module App =
                         use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
                         canvas.DrawCircle(float32 (info.Width / 2), float32 (info.Height / 2), 100.0f, paint)
                     ),
+                    horizontalOptions = c LayoutOptions.FillAndExpand, 
+                    verticalOptions = c LayoutOptions.FillAndExpand, 
                     touch = c (fun args -> 
-                        dispatch SKSurfaceTouched
+                        if args.InContact then
+                            dispatch (SKSurfaceTouched args.Location)
                     ))
+
+                MainPageButton
             ])
         | SkiaCanvas2 ->
          return
             View.ScrollingContentPage(c "SkiaCanvas #2", cs [ 
 
-                View.SKCanvasView2(
-                    shapes = cs [ SKShape.Circle(10.0, 20.0) ],
+                View.SKCanvasView2(enableTouchEvents = c true, 
+                    shapes = alist { for p in model.SKPoints -> SKShape.Circle(p, 50.0f, 5.0f) },
+                    verticalOptions = c LayoutOptions.FillAndExpand, 
+                    horizontalOptions = c LayoutOptions.FillAndExpand, 
                     touch = c (fun args -> 
-                        dispatch SKSurfaceTouched
+                        if args.InContact then
+                            dispatch (SKSurfaceTouched args.Location)
                     ))
                        
                 MainPageButton
@@ -1248,7 +1256,7 @@ module App =
           IsScrollingWithFabulous= cval model.IsScrollingWithFabulous
           IsScrolling= cval model.IsScrolling
           RefreshViewIsRefreshing= cval model.RefreshViewIsRefreshing
-          SKSurfaceTouchCount = cval model.SKSurfaceTouchCount
+          SKPoints = ChangeableIndexList model.SKPoints
           }
 
     let adelta (model: Model) (amodel: AdaptiveModel) =
@@ -1321,8 +1329,9 @@ module App =
                 amodel.IsScrolling.Value <- model.IsScrolling
             if model.RefreshViewIsRefreshing <> amodel.RefreshViewIsRefreshing.Value then 
                 amodel.RefreshViewIsRefreshing.Value <- model.RefreshViewIsRefreshing
-            if model.SKSurfaceTouchCount <> amodel.SKSurfaceTouchCount.Value then 
-                amodel.SKSurfaceTouchCount.Value <- model.SKSurfaceTouchCount
+            amodel.SKPoints.UpdateTo(model.SKPoints, id, (fun p _ -> p))
+            System.Diagnostics.Debug.WriteLine (sprintf "#points = %d" amodel.SKPoints.Count)
+            //amodel.SKPoints.UpdateTo(model.SKPoints)
         )
 
     

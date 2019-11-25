@@ -34,10 +34,10 @@ type ViewExtensions() =
                 // setter target (defaultArg defaultValue Unchecked.defaultof<_>)
 
     /// Update a collection of primitive values on a target control
-    static member inline CollectionUpdater(valueOpt: alist<_> option, getter, setter ) = 
+    static member inline CollectionUpdater(valueOpt: alist<_> option, getter, setter, ?add, ?remove) = 
         match valueOpt with 
         | None -> (fun _ _ -> ())
-        | Some v -> updateObservableCollection v getter setter
+        | Some v -> updateObservableCollection v getter setter (defaultArg add (fun _ _ -> ())) (defaultArg remove (fun _ _ -> ()))
 
     /// Recursively update a nested view element on a target control, given a previous and current view element description
     static member inline ElementUpdater(sourceOpt: ViewElement option, setter: 'Target -> 'T -> unit) = 
