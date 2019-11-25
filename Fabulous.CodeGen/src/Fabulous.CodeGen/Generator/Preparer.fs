@@ -22,23 +22,19 @@ module Preparer =
         |> Seq.distinctBy (fun a -> a.UniqueName)
         |> Seq.toArray
 
+    let toUpdateEvent (boundType: BoundType) (e: BoundEvent) =
+        { Name = e.Name
+          ShortName = e.ShortName
+          UniqueName = e.UniqueName
+          ConvertModelToValue = e.ConvertModelToValue
+          ConvertInputToModel = e.ConvertInputToModel
+          ModelType = e.ModelType
+          CanBeUpdated = e.CanBeUpdated }
+
+    //let toUpdateMember (boundType: BoundType) (m: BoundMember) = [| |]
     let toUpdateMember (boundType: BoundType) (m: BoundMember) =
         match m with 
-        | BoundEvent e -> 
-            let relatedProperties = e.RelatedProperties |> Array.choose (fun rp ->
-                boundType.Properties
-                |> Array.tryFind (fun p -> p.Name = rp)
-                |> Option.map (fun p -> p.UniqueName))
-            
-            { Name = e.Name
-              ShortName = e.ShortName
-              UniqueName = e.UniqueName
-              ConvertModelToValue = e.ConvertModelToValue
-              ConvertInputToModel = e.ConvertInputToModel
-              ModelType = e.ModelType
-              RelatedProperties = relatedProperties
-              CanBeUpdated = e.CanBeUpdated }
-            |> UpdateEvent
+        | BoundEvent e -> toUpdateEvent boundType e |> UpdateEvent
         
         | BoundProperty p -> 
             { Name = p.Name
@@ -51,6 +47,7 @@ module Preparer =
               ConvertInputToModel = p.ConvertInputToModel
               UpdateCode = p.UpdateCode
               CanBeUpdated = p.CanBeUpdated
+              RelatedEvents = [| for e in boundType.Events do for rp in e.RelatedProperties do if p.UniqueName = p.UniqueName then yield { Name = e.Name; ShortName = e.ShortName; UniqueName = e.UniqueName } |]
               CollectionData =
                   p.CollectionData
                   |> Option.map (fun cd ->
@@ -167,12 +164,13 @@ module Preparer =
 
     let getViewExtensionsData (types: BoundType array) =
         let toViewExtensionsMember (boundType: BoundType) (m: BoundMember) =
+            let um = toUpdateMember boundType m 
             { LowerUniqueName = Text.toLowerPascalCase m.UniqueName
               UniqueName = m.UniqueName
               InputType = m.InputType
               ConvertInputToModel = m.ConvertInputToModel 
               TargetFullName = boundType.FullName
-              UpdateMember = toUpdateMember boundType m }
+              UpdateMember = um }
             
         [| for typ in types do
                for e in typ.Events do

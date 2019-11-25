@@ -91,14 +91,26 @@ module CodeGenerator =
                 w.printfn "                ViewUpdaters.valueUpdater %s (fun (target: %s) prevOpt curr ->" shortName targetFullName
                 w.printfn "                    match prevOpt with"
                 w.printfn "                    | ValueSome prev when prev = curr -> ()"
-                w.printfn "                    | _ -> target.%s <- %s curr)" p.Name p.ConvertModelToValue
+                w.printfn "                    | _ -> "
+                for re in p.RelatedEvents do
+                    w.printfn "                        let %sHandlerOpt =" re.ShortName
+                    w.printfn "                            match %s with" re.ShortName
+                    w.printfn "                            | Some ev -> "
+                    w.printfn "                                let hopt = getAssociatedEventHandler ev"
+                    w.printfn "                                match hopt with"
+                    w.printfn "                                | Some handler -> target.%s.RemoveHandler handler; hopt"  re.Name 
+                    w.printfn "                                | None -> None"
+                    w.printfn "                            | None -> None" 
+                   
+                w.printfn "                        target.%s <- %s curr" p.Name p.ConvertModelToValue
+                for re in p.RelatedEvents do
+                    w.printfn "                        match %sHandlerOpt with" re.ShortName
+                    w.printfn "                        | Some handler -> target.%s.AddHandler handler"  re.Name
+                    w.printfn "                        | None -> ()" 
+                   
+                w.printfn "                )"
 
         | UpdateEvent e -> 
-            // TODO: restore this
-            //let relatedProperties =
-            //    e.RelatedProperties
-            //    |> Array.map (fun p -> sprintf "(identical prev%sOpt curr)" p p)
-            //    |> Array.fold (fun a b -> a + " && " + b) ""
             if not (String.IsNullOrWhiteSpace(e.ConvertModelToValue)) then
                 w.printfn "            let updater = eventUpdater %s %s (* ModelType = %s *) (fun (target: %s) -> target.%s)" shortName e.ConvertModelToValue e.ModelType targetFullName e.Name
             else 
@@ -139,6 +151,7 @@ module CodeGenerator =
             w.printfn "        let attribBuilder = attribBuilderBase.Retarget<%s>()" data.FullName
             w.printfn "        let _ = (fun () -> attribBuilderBase.Sample :?> %s) |> ignore // enforce subtype relationship" data.FullName
 
+        let events = (data.UpdateMembers |> Array.choose (function (UpdateEvent e) -> Some e | _ -> None))
         for m in data.UpdateMembers do
             w.printfn "        match %s with" m.ShortName
             w.printfn "        | None -> ()"
@@ -280,6 +293,9 @@ module CodeGenerator =
         // MINOR TODO: Command and CommandCanExecute are linked attributes and can't be updated using 'With'
         // All in all this is a minor limitation
         | nm when nm.EndsWith("Command") || nm.EndsWith("CommandCanExecute") -> false
+        // MINOR TODO: properties with related events can't be updated as yet because the update logic can't unhook the event handler
+        // because it doesn't have access to the handler value
+        | _ when (match m.UpdateMember with UpdateProperty p when p.RelatedEvents.Length > 0 -> true | _ -> false) -> false
         | _ -> true
 
     let generateViewExtensions (data: ViewExtensionsData array) (w: StringWriter) : StringWriter =
@@ -294,9 +310,7 @@ module CodeGenerator =
             if memberSupportsWith m then
                 w.printfn ""
                 w.printfn "        /// Adjusts the %s property in the visual element" m.UniqueName
-                w.printfn "        member x.%s(value: %s) ="
-                    m.UniqueName
-                    (adaptType m.InputType) 
+                w.printfn "        member x.%s(value: %s) =" m.UniqueName (adaptType m.InputType) 
                 generateMemberUpdater m.TargetFullName m.UpdateMember "value" w
                 w.printfn "            x.WithAttribute(AttributeValue<_, _>(ViewAttributes.%sAttribKey, %s%s value, updater))"
                     m.UniqueName

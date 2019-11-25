@@ -22,13 +22,17 @@ module Models =
           ConvertInputToModel: string
           IsInherited: bool }
 
+    type UpdatePropertyRelatedEvent =
+        { Name: string
+          UniqueName: string
+          ShortName: string }
+
     type UpdateEvent =
         { Name: string
           ShortName: string
           UniqueName: string
           ConvertModelToValue: string
           ModelType: string
-          RelatedProperties: string array 
           ConvertInputToModel: string
           CanBeUpdated: bool }
         
@@ -58,6 +62,7 @@ module Models =
           ConvertModelToValue: string
           UpdateCode: string
           CollectionData: UpdatePropertyCollectionData option
+          RelatedEvents: UpdatePropertyRelatedEvent array 
           ConvertInputToModel: string 
           CanBeUpdated: bool } 
 

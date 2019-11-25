@@ -41,13 +41,13 @@ type AttributeKey<'T> internal (keyv: int) =
 type AttributeValue(key: int, value: obj, update: AdaptiveToken -> obj -> unit) =
     member x.KeyValue = key
     member x.Value = value
-    member x.Update(token, target) = update token target
+    member x.UpdateInternal(token, target) = update token target
 
 type AttributeValue<'T>(key: AttributeKey<'T>, value: 'T, update: AdaptiveToken -> obj -> unit) =
     inherit AttributeValue(key.KeyValue, value, update)
     member x.Key = key
     member x.Value = value
-    member x.Update(token, target) = update token target
+    member x.UpdateInternal(token, target) = update token target
 
 type AttributeValue<'T, 'Target>(key: AttributeKey<'T>, value: 'T, update: AdaptiveToken -> 'Target -> unit) =
     inherit AttributeValue<'T>(key, value, (fun token (target: obj) -> update token (unbox target)))
@@ -174,13 +174,13 @@ type ViewElement (targetType: Type, create: (unit -> obj), attribs: AttributeVal
 
     /// Differentially update a visual element given the previous settings
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
-    member x.Updater token target = 
+    member x.UpdateInternal token target = 
         for a in attribs do
-           a.Update(token, target)
+           a.UpdateInternal(token, target)
 
     /// Create the UI element from the view description
     // TODO: remove all direct calls to this and use ViewElementUpdater instead
-    member x.Create(token: AdaptiveToken) = create()
+    member x.CreateInternal(token: AdaptiveToken) = create()
 
     /// Produce a new visual element with an adjusted attribute
     member __.WithAttribute(attrib: AttributeValue<'T>) =
@@ -206,9 +206,17 @@ type ViewElementUpdater(anode: aval<ViewElement>, onCreated: obj -> obj -> unit,
     let mutable targetOpt = None
 
     let rec canReuseView token (prevChild: ViewElement) (newChild: ViewElement) =
+        
+        // TODO: this update logic is too pessimistic. We are only reusing elements if the
+        // ViewElement is physical-identical, which means a needlessly-recomputing ViewElement
+        // will tear down the target element and re-create it on every change.
+        //
+        // This is a hard problem - we would effectively have to apply non-adaptive Fabulous-style
+        // diff'ing on the ViewElements to transfer the target element successfully...
         if FSharp.Core.LanguagePrimitives.PhysicalEquality prevChild newChild   
               // prevChild.TargetType = newChild.TargetType 
-              && canReuseAutomationId token prevChild newChild then
+              //&& canReuseAutomationId token prevChild newChild 
+        then
             //if newChild.TargetType.IsAssignableFrom(typeof<NavigationPage>) then
             //    canReuseNavigationPage prevChild newChild
             //elif newChild.TargetType.IsAssignableFrom(typeof<CustomEffect>) then
@@ -235,31 +243,34 @@ type ViewElementUpdater(anode: aval<ViewElement>, onCreated: obj -> obj -> unit,
     /// Xamarin.Forms can't change an already set AutomationId
     //
     // TODO: make the AutomationId non-adapting
-    and canReuseAutomationId token (prevChild: ViewElement) (newChild: ViewElement) =
-        let prevAutomationId = prevChild.TryGetAttribute<aval<string>>("AutomationId")
-        let newAutomationId = newChild.TryGetAttribute<aval<string>>("AutomationId")
+    //and canReuseAutomationId token (prevChild: ViewElement) (newChild: ViewElement) = true
+        //let prevAutomationId = prevChild.TryGetAttribute<aval<string>>("AutomationId")
+        //let newAutomationId = newChild.TryGetAttribute<aval<string>>("AutomationId")
 
-        match prevAutomationId, newAutomationId  with
-        | ValueSome _, ValueNone 
-        | ValueNone, ValueSome _ -> false
-        | ValueSome o, ValueSome n   when o.GetValue(token) <> n.GetValue(token) -> false
-        | _ -> true
+        //match prevAutomationId, newAutomationId  with
+        //| ValueSome _, ValueNone 
+        //| ValueNone, ValueSome _ -> false
+        //| ValueSome o, ValueSome n   when o.GetValue(token) <> n.GetValue(token) -> false
+        //| _ -> true
 
+    member x.SetTarget(target) = targetOpt <- Some (None, target)
     member x.Target = snd targetOpt.Value
 
     member x.Update(token: AdaptiveToken, scope: obj) =
         x.EvaluateIfNeeded token () (fun token ->
             let node = anode.GetValue(token)
             match targetOpt with 
-            | Some (prevNode, target) when canReuseView token prevNode node ->
-                node.Updater token target
+            | Some (Some prevNode, target) when canReuseView token prevNode node ->
+                node.UpdateInternal token target
+            | Some (None, target) ->
+                node.UpdateInternal token target
             | _ -> 
                 Debug.WriteLine (sprintf "Create %O" node.TargetType)
 
-                let target = node.Create(token) |> childTransform
-                targetOpt <- Some (node, target)
+                let target = node.CreateInternal(token) |> childTransform
+                targetOpt <- Some (Some node, target)
                 onCreated scope target
-                node.Updater token target
+                node.UpdateInternal token target
 
                 match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
                 | ValueSome f -> (f.GetValue(token)) target

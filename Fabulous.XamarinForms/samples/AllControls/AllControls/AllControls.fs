@@ -423,8 +423,6 @@ module App =
                         horizontalOptions = c LayoutOptions.CenterAndExpand)
 
         let! rootPageKind = model.RootPageKind
-        // TODO: allow different kinds of root page
-        //model.RootPageKind |> AVal.ma
         match rootPageKind with 
         | Choice showAbout -> 
           return

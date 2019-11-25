@@ -121,7 +121,6 @@ module ViewUpdaters =
     /// a reduced number of clear/add/remove/insert operations
     let updateElementCollection (coll: ViewElement alist) (childTransform: 'ChildTarget -> 'ActualChildTarget) 
         =
-     // TODO: actually use the attach function....
         updateElementCollectionPrim
            coll 
            childTransform 
@@ -149,7 +148,7 @@ module ViewUpdaters =
     let updateItemsViewItems (coll: ViewElement alist) = 
         let updater = 
             updateCollection  coll 
-                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].ViewElement <- x)
+                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].SetViewElement x)
                 (fun target x i -> target.Insert(i, ViewElementHolder x))
                 (fun target x -> target.Add(ViewElementHolder x))
                 (fun target _x i _isAtEnd -> target.RemoveAt(i))
@@ -168,7 +167,7 @@ module ViewUpdaters =
     let updateItemsViewOfTItems<'T when 'T :> Xamarin.Forms.BindableObject> (coll: ViewElement alist) =
         let updater = 
             updateCollection  coll 
-                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].ViewElement <- x)
+                (fun (target: ObservableCollection<ViewElementHolder>) x i -> target.[i].SetViewElement x)
                 (fun target x i -> target.Insert(i, ViewElementHolder x))
                 (fun target x -> target.Add(ViewElementHolder x))
                 (fun target _x i _isAtEnd -> target.RemoveAt(i))
@@ -310,8 +309,8 @@ module ViewUpdaters =
     /// Update a ViewELement
     let creationUpdater f = 
         let mutable created = false
-        (fun token target ->
-            f token target created
+        (fun _token target ->
+            f target created
             created <- true)
 
     /// Update the OnSizeAllocated callback of a control, given previous and current values
@@ -321,22 +320,37 @@ module ViewUpdaters =
             match prevOpt with ValueNone -> () | ValueSome f -> target.SizeAllocated.RemoveHandler(f)
             target.SizeAllocated.AddHandler(curr))
         
+    // Keeps an association of event values to actual handlers so we can temporarily remove the actual
+    // handlers during property update.
+    let associatedEventHandlerTable = System.Runtime.CompilerServices.ConditionalWeakTable<obj, obj>()
+    let getAssociatedEventHandler (value: aval<'T>) : 'Delegate option =
+        match associatedEventHandlerTable.TryGetValue(box value) with 
+        | false, _ -> None
+        | true, handler -> Some (unbox handler)
+
+    let addAssociatedEventHandler (value: aval<'T>) (handler: 'Handler) =
+        associatedEventHandlerTable.Remove(box value) |> ignore
+        associatedEventHandlerTable.Add(box value, handler)
+    
     let makeEventHandler f = EventHandler<_>(fun _sender args -> f args)
     let makeEventHandlerNonGeneric f = EventHandler(fun _sender _args -> f())
 
-    let eventUpdater (value: aval<'T>) (makeDelegate: 'T -> 'Delegate) (getter: 'Target -> IEvent<'Delegate,'Args>) = 
+    let eventUpdater (value: aval<'T>) (makeHandler: 'T -> 'Delegate) (getter: 'Target -> IEvent<'Delegate,'Args>) = 
         let mutable prevOpt = ValueNone 
         fun token (target: 'Target) -> 
             let newValue =  value.GetValue(token) 
-            let newDelegate =  makeDelegate newValue
+            let handler =  makeHandler newValue
             match prevOpt with
             | ValueSome prevValue -> 
                 let targetEvent = getter target
-                targetEvent.RemoveHandler(prevValue); targetEvent.AddHandler(newDelegate)
+                targetEvent.RemoveHandler prevValue
+                addAssociatedEventHandler value handler
+                targetEvent.AddHandler handler
             | ValueNone -> 
                 let targetEvent = getter target
-                targetEvent.AddHandler(newDelegate)
-            prevOpt <- ValueSome newDelegate
+                addAssociatedEventHandler value  handler
+                targetEvent.AddHandler handler
+            prevOpt <- ValueSome handler
 
     /// Converts an F# function to a Xamarin.Forms ICommand
     let makeCommand f =
@@ -639,7 +653,7 @@ module ViewUpdaters =
             //| ValueSome _ -> NavigationPage.SetHasNavigationBar(target, true)
 
     let updateShellContentContentTemplate (curr : ViewElement) =
-        creationUpdater (fun token (target : Xamarin.Forms.ShellContent) created ->
+        creationUpdater (fun (target : Xamarin.Forms.ShellContent) created ->
             match created with 
             | false -> 
                 target.ContentTemplate <- DirectViewElementDataTemplate(curr)

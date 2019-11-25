@@ -215,22 +215,19 @@ module App =
                             let item = 
                                 if cp then 
                                     View.Button(command = c (fun () -> dispatch (Play pos)), 
-                                        backgroundColor = c Color.LightBlue, 
-                                        margin = c (Thickness 10.0), 
-                                        horizontalOptions = c LayoutOptions.FillAndExpand,
-                                        verticalOptions = c LayoutOptions.FillAndExpand)
+                                        backgroundColor = c Color.LightBlue)
                                 else
                                     View.Image(source = AMap.find pos imagesForCells,
                                         margin = c (Thickness 10.0), 
-                                        horizontalOptions = c LayoutOptions.FillAndExpand,
-                                        verticalOptions = c LayoutOptions.FillAndExpand)
+                                        horizontalOptions = c LayoutOptions.Center,
+                                        verticalOptions = c LayoutOptions.Center)
                             yield item.Row(c (row*2)).Column(c (col*2)) 
                        },
 
                     rowSpacing = c 0.0,
                     columnSpacing = c 0.0,
-                    horizontalOptions = c LayoutOptions.CenterAndExpand,
-                    verticalOptions = c LayoutOptions.CenterAndExpand,
+                    horizontalOptions = c LayoutOptions.Center,
+                    verticalOptions = c LayoutOptions.Center,
                     width = (model.VisualBoardSize |> AVal.map (function None -> 100.0 | Some v -> v)),
                     height = (model.VisualBoardSize |> AVal.map (function None -> 100.0 | Some v -> v))
                   ).Row(c 0)

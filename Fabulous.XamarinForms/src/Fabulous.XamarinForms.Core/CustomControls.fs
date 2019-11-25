@@ -13,29 +13,27 @@ open System.ComponentModel
 /// DataTemplate
 /////////////////
 
-[<AllowNullLiteral>]
-type IViewElementHolder =
-    inherit INotifyPropertyChanged
-    abstract ViewElement : ViewElement
-
-[<AllowNullLiteral>]
-type ViewElementHolder(viewElement: ViewElement) =
+type ViewElementHolder(node: ViewElement) =
     let ev = new Event<_,_>()
-    let mutable data = viewElement
-    let mutable updater = ViewElementUpdater.Create data id (fun _ _ -> ())
+    let mutable node = node
+    let mutable updater = new ViewElementUpdater(AVal.constant node, (fun (scope: obj) (child: obj) -> ()), id)
 
-    interface IViewElementHolder with
-        member x.ViewElement = data
-        [<CLIEvent>] member x.PropertyChanged = ev.Publish
+    interface INotifyPropertyChanged with
+        [<CLIEvent>] 
+        member x.PropertyChanged = ev.Publish
+
+    member x.SetTarget(targetToUse)  =
+        updater.SetTarget(targetToUse)
         
-    member x.ViewElement
-        with get() = data
-        and set(value) =
-            data <- value
-            updater <- ViewElementUpdater.Create data id (fun _ _ -> ())
-            ev.Trigger(x, PropertyChangedEventArgs "ViewElement")
+    member x.Update(token)  =
+        updater.Update(token, scope=null)
+        
+    member x.ViewElement = node
 
-    member x.Update(token)  = updater token ()
+    member x.SetViewElement value =
+        node <- value
+        updater <- new ViewElementUpdater(AVal.constant node, (fun (scope: obj) (child: obj) -> ()), id)
+        ev.Trigger(x, PropertyChangedEventArgs "ViewElement") 
 
 #if GROUPLIST
 
@@ -67,29 +65,32 @@ type ViewElementHolderGroup(shortName: string, viewElement: ViewElement, items: 
 #endif
 
 module BindableHelpers =
-    let createOnBindingContextChanged (bindableObject: BindableObject) =
-        let mutable holderOpt : IViewElementHolder voption = ValueNone
+
+    // The target is created by the call to Activator.CreateInstance
+    let createOnBindingContextChanged (target: BindableObject) =
+        let mutable holderOpt : ViewElementHolder voption = ValueNone
 
         let onDataPropertyChanged = PropertyChangedEventHandler(fun _ args ->
             match args.PropertyName, holderOpt with
             | "ViewElement", ValueSome holder ->
-                // TODO consider this AdaptiveToken.Top
-                // TODO make this a ViewElementUpdater?
-                holder.ViewElement.Updater AdaptiveToken.Top (box bindableObject)
+                // We really need to recreate the target here, but the data template binding process doesn't let us recreate???
+                // TODO: this Update would need to reset all the properties to continue to use the original target
+                holder.Update(AdaptiveToken.Top)
             | _ -> ()
         )
         
         let onBindingContextChanged () =
             match holderOpt with
             | ValueNone -> ()
-            | ValueSome prevHolder -> prevHolder.PropertyChanged.RemoveHandler onDataPropertyChanged
+            | ValueSome prevHolder -> 
+                (prevHolder :> INotifyPropertyChanged).PropertyChanged.RemoveHandler onDataPropertyChanged
             
-            match bindableObject.BindingContext with
-            | :? IViewElementHolder as newHolder ->
-                newHolder.PropertyChanged.AddHandler onDataPropertyChanged
-                // TODO make this a ViewElementUpdater?
-                newHolder.ViewElement.Updater AdaptiveToken.Top (box bindableObject)
-                holderOpt <- ValueSome newHolder
+            match target.BindingContext with
+            | :? ViewElementHolder as holder ->
+                (holder :> INotifyPropertyChanged).PropertyChanged.AddHandler onDataPropertyChanged
+                holder.SetTarget target
+                holder.Update AdaptiveToken.Top
+                holderOpt <- ValueSome holder
             | _ ->
                 holderOpt <- ValueNone
             
@@ -97,17 +98,17 @@ module BindableHelpers =
         
 type ViewElementDataTemplate(``type``) =
     inherit DataTemplate(fun () ->
-        let bindableObject = (Activator.CreateInstance ``type``) :?> BindableObject
-        let onBindingContextChanged = BindableHelpers.createOnBindingContextChanged bindableObject
-        bindableObject.BindingContextChanged.Add (fun _ -> onBindingContextChanged ())
-        bindableObject :> obj
+        let target = (Activator.CreateInstance ``type``) :?> BindableObject
+        let onBindingContextChanged = BindableHelpers.createOnBindingContextChanged target
+        target.BindingContextChanged.Add (fun _ -> onBindingContextChanged ())
+        target :> obj
     )
 
 type ViewElementDataTemplateSelector() =
     inherit DataTemplateSelector()
     let cache = Dictionary<Type, ViewElementDataTemplate>()
     override this.OnSelectTemplate(item, _) =
-        let holder = item :?> IViewElementHolder
+        let holder = item :?> ViewElementHolder
         let targetType = holder.ViewElement.TargetType
         
         match cache.TryGetValue targetType with
@@ -120,7 +121,8 @@ type ViewElementDataTemplateSelector() =
             
 type DirectViewElementDataTemplate(viewElement: ViewElement) =
     inherit DataTemplate(Func<obj>((fun () ->
-        viewElement.Create(AdaptiveToken.Top))))
+        // TODO: remove this call to CreateInternal
+        viewElement.CreateInternal(AdaptiveToken.Top))))
         
 /////////////////
 /// Cells

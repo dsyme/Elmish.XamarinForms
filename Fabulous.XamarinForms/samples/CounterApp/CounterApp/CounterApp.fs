@@ -68,15 +68,19 @@ module App =
         | TimedTick -> if model.TimerOn then { model with Count = model.Count + model.Step }, [ TickTimer ] else model, [] 
 
     let view (model: AdaptiveModel) dispatch =  
-        View.ContentPage(
-          content = View.Grid(rowdefs= c [for i in 1 .. 6 -> Star], 
-                        coldefs = c [for i in 1 .. 6 -> Star], 
-                        children = cs [ 
-                            for i in 1 .. 6 do 
-                                for j in 1 .. 6 -> 
-                                    let color = Color((1.0/float i), (1.0/float j), (1.0/float (i+j)), 1.0) 
-                                    View.BoxView(c color).Row(c (i-1)).Column(c (j-1)) ] ))
+        View.ContentPage(content = View.ListView (items = cs [ for i in 1 .. 10 -> View.TextCell(c (sprintf "Item %d" i)) ]))
         |> AVal.constant
+
+        //View.ContentPage(
+        //  content = View.Grid(rowdefs= c [for i in 1 .. 6 -> Star], 
+        //                coldefs = c [for i in 1 .. 6 -> Star], 
+        //                children = cs [ 
+        //                    for i in 1 .. 6 do 
+        //                        for j in 1 .. 6 -> 
+        //                            let color = Color((1.0/float i), (1.0/float j), (1.0/float (i+j)), 1.0) 
+        //                            View.BoxView(c color).Row(c (i-1)).Column(c (j-1)) ] ))
+        //|> AVal.constant
+
         //View.ContentPage(
         //  content=View.StackLayout(padding = c (Thickness 30.0), verticalOptions = c LayoutOptions.Center,
         //    children = cs [
