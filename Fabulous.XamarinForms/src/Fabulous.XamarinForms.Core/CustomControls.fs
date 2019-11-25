@@ -150,16 +150,16 @@ type CustomEntryCell() as self =
 /////////////////
 
 type CustomListView() =
-    inherit ListView(ListViewCachingStrategy.RecycleElement, ItemTemplate = ViewElementDataTemplateSelector())
+    inherit ListView(ItemTemplate = ViewElementDataTemplateSelector())
     
 type CustomGroupListView() = 
-    inherit ListView(ListViewCachingStrategy.RecycleElement, IsGroupingEnabled = true, ItemTemplate = ViewElementDataTemplateSelector(), GroupHeaderTemplate = ViewElementDataTemplateSelector())
+    inherit ListView(IsGroupingEnabled = true, ItemTemplate = ViewElementDataTemplateSelector(), GroupHeaderTemplate = ViewElementDataTemplateSelector())
 
 type CustomCollectionView() = 
-    inherit CollectionView(ItemTemplate = ViewElementDataTemplateSelector(), EmptyViewTemplate = ViewElementDataTemplateSelector())
+    inherit CollectionView(ItemTemplate = ViewElementDataTemplateSelector())
 
 type CustomCarouselView() =
-    inherit CarouselView(ItemTemplate = ViewElementDataTemplateSelector(), EmptyViewTemplate = ViewElementDataTemplateSelector())
+    inherit CarouselView(ItemTemplate = ViewElementDataTemplateSelector())
 
 /////////////////
 /// Controls

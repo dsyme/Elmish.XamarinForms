@@ -30,10 +30,10 @@ module ShadowEffectViewExtension =
             
             let attribs = AttributesBuilder<ShadowEffect>(attribCount)
                 
-            let updater1 = ViewExtensions.PrimitiveUpdater(radius, (fun (target: ShadowEffect) v -> target.Radius <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(color, (fun (target: ShadowEffect) v -> target.Color <- v))
-            let updater3 = ViewExtensions.PrimitiveUpdater(distanceX, (fun (target: ShadowEffect) v -> target.DistanceX <- v))
-            let updater4 = ViewExtensions.PrimitiveUpdater(distanceY, (fun (target: ShadowEffect) v -> target.DistanceY <- v))
+            let updater1 = ViewExtensions.ValueUpdater(radius, (fun (target: ShadowEffect) v -> target.Radius <- v))
+            let updater2 = ViewExtensions.ValueUpdater(color, (fun (target: ShadowEffect) v -> target.Color <- v))
+            let updater3 = ViewExtensions.ValueUpdater(distanceX, (fun (target: ShadowEffect) v -> target.DistanceX <- v))
+            let updater4 = ViewExtensions.ValueUpdater(distanceY, (fun (target: ShadowEffect) v -> target.DistanceY <- v))
 
             match radius with None -> () | Some v -> attribs.Add(RadiusAttribKey, v, updater1)
             match color with None -> () | Some v -> attribs.Add(ColorAttribKey, v, updater2)

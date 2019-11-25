@@ -52,9 +52,9 @@ module VideoManagerExtension =
 
             let attribs = attribs.Retarget<VideoView>()
 
-            let updater1 = ViewExtensions.PrimitiveUpdater(source, (fun (target: VideoView) v -> target.Source <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(videoAspect, (fun (target: VideoView) v -> target.VideoAspect <- v))
-            let updater3 = ViewExtensions.PrimitiveUpdater(showControls, (fun (target: VideoView) v -> target.ShowControls <- v))
+            let updater1 = ViewExtensions.ValueUpdater(source, (fun (target: VideoView) v -> target.Source <- v))
+            let updater2 = ViewExtensions.ValueUpdater(videoAspect, (fun (target: VideoView) v -> target.VideoAspect <- v))
+            let updater3 = ViewExtensions.ValueUpdater(showControls, (fun (target: VideoView) v -> target.ShowControls <- v))
 
             // Add our own attributes.
             match source with None -> () | Some v -> attribs.Add(SourceAttribKey, v, updater1)

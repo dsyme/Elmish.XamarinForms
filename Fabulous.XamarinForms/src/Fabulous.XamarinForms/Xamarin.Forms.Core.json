@@ -1621,7 +1621,8 @@
       "canBeInstantiated": false,
       "properties": [
         {
-          "source": "EmptyView"
+          "source": "EmptyView",
+          "inputType": "ViewElement"
         },
         {
           "source": "HorizontalScrollBarVisibility"
@@ -1644,6 +1645,13 @@
         },
         {
           "source": "RemainingItemsThresholdReachedCommand"
+        },
+        {
+          "source": null,
+          "name": "ScrollTo",
+          "defaultValue": "null",
+          "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToItem",
+          "updateCode": "ViewUpdaters.triggerItemsViewScrollTo"
         },
         {
           "source": "VerticalScrollBarVisibility"
@@ -1828,6 +1836,13 @@
           "source": "RowHeight"
         },
         {
+          "source": null,
+          "name": "ScrollTo",
+          "defaultValue": "null",
+          "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToItem",
+          "updateCode": "ViewUpdaters.triggerListViewScrollTo"
+        },
+        {
           "source": "SelectedItem",
           "inputType": "int option",
           "modelType": "int option",
@@ -1905,6 +1920,13 @@
     //    },
     //    {
     //      "source": null,
+    //      "name": "ScrollTo",
+    //      "defaultValue": "null",
+    //      "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToGroupedItem",
+    //      "updateCode": "ViewUpdaters.triggerListViewGroupedScrollTo"
+    //    },
+    //    {
+    //      "source": null,
     //      "name": "SelectedItem",
     //      "inputType": "int option",
     //      "modelType": "int option",
@@ -1945,7 +1967,7 @@
     //  ]
     //},
     {
-        "type": "Xamarin.Forms.Label",
+      "type": "Xamarin.Forms.Label",
       "properties": [
         {
           "source": "CharacterSpacing"

@@ -13,6 +13,11 @@
       <PackageReference Include="FSharp.Data" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\..\..\extensions\FFImageLoading\Fabulous.XamarinForms.FFImageLoading.fsproj" />
+      <ProjectReference Include="..\..\..\extensions\Maps\Fabulous.XamarinForms.Maps.fsproj" />
+      <ProjectReference Include="..\..\..\extensions\OxyPlot\Fabulous.XamarinForms.OxyPlot.fsproj" />
+      <ProjectReference Include="..\..\..\extensions\SkiaSharp\Fabulous.XamarinForms.SkiaSharp.fsproj" />
+      <ProjectReference Include="..\..\..\extensions\VideoManager\Fabulous.XamarinForms.VideoManager.fsproj" />
       <ProjectReference Include="..\..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj" />
     </ItemGroup>
     <Import Project="..\..\..\..\Packages.targets" />

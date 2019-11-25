@@ -21,8 +21,8 @@ type ViewExtensions() =
     static member inline EventUpdater(valueOpt: aval<'Args -> unit> option, getter: 'Target -> IEvent<EventHandler<'Args>,'Args>) = 
         ViewExtensions.EventUpdater(valueOpt, getter, makeEventHandler)
 
-    /// Update a primitive value on a target control, given a previous and current view element description
-    static member inline PrimitiveUpdater(valueOpt: aval<_> option, setter: 'Target -> 'T -> unit (* , ?defaultValue: 'T *) ) = 
+    /// Update a primitive value on a target control
+    static member inline ValueUpdater(valueOpt: aval<_> option, setter: 'Target -> 'T -> unit (* , ?defaultValue: 'T *) ) = 
         match valueOpt with 
         | None -> (fun _ _ -> ())
         | Some v -> 
@@ -32,6 +32,12 @@ type ViewExtensions() =
                 | _ -> setter target curr)
                 // TODO: disappearing attributes
                 // setter target (defaultArg defaultValue Unchecked.defaultof<_>)
+
+    /// Update a collection of primitive values on a target control
+    static member inline CollectionUpdater(valueOpt: alist<_> option, getter, setter ) = 
+        match valueOpt with 
+        | None -> (fun _ _ -> ())
+        | Some v -> updateObservableCollection v getter setter
 
     /// Recursively update a nested view element on a target control, given a previous and current view element description
     static member inline ElementUpdater(sourceOpt: ViewElement option, setter: 'Target -> 'T -> unit) = 

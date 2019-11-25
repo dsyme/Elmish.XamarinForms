@@ -7,10 +7,14 @@ open Fabulous.XamarinForms
 open Xamarin.Forms
 open FSharp.Data
 open FSharp.Data.Adaptive
+open SkiaSharp
+open SkiaSharp.Views.Forms
 open AllControls.Effects
 
 type RootPageKind = 
     | Choice of bool
+    | SkiaCanvas
+    | SkiaCanvas2
     | Tabbed1 
     | Tabbed2 
     | Tabbed3 
@@ -68,6 +72,7 @@ type Model =
     IsScrolling: bool
     // For RefreshView
     RefreshViewIsRefreshing: bool
+    SKSurfaceTouchCount: int
     }
 
 type AdaptiveModel = 
@@ -105,6 +110,7 @@ type AdaptiveModel =
       IsScrollingWithFabulous: bool cval
       IsScrolling: bool cval
       RefreshViewIsRefreshing: bool cval
+      SKSurfaceTouchCount: int cval
       }
 
 type Msg = 
@@ -151,6 +157,7 @@ type Msg =
     | AnimationPoked
     | AnimationPoked2
     | AnimationPoked3
+    | SKSurfaceTouched
     | SetCarouselCurrentPage of int
     | SetTabbed1CurrentPage of int
     | ReceivedLowMemoryWarning
@@ -186,8 +193,8 @@ module MyExtension =
             let attribs = ViewBuilders.BuildView(attribCount, ?backgroundColor = backgroundColor, ?rotation = rotation) 
             let attribs = attribs.Retarget<Xamarin.Forms.Label>()
 
-            let updater1 = ViewExtensions.PrimitiveUpdater(text, (fun (target: Xamarin.Forms.Label) v -> target.Text <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(fontFamily, (fun (target: Xamarin.Forms.Label) v -> target.FontFamily <- v))
+            let updater1 = ViewExtensions.ValueUpdater(text, (fun (target: Xamarin.Forms.Label) v -> target.Text <- v))
+            let updater2 = ViewExtensions.ValueUpdater(fontFamily, (fun (target: Xamarin.Forms.Label) v -> target.FontFamily <- v))
 
             // Add our own attributes. They must have unique names.
             match text with None -> () | Some v -> attribs.Add(TestLabelTextAttribKey, v, updater1) 
@@ -242,7 +249,8 @@ module App =
           AnimatedScroll = Animated
           IsScrollingWithFabulous = false
           IsScrolling = false
-          RefreshViewIsRefreshing = false }, Cmd.none
+          RefreshViewIsRefreshing = false 
+          SKSurfaceTouchCount = 0 }, Cmd.none
 
     let getWebData =
         async {
@@ -280,6 +288,7 @@ module App =
     
     let update msg (model: Model) =
         match msg with
+        | SKSurfaceTouched -> { model with SKSurfaceTouchCount = model.SKSurfaceTouchCount + 1 }, Cmd.none
         | Increment -> { model with Count = model.Count + 1 }, Cmd.none
         | Decrement -> { model with Count = model.Count - 1}, Cmd.none
         | IncrementForSlider -> { model with CountForSlider = model.CountForSlider + model.StepForSlider }, Cmd.none
@@ -434,6 +443,8 @@ module App =
                         content = View.ScrollView(
                             content = View.StackLayout(
                                 children = cs [ 
+                                     View.Button(text = c "Skia Canvas", command = c (fun () -> dispatch (SetRootPageKind SkiaCanvas)))
+                                     View.Button(text = c "Skia Canvas2", command = c (fun () -> dispatch (SetRootPageKind SkiaCanvas2)))
                                      View.Button(text = c "TabbedPage #1 (various controls)", command = c (fun () -> dispatch (SetRootPageKind Tabbed1)))
                                      View.Button(text = c "TabbedPage #2 (various controls)", command = c (fun () -> dispatch (SetRootPageKind Tabbed2)))
                                      View.Button(text = c "TabbedPage #3 (various controls)", command = c (fun () -> dispatch (SetRootPageKind Tabbed3)))
@@ -588,6 +599,35 @@ module App =
                        ])
            ])
 
+        | SkiaCanvas ->
+         return
+            View.ScrollingContentPage(c "SkiaCanvas", cs [ 
+                View.SKCanvasView(enableTouchEvents = c true, 
+                    paintSurface = c (fun args -> 
+                        let info = args.Info
+                        let surface = args.Surface
+                        let canvas = surface.Canvas
+
+                        canvas.Clear() 
+                        use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
+                        canvas.DrawCircle(float32 (info.Width / 2), float32 (info.Height / 2), 100.0f, paint)
+                    ),
+                    touch = c (fun args -> 
+                        dispatch SKSurfaceTouched
+                    ))
+            ])
+        | SkiaCanvas2 ->
+         return
+            View.ScrollingContentPage(c "SkiaCanvas #2", cs [ 
+
+                View.SKCanvasView2(
+                    shapes = cs [ SKShape.Circle(10.0, 20.0) ],
+                    touch = c (fun args -> 
+                        dispatch SKSurfaceTouched
+                    ))
+                       
+                MainPageButton
+            ])
         | Tabbed1 ->
          return
            View.TabbedPage(
@@ -1208,6 +1248,7 @@ module App =
           IsScrollingWithFabulous= cval model.IsScrollingWithFabulous
           IsScrolling= cval model.IsScrolling
           RefreshViewIsRefreshing= cval model.RefreshViewIsRefreshing
+          SKSurfaceTouchCount = cval model.SKSurfaceTouchCount
           }
 
     let adelta (model: Model) (amodel: AdaptiveModel) =
@@ -1280,6 +1321,8 @@ module App =
                 amodel.IsScrolling.Value <- model.IsScrolling
             if model.RefreshViewIsRefreshing <> amodel.RefreshViewIsRefreshing.Value then 
                 amodel.RefreshViewIsRefreshing.Value <- model.RefreshViewIsRefreshing
+            if model.SKSurfaceTouchCount <> amodel.SKSurfaceTouchCount.Value then 
+                amodel.SKSurfaceTouchCount.Value <- model.SKSurfaceTouchCount
         )
 
     

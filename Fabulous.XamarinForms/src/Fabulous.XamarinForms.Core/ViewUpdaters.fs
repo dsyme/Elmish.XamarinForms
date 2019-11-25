@@ -182,8 +182,7 @@ module ViewUpdaters =
                     oc
             updater token targetColl
                     
-    /// Update the selected items in a SelectableItemsView control, given previous and current indexes
-    let updateSelectableItemsViewSelectedItems coll = 
+    let updateObservableCollection coll getter setter = 
         let updater = 
             updateCollection coll
                 (fun (target: ObservableCollection<_>) x i -> target.[i] <- x)
@@ -192,15 +191,19 @@ module ViewUpdaters =
                 (fun target x i _isAtEnd -> target.RemoveAt(i))
                 None
 
-        fun token (target: Xamarin.Forms.SelectableItemsView) ->
+        fun token (target: 'Target) ->
             let targetColl = 
-                match target.SelectedItems with 
-                | :? ObservableCollection<obj> as oc -> oc
+                match (getter target : IList<'T>) with 
+                | :? ObservableCollection<'T> as oc -> oc
                 | _ -> 
-                    let oc = ObservableCollection<obj>()
-                    target.SelectedItems <- oc
+                    let oc = ObservableCollection<'T>()
+                    setter target (oc :> IList<'T>)
                     oc
             updater token targetColl
+
+    /// Update the selected items in a SelectableItemsView control, given previous and current indexes
+    let updateSelectableItemsViewSelectedItems coll = 
+        updateObservableCollection coll (fun (target: Xamarin.Forms.SelectableItemsView) -> target.SelectedItems) (fun target v -> target.SelectedItems <- v) 
 
     /// Update the items in a SearchHandler control, given previous and current view elements
     let updateSearchHandlerItems (coll: ViewElement alist) = 
@@ -522,17 +525,48 @@ module ViewUpdaters =
                     | NotAnimated -> false
                 target.ScrollToAsync(x, y, animated) |> ignore
 
-    /// Trigger ItemsView.ScrollTo if needed, given the current values
-    ///
-    /// TODO: consider what trigger means for adaptive
-    let triggerScrollTo (value: aval<(obj * obj * ScrollToPosition * AnimationKind)>) =
+    let triggerItemsViewScrollTo (value: aval<ScrollToItem>) =
         fun token (target: Xamarin.Forms.ItemsView) ->
-            let (x, y, scrollToPosition, animationKind) = value.GetValue(token)
-            let animated =
-                match animationKind with
+            let scrollToItem = value.GetValue(token)
+            let animate =
+                match scrollToItem.Animate with
                 | Animated -> true
                 | NotAnimated -> false
-            target.ScrollTo(x,y, scrollToPosition, animated)
+            target.ScrollTo(scrollToItem.Index, position = scrollToItem.Position, animate=animate)
+
+    let triggerListViewScrollTo (value: aval<ScrollToItem>) =
+        fun token (target: Xamarin.Forms.ListView) ->
+            let scrollToItem = value.GetValue(token)
+            let animate =
+                match scrollToItem.Animate with
+                | Animated -> true
+                | NotAnimated -> false
+            let itemOpt = (target.ItemsSource :?> ObservableCollection<ViewElementHolder>) |> Seq.tryItem scrollToItem.Index
+            match itemOpt with 
+            | None -> ()
+            | Some item -> target.ScrollTo(item, scrollToItem.Position, animate)
+
+#if GROUPLIST
+    /// Trigger ListViewGrouped.ScrollTo if needed, given the current values
+    let triggerListViewGroupedScrollTo _ (currValue: ScrollToGroupedItem voption) (target: Xamarin.Forms.ListView) =
+        match currValue with
+        | ValueSome scrollToGroupedItem ->
+            let animate =
+                match scrollToGroupedItem.Animate with
+                | Animated -> true
+                | NotAnimated -> false
+                
+            let groupOpt = (target.ItemsSource :?> ObservableCollection<ViewElementHolderGroup>) |> Seq.tryItem scrollToGroupedItem.GroupIndex
+            match groupOpt with
+            | None -> ()
+            | Some group ->
+                let itemOpt = (group :> ObservableCollection<ViewElementHolder>) |> Seq.tryItem scrollToGroupedItem.ItemIndex
+                match itemOpt with
+                | None -> ()
+                | Some item ->
+                    target.ScrollTo(item, group, scrollToGroupedItem.Position, animate)
+        | _ -> ()
+#endif
 
     /// Trigger Shell.GoToAsync if needed, given the current values
     ///

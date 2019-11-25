@@ -34,3 +34,23 @@ module InputTypes =
     type AnimationKind =
         | Animated
         | NotAnimated
+
+    /// Defines a scroll request to an item
+    type ScrollToItem =
+        { /// Zero-based index of the item to scroll to 
+          Index: int
+          /// Position to use
+          Position: Xamarin.Forms.ScrollToPosition
+          /// Determines whether the scroll will be animated or not
+          Animate: AnimationKind }
+        
+    /// Defines a scroll request to an item in a grouped list
+    type ScrollToGroupedItem =
+        { /// Zero-based index of the group containing the item to scroll to
+          GroupIndex: int
+          /// Zero-based index of the item to scroll to 
+          ItemIndex: int
+          /// Position to use
+          Position: Xamarin.Forms.ScrollToPosition
+          /// Determines whether the scroll will be animated or not
+          Animate: AnimationKind }

@@ -52,8 +52,8 @@ module OxyPlotExtension =
             let attribs = attribs.Retarget<PlotView>()
 
             // Add our own attributes.
-            let updater1 = ViewExtensions.PrimitiveUpdater(Some model, (fun (target: PlotView) v -> target.Model <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(controller, (fun (target: PlotView) v -> target.Controller <- v))
+            let updater1 = ViewExtensions.ValueUpdater(Some model, (fun (target: PlotView) v -> target.Model <- v))
+            let updater2 = ViewExtensions.ValueUpdater(controller, (fun (target: PlotView) v -> target.Controller <- v))
 
             attribs.Add(ModelAttribKey, model, updater1) 
             match controller with None -> () | Some v -> attribs.Add(ControllerAttribKey, v, updater2) 

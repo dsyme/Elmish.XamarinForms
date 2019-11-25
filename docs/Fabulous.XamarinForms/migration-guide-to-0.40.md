@@ -3,7 +3,7 @@ Fabulous for Xamarin.Forms - Guide
 
 {% include_relative contents.md %}
 
-Migrating from Fabulous v0.36 to Fabulous.XamarinForms
+Migrating from Fabulous v0.36 to Fabulous.XamarinForms v0.40
 --------
 
 With version 0.40.0, Fabulous has gone under a complete internal restructuring to enable future works (see [pull request #481](https://github.com/fsprojects/Fabulous/pull/481) for more information).

@@ -61,12 +61,12 @@ module MapsExtension =
 
             let attribs = attribs.Retarget<Map>()
 
-            let updater1 = ViewExtensions.PrimitiveUpdater(hasScrollEnabled, (fun (target: Map) v -> target.HasScrollEnabled <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(isShowingUser, (fun (target: Map) v -> target.IsShowingUser <- v))
-            let updater3 = ViewExtensions.PrimitiveUpdater(mapType, (fun (target: Map) v -> target.MapType <- v))
-            let updater4 = ViewExtensions.PrimitiveUpdater(hasZoomEnabled, (fun (target: Map) v -> target.HasZoomEnabled <- v))
+            let updater1 = ViewExtensions.ValueUpdater(hasScrollEnabled, (fun (target: Map) v -> target.HasScrollEnabled <- v))
+            let updater2 = ViewExtensions.ValueUpdater(isShowingUser, (fun (target: Map) v -> target.IsShowingUser <- v))
+            let updater3 = ViewExtensions.ValueUpdater(mapType, (fun (target: Map) v -> target.MapType <- v))
+            let updater4 = ViewExtensions.ValueUpdater(hasZoomEnabled, (fun (target: Map) v -> target.HasZoomEnabled <- v))
             let updater5 = ViewExtensions.ElementCollectionUpdater(pins, (fun (target: Map) -> target.Pins))
-            let updater6 = ViewExtensions.PrimitiveUpdater(requestedRegion, (fun (target: Map) v -> target.MoveToRegion(v)))
+            let updater6 = ViewExtensions.ValueUpdater(requestedRegion, (fun (target: Map) v -> target.MoveToRegion(v)))
 
             // Add our own attributes. They must have unique names which must match the names below.
             match pins with None -> () | Some v -> attribs.Add(MapPinsAttribKey, v, updater1) 
@@ -91,10 +91,10 @@ module MapsExtension =
 
             let attribs = AttributesBuilder<Pin>(attribCount)
 
-            let updater1 = ViewExtensions.PrimitiveUpdater(position, (fun (target: Pin) v -> target.Position <- v))
-            let updater2 = ViewExtensions.PrimitiveUpdater(label, (fun (target: Pin) v -> target.Label <- v))
-            let updater3 = ViewExtensions.PrimitiveUpdater(pinType, (fun (target: Pin) v -> target.Type <- v))
-            let updater4 = ViewExtensions.PrimitiveUpdater(address, (fun (target: Pin) v -> target.Address <- v))
+            let updater1 = ViewExtensions.ValueUpdater(position, (fun (target: Pin) v -> target.Position <- v))
+            let updater2 = ViewExtensions.ValueUpdater(label, (fun (target: Pin) v -> target.Label <- v))
+            let updater3 = ViewExtensions.ValueUpdater(pinType, (fun (target: Pin) v -> target.Type <- v))
+            let updater4 = ViewExtensions.ValueUpdater(address, (fun (target: Pin) v -> target.Address <- v))
 
             // Add our own attributes. They must have unique names which must match the names below.
             match position with None -> () | Some v -> attribs.Add(PinPositionAttribKey, v, updater1) 
