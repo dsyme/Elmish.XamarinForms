@@ -1136,7 +1136,7 @@
           "source": null,
           "name": "GoToAsync",
           "defaultValue": "null",
-          "inputType": "Xamarin.Forms.ShellNavigationState * Fabulous.XamarinForms.InputTypes.AnimationKind",
+          "inputType": "Fabulous.Trigger<Xamarin.Forms.ShellNavigationState * Fabulous.XamarinForms.InputTypes.AnimationKind>",
           "updateCode": "ViewUpdaters.triggerShellGoToAsync"
         }
       ],
@@ -1650,7 +1650,7 @@
           "source": null,
           "name": "ScrollTo",
           "defaultValue": "null",
-          "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToItem",
+          "inputType": "Fabulous.Trigger<Fabulous.XamarinForms.InputTypes.ScrollToItem>",
           "updateCode": "ViewUpdaters.triggerItemsViewScrollTo"
         },
         {
@@ -1839,7 +1839,7 @@
           "source": null,
           "name": "ScrollTo",
           "defaultValue": "null",
-          "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToItem",
+          "inputType": "Fabulous.Trigger<Fabulous.XamarinForms.InputTypes.ScrollToItem>",
           "updateCode": "ViewUpdaters.triggerListViewScrollTo"
         },
         {
@@ -1922,7 +1922,7 @@
     //      "source": null,
     //      "name": "ScrollTo",
     //      "defaultValue": "null",
-    //      "inputType": "Fabulous.XamarinForms.InputTypes.ScrollToGroupedItem",
+    //      "inputType": "Fabulous.Trigger<Fabulous.XamarinForms.InputTypes.ScrollToGroupedItem>",
     //      "updateCode": "ViewUpdaters.triggerListViewGroupedScrollTo"
     //    },
     //    {
@@ -2256,7 +2256,7 @@
           "source": null,
           "name": "ScrollTo",
           "defaultValue": "null",
-          "inputType": "double * double * AnimationKind",
+          "inputType": "Fabulous.Trigger<double * double * AnimationKind>",
           "updateCode": "ViewUpdaters.triggerScrollToAsync"
         },
         {
@@ -2580,7 +2580,7 @@
           "source": null,
           "name": "Reload",
           "defaultValue": "false",
-          "inputType": "bool",
+          "inputType": "Fabulous.Trigger<unit>",
           "updateCode": "ViewUpdaters.triggerWebViewReload"
         }
       ],

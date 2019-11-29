@@ -209,7 +209,7 @@
       <HintPath>..\..\..\..\..\packages\iosapp\Xamarin.Essentials\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\Fabimals\Fabimals.fsproj">
-      <Project>{A85D491C-2E1C-48EF-9692-88C461E24398}</Project>
+      <Project>{F6AE8E23-F4B8-415F-956B-1B651CB496CD}</Project>
       <Name>Fabimals</Name>
     </ProjectReference>
   </ItemGroup>

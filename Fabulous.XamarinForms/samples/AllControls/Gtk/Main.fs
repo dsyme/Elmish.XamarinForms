@@ -9,6 +9,9 @@ module Main =
     let Main(args) =
         Gtk.Application.Init()
         Forms.Init()
+        Xamarin.Forms.Maps.GTK.FormsMaps.Init() 
+        //OxyPlot. OxyPlot.Xamarin.Forms
+        //FFImageLoading.Forms.Platform.CachedImageRenderer.Init(enableFastRenderer=Nullable true)
 
         let app = new AllControls.App()
         let window = new FormsWindow()

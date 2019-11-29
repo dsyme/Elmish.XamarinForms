@@ -267,7 +267,7 @@
       <HintPath>..\..\..\..\packages\androidapp\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\CounterApp\CounterApp.fsproj">
-      <Project>{AC36B11A-383D-45A3-8999-4F6475E9DD13}</Project>
+      <Project>{49318C29-43F7-4B2F-AE4A-77B9643BE6C9}</Project>
       <Name>CounterApp</Name>
     </ProjectReference>
   </ItemGroup>

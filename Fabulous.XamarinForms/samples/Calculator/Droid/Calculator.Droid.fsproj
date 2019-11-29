@@ -267,7 +267,7 @@
       <HintPath>..\..\..\..\packages\androidapp\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\Calculator\Calculator.fsproj">
-      <Project>{58C3A94E-459E-4CF5-AE67-B7C278578045}</Project>
+      <Project>{F75B6CFC-73D7-4A30-9BC9-CA24E808449D}</Project>
       <Name>Calculator</Name>
     </ProjectReference>
   </ItemGroup>

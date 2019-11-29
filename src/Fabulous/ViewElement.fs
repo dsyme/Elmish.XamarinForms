@@ -269,8 +269,9 @@ type ViewElementUpdater(anode: aval<ViewElement>, onCreated: obj -> obj -> unit,
 
                 let target = node.CreateInternal(token) |> childTransform
                 targetOpt <- Some (Some node, target)
-                onCreated scope target
+                // Note, update before registering in scope, e.g. "Pin must have a label to be added to a map"
                 node.UpdateInternal token target
+                onCreated scope target
 
                 match node.TryGetAttributeKeyed(ViewElement._CreatedAttribKey) with
                 | ValueSome f -> (f.GetValue(token)) target
@@ -293,6 +294,27 @@ type ViewElementUpdater(anode: aval<ViewElement>, onCreated: obj -> obj -> unit,
 
     static member Create node (childTransform: 'ChildTarget -> 'ActualChildTarget) (onCreated: 'Target -> 'ActualChildTarget -> unit)=
         ViewElementUpdater.CreateAdaptive (AVal.constant node) childTransform onCreated 
+
+/// Represents a change in data that causes a trigger, e.g. for scrolling
+[<RequireQualifiedAccess>]
+type Trigger<'T when 'T : equality> internal (value: 'T option, stamp: int64) = 
+    static let mutable triggerCount = 0L
+    static let fresh() = 
+        triggerCount <- triggerCount + 1L
+        triggerCount
+    static let none = Trigger<'T>(None, fresh())
+    new (x: 'T) = new Trigger<'T>(Some x, fresh())
+    member __.Stamp = stamp
+    member __.Value = value.Value
+    member __.TryValue = value
+    member __.IsNone = value.IsNone
+    static member None = none
+    override __.Equals(obj: obj) = 
+         match obj with 
+         | :? Trigger<'T> as y -> stamp = y.Stamp && value = y.TryValue
+         | _ -> false
+    override __.GetHashCode() = int32 stamp + hash value.Value
+ 
 
 // TODO - add combinators to allow building ViewElement that bind etc.
 //module ViewElement =

@@ -252,7 +252,7 @@
       <HintPath>..\..\..\..\packages\androidapp\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\StaticViewCounterApp\StaticViewCounterApp.fsproj">
-      <Project>{4282E90F-2519-46D0-B593-D57CFCA36A2D}</Project>
+      <Project>{7EAD7307-E81F-4B5D-A212-4B274B43406C}</Project>
       <Name>StaticViewCounterApp</Name>
     </ProjectReference>
   </ItemGroup>

@@ -41,9 +41,6 @@ For more information, please take a look at the documentation.
 
 ## Roadmap
 
-* Programming model
-  * Prevent events to raise when change is programmatic (e.g. TextChanged)
-
 * Live Update
   * Use actual newly compiled DLLs on Android instead of F# interperter
   * Check Live Update on WPF and other same-machine

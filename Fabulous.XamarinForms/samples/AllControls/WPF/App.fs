@@ -14,7 +14,12 @@ module Main =
     let main(_args) =
 
         let app = new System.Windows.Application()
-        Forms.Init()
+        let assembliesToInclude = [| typeof<Xamarin.Forms.Maps.WPF.MapRenderer>.Assembly |]
+        Xamarin.Forms.Forms.Init(assembliesToInclude);
+        Xamarin.FormsMaps.Init("ENTER-YOUR-KEY-HERE");
+        //OxyPlot.Xamarin.Forms.Platform.Android.PlotViewRenderer.Init()
+        //FFImageLoading.Forms.Platform.CachedImageRenderer.Init(enableFastRenderer=Nullable true)
+
         let window = MainWindow() 
         window.LoadApplication(new AllControls.App())
 

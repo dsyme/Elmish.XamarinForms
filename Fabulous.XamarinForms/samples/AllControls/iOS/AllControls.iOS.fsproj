@@ -10,6 +10,7 @@
     <RootNamespace>iOS</RootNamespace>
     <AssemblyName>iOS</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>
@@ -99,14 +100,6 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.FSharp.targets" Condition="Exists('$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.FSharp.targets')" />
   <Import Project="..\..\..\..\packages\iosapp\Xamarin.Forms\build\Xamarin.Forms.targets" Condition="Exists('..\..\..\..\packages\iosapp\Xamarin.Forms\build\Xamarin.Forms.targets')" />
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Fabulous\Fabulous.fsproj">
-      <Project>{07bd345b-2964-46be-87eb-1c009f5fd316}</Project>
-      <Name>Fabulous</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj">
-      <Project>{e8353f5f-71ec-4982-8865-f95991d5a0f6}</Project>
-      <Name>Fabulous.XamarinForms</Name>
-    </ProjectReference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -130,8 +123,70 @@
     <Reference Include="FSharp.Data">
       <HintPath>..\..\..\..\packages\iosapp\FSharp.Data\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\..\..\..\packages\iosapp\SkiaSharp\lib\Xamarin.iOS\SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.iOS">
+      <HintPath>..\..\..\..\packages\iosapp\SkiaSharp.Views\lib\Xamarin.iOS\SkiaSharp.Views.iOS.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Forms">
+      <HintPath>..\..\..\..\packages\iosapp\SkiaSharp.Views.Forms\lib\Xamarin.iOS\SkiaSharp.Views.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.Forms.Maps\lib\Xamarin.iOS10\Xamarin.Forms.Maps.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps.iOS">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.Forms.Maps\lib\Xamarin.iOS10\Xamarin.Forms.Maps.iOS.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.PancakeView">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.Forms.PancakeView\lib\netstandard2.0\Xamarin.Forms.PancakeView.dll</HintPath>
+    </Reference>
+   <!--
+    <Reference Include="Plugin.MediaManager">
+      <HintPath>..\..\..\..\packages\iosapp\Plugin.MediaManager\lib\net45\MediaManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Plugin.MediaManager.Forms">
+      <HintPath>..\..\..\..\packages\iosapp\Plugin.MediaManager.Forms\lib\net45\MediaManager.Forms.dll</HintPath>
+    </Reference>
+-->
+    <Reference Include="OxyPlot">
+      <HintPath>..\..\..\..\packages\iosapp\OxyPlot.Core\lib\netstandard1.0\OxyPlot.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Xamarin.iOS">
+      <HintPath>..\..\..\..\packages\iosapp\OxyPlot.Xamarin.iOS\lib\Xamarin.iOS10\OxyPlot.Xamarin.iOS.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Xamarin.Forms">
+      <HintPath>..\..\..\..\packages\iosapp\OxyPlot.Xamarin.Forms\lib\Xamarin.iOS10\OxyPlot.Xamarin.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Xamarin.Forms.Platform.iOS">
+      <HintPath>..\..\..\..\packages\iosapp\OxyPlot.Xamarin.Forms\lib\Xamarin.iOS10\OxyPlot.Xamarin.Forms.Platform.iOS.dll</HintPath>
+    </Reference>
+    <!--
+    <Reference Include="FFImageLoading">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.FFImageLoading\lib\Xamarin.iOS10\FFImageLoading.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Platform">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.FFImageLoading\lib\Xamarin.iOS10\FFImageLoading.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Forms">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.FFImageLoading.Forms\lib\Xamarin.iOS10\FFImageLoading.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Forms.Platform">
+      <HintPath>..\..\..\..\packages\iosapp\Xamarin.FFImageLoading.Forms\lib\Xamarin.iOS10\FFImageLoading.Forms.Platform.dll</HintPath>
+    </Reference>
+    -->
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Fabulous\Fabulous.fsproj">
+      <Project>{07bd345b-2964-46be-87eb-1c009f5fd316}</Project>
+      <Name>Fabulous</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj">
+      <Project>{e8353f5f-71ec-4982-8865-f95991d5a0f6}</Project>
+      <Name>Fabulous.XamarinForms</Name>
+    </ProjectReference>
     <ProjectReference Include="..\AllControls\AllControls.fsproj">
-      <Project>{13F140D6-2D21-41BE-AC90-4B14D8C16A47}</Project>
+      <Project>{AEBBB2CB-3D81-4DB0-8A64-70D80EDCBD38}</Project>
       <Name>AllControls</Name>
     </ProjectReference>
   </ItemGroup>

@@ -153,20 +153,20 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Fabulous.Core\Fabulous.Core.fsproj">
+    <ProjectReference Include="..\..\..\..\src\Fabulous\Fabulous.fsproj">
       <Project>{b459afad-bb5b-43c3-bd86-609e8db3e3fd}</Project>
-      <Name>Fabulous.Core</Name>
+      <Name>Fabulous</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\src\Fabulous.CustomControls\Fabulous.CustomControls.fsproj">
+    <ProjectReference Include="..\..\..\src\Fabulous.XamarinForms\Fabulous.XamarinForms.fsproj">
       <Project>{7ff328bb-9318-4c11-8a9a-37dd98eab35b}</Project>
-      <Name>Fabulous.CustomControls</Name>
+      <Name>Fabulous.XamarinForms</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\src\Fabulous.LiveUpdate\Fabulous.LiveUpdate.fsproj">
+    <ProjectReference Include="..\..\..\src\Fabulous.XamarinForms.LiveUpdate\Fabulous.XamarinForms.LiveUpdate.fsproj">
       <Project>{b459afad-bb5b-43c3-bd86-609e8db3e3f1}</Project>
       <Name>Fabulous.LiveUpdate</Name>
     </ProjectReference>
     <ProjectReference Include="..\Calculator\Calculator.fsproj">
-      <Project>{58C3A94E-459E-4CF5-AE67-B7C278578045}</Project>
+      <Project>{F75B6CFC-73D7-4A30-9BC9-CA24E808449D}</Project>
       <Name>Calculator</Name>
     </ProjectReference>
   </ItemGroup>

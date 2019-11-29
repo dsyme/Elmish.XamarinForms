@@ -12,16 +12,18 @@ A simple `ListView` is as follows:
 
 ```fsharp
 View.ListView(
-    items = [ View.Label "Ionide"
-              View.Label "Visual Studio"
-              View.Label "Emacs"
-              View.Label "Visual Studio Code"
-              View.Label "JetBrains Rider"],
-    itemSelected=(fun idx -> dispatch (ListViewSelectedItemChanged idx)))
+    items = [
+        View.TextCell "Ionide"
+        View.TextCell "Visual Studio"
+        View.TextCell "Emacs"
+        View.TextCell "Visual Studio Code"
+        View.TextCell "JetBrains Rider"
+    ],
+    itemSelected = (fun idx -> dispatch (ListViewSelectedItemChanged idx))
+)
 ```
 
-In the underlying implementation, each visual item is placed in a `ContentCell`.
-Currently the `itemSelected` callback uses integers indexes for keys to identify the elements (NOTE: this may change in future updates).
+The `itemSelected` callback uses integers indexes for keys to identify the elements.
 
 There is also a `ListViewGrouped` for grouped items of data.  This uses the same Xamarin control under the hood but in a different mode of use.
 
@@ -30,6 +32,7 @@ There is also a `ListViewGrouped` for grouped items of data.  This uses the same
 See also:
 
 * [`Xamarin.Forms.Core.ListView`](https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/listview/)
+* [Xamarin.Forms Cells](https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/controls/cells)
 
 ### TableView
 
@@ -38,12 +41,44 @@ An example `TableView` is as follows:
 ```fsharp
 View.TableView(
     items = [
-        ("Videos", [ View.SwitchCell(on=true, text="Luca 2008", onChanged=(fun args -> ()) )
-                     View.SwitchCell(on=true, text="Don 2010", onChanged=(fun args -> ()) ) ] )
-        ("Books", [ View.SwitchCell(on=true, text="Expert F#", onChanged=(fun args -> ()) )
-                    View.SwitchCell(on=false, text="Programming F#", onChanged=(fun args -> ()) ) ])
-        ("Contact", [ View.EntryCell(label="Email", placeholder="foo@bar.com", completed=(fun args -> ()) )
-                      View.EntryCell(label="Phone", placeholder="+44 87654321", completed=(fun args -> ()) )] )])
+        (View.TextCell("Videos"), [
+            View.SwitchCell(
+                on = true,
+                text = "Luca 2008",
+                onChanged = (fun args -> ())
+            )
+            View.SwitchCell(
+                on = true,
+                text = "Don 2010",
+                onChanged = (fun args -> ())
+            )
+        ])
+        (View.TextCell("Books"), [
+            View.SwitchCell(
+                on = true,
+                text = "Expert F#",
+                onChanged = (fun args -> ())
+            )
+            View.SwitchCell(
+                on = false,
+                text = "Programming F#",
+                onChanged = (fun args -> ())
+            )
+        ])
+        (View.TextCell("Contact"), [
+            View.EntryCell(
+                label = "Email",
+                placeholder = "foo@bar.com",
+                completed = (fun args -> ())
+            )
+            View.EntryCell(
+                label = "Phone",
+                text = "+44 87654321",
+                completed = (fun args -> ())
+            )
+        ])
+    ]
+)
 ```
 
 <img src="https://user-images.githubusercontent.com/52166903/60177365-9d737900-9810-11e9-92d5-88487316bbf6.png" width="400">
@@ -77,9 +112,12 @@ let update msg model =
 let view model dispatch =
     ...
     View.ListView(
-        items = [ for i in 1 .. model.LatestItemAvailable do
-                     yield View.Label("Item " + string i) ],
-        itemAppearing = (fun idx -> if idx >= max - 2 then dispatch (GetMoreItems (idx + 10) ) )  )
+        items = [
+            for i in 1 .. model.LatestItemAvailable do
+                yield View.TextCell("Item " + string i)
+        ],
+        itemAppearing = (fun idx -> if idx >= max - 2 then dispatch (GetMoreItems (idx + 10) ) )
+    )
 ...
 ```
 
@@ -94,8 +132,10 @@ Note:
 Surprisingly even this naive technique  is fairly efficient. There are numerous ways to make this more efficient (we aim to document more of these over time too).  One simple one is to memoize each individual visual item using `dependsOn`:
 
 ```fsharp
-        items = [ for i in 1 .. model.LatestItemAvailable do
-                    yield dependsOn i (fun model i -> View.Label("Item " + string i)) ]
+items = [
+    for i in 1 .. model.LatestItemAvailable do
+        yield dependsOn i (fun model i -> View.Label("Item " + string i))
+]
 ```
 
 With that, this simple list views scale to > 10,000 items on a modern phone, though your mileage may vary.
@@ -105,49 +145,21 @@ Thre is also an `itemDisappearing` event for `ListView` that can be used to disc
 range of visual items that need to be generated.
 
 ### CollectionView
-
-`CollectionView` is available in preview in Xamarin.Forms 4.0.  
+ 
 Please read the Xamarin.Forms documentation to check whether this control is available for the platforms you target.
-
-Fabulous for Xamarin.Forms provides an initial but partial support for it.  
-
-As it is experimental, this control requires the flag `CollectionView = CollectionView_Experimental` before it can be used.
-For example:
-
-```fsharp
-// iOS
-[<Register ("AppDelegate")>]
-type AppDelegate () =
-    inherit FormsApplicationDelegate ()
-
-    override this.FinishedLaunching (uiApp, options) =
-        Xamarin.Forms.Forms.SetFlags([| "CollectionView_Experimental"|]);
-        (...)
-
-// Android
-[<Activity>]
-type MainActivity() =
-    inherit FormsApplicationActivity()
-
-    override this.OnCreate (bundle: Bundle) =
-        base.OnCreate (bundle)
-        global.Xamarin.Forms.Forms.SetFlags([| "CollectionView_Experimental"|])
-        (...)
-```
 
 Usage:
 ```fsharp
-View.CollectionView(items=[
-            View.Label(text="Person1") 
-            View.Label(text="Person2")
-            View.Label(text="Person3")
-            View.Label(text="Person4")
-            View.Label(text="Person5")
-        ])
+View.CollectionView(items = [
+    View.Label(text = "Person1") 
+    View.Label(text = "Person2")
+    View.Label(text = "Person3")
+    View.Label(text = "Person4")
+    View.Label(text = "Person5")
+])
 ```
 
 <img src="https://user-images.githubusercontent.com/52166903/60262083-4683a780-98d5-11e9-8afc-cde4d594171b.png" width="400">
 
 See also:
 * [Xamarin guide to CollectionView](https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/collectionview/)
-* [Xamarin.Forms 4.0 Preview](https://devblogs.microsoft.com/xamarin/xamarin-forms-4-0-preview/)

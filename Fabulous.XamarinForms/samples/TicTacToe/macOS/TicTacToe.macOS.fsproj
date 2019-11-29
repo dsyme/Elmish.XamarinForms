@@ -132,7 +132,7 @@
       <Name>Fabulous.XamarinForms</Name>
     </ProjectReference>
     <ProjectReference Include="..\TicTacToe\TicTacToe.fsproj">
-      <Project>{AE045D79-7FF3-45F3-BFD0-305542A1C728}</Project>
+      <Project>{391D3679-0EF6-44BB-978A-82F7EECF1A66}</Project>
       <Name>TicTacToe</Name>
     </ProjectReference>
   </ItemGroup>

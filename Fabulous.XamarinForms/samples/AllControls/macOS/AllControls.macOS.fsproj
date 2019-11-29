@@ -16,6 +16,7 @@
     <MonoMacResourcePrefix>Resources</MonoMacResourcePrefix>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <RestorePackages>true</RestorePackages>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -89,6 +90,52 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\packages\macosapp\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\..\..\..\packages\macosapp\SkiaSharp\lib\Xamarin.Mac20\SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Mac">
+      <HintPath>..\..\..\..\packages\macosapp\SkiaSharp.Views\lib\Xamarin.Mac20\SkiaSharp.Views.Mac.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Forms">
+      <HintPath>..\..\..\..\packages\macosapp\SkiaSharp.Views.Forms\lib\Xamarin.Mac20\SkiaSharp.Views.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.Forms.Maps\lib\Xamarin.Mac\Xamarin.Forms.Maps.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps.macOS">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.Forms.Maps\lib\Xamarin.Mac\Xamarin.Forms.Maps.macOS.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.PancakeView">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.Forms.PancakeView\lib\netstandard2.0\Xamarin.Forms.PancakeView.dll</HintPath>
+    </Reference>
+    <!--
+    <Reference Include="Plugin.MediaManager">
+      <HintPath>..\..\..\..\packages\macosapp\Plugin.MediaManager\lib\net45\MediaManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Plugin.MediaManager.Forms">
+      <HintPath>..\..\..\..\packages\macosapp\Plugin.MediaManager.Forms\lib\net45\MediaManager.Forms.dll</HintPath>
+    </Reference>
+-->
+    <Reference Include="OxyPlot">
+      <HintPath>..\..\..\..\packages\macosapp\OxyPlot.Core\lib\netstandard1.0\OxyPlot.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Xamarin.Forms">
+      <HintPath>..\..\..\..\packages\macosapp\OxyPlot.Xamarin.Forms\lib\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+Xamarin.iOS10\OxyPlot.Xamarin.Forms.dll</HintPath>
+    </Reference>
+        <!--
+    <Reference Include="FFImageLoading">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.FFImageLoading\lib\Xamarin.Mac20\FFImageLoading.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Platform">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.FFImageLoading\lib\Xamarin.Mac20\FFImageLoading.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Forms">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.FFImageLoading.Forms\lib\Xamarin.Mac20\FFImageLoading.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Forms.Platform">
+      <HintPath>..\..\..\..\packages\macosapp\Xamarin.FFImageLoading.Forms\lib\Xamarin.Mac20\FFImageLoading.Forms.Platform.dll</HintPath>
+    </Reference>
+    -->
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.FSharp.targets" Condition="Exists('$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.FSharp.targets')" />
   <Import Project="..\..\..\..\packages\macosapp\Xamarin.Forms\build\Xamarin.Forms.targets" Condition="Exists('..\..\..\..\packages\macosapp\Xamarin.Forms\build\Xamarin.Forms.targets')" />
@@ -117,7 +164,7 @@
       <Name>Fabulous.XamarinForms</Name>
     </ProjectReference>
     <ProjectReference Include="..\AllControls\AllControls.fsproj">
-      <Project>{13F140D6-2D21-41BE-AC90-4B14D8C16A47}</Project>
+      <Project>{AEBBB2CB-3D81-4DB0-8A64-70D80EDCBD38}</Project>
       <Name>AllControls</Name>
     </ProjectReference>
   </ItemGroup>

@@ -94,7 +94,7 @@ module ViewUpdaters =
                                     | None -> System.Diagnostics.Debug.Assert(false); failwith "inconsistent"
                                 | None -> childAdd target child )
 
-                // Creates the child for the new element if necessary
+                // Creates and updates the child for the new element 
                 childUpdater token ()
                 children <- IndexList.set idx (childUpdater) children
 
@@ -114,6 +114,7 @@ module ViewUpdaters =
 
         // An update may have been requested because of a change in a child element
         for childUpdater in children do
+            // Updates the child for the new element
             childUpdater token ()
         )
 
@@ -514,36 +515,42 @@ module ViewUpdaters =
     /// Trigger ScrollView.ScrollToAsync if needed, given the current values
     ///
     /// TODO: consider what trigger means for adaptive
-    let triggerScrollToAsync (value: aval<(float * float * AnimationKind)>) =
+    let triggerScrollToAsync (value: aval<Trigger<float * float * AnimationKind>>) =
         fun token (target: Xamarin.Forms.ScrollView) ->
-            let (x, y, animationKind) = value.GetValue(token)
-            if x <> target.ScrollX || y <> target.ScrollY then
-                let animated =
-                    match animationKind with
+            let trigger = value.GetValue(token)
+            if not trigger.IsNone then 
+                let x, y, animationKind = trigger.Value
+                if x <> target.ScrollX || y <> target.ScrollY then
+                    let animated =
+                        match animationKind with
+                        | Animated -> true
+                        | NotAnimated -> false
+                    target.ScrollToAsync(x, y, animated) |> ignore
+
+    let triggerItemsViewScrollTo (value: aval<Trigger<ScrollToItem>>) =
+        fun token (target: Xamarin.Forms.ItemsView) ->
+            let trigger = value.GetValue(token)
+            if not trigger.IsNone then 
+                let scrollToItem = trigger.Value
+                let animate =
+                    match scrollToItem.Animate with
                     | Animated -> true
                     | NotAnimated -> false
-                target.ScrollToAsync(x, y, animated) |> ignore
+                target.ScrollTo(scrollToItem.Index, position = scrollToItem.Position, animate=animate)
 
-    let triggerItemsViewScrollTo (value: aval<ScrollToItem>) =
-        fun token (target: Xamarin.Forms.ItemsView) ->
-            let scrollToItem = value.GetValue(token)
-            let animate =
-                match scrollToItem.Animate with
-                | Animated -> true
-                | NotAnimated -> false
-            target.ScrollTo(scrollToItem.Index, position = scrollToItem.Position, animate=animate)
-
-    let triggerListViewScrollTo (value: aval<ScrollToItem>) =
+    let triggerListViewScrollTo (value: aval<Trigger<ScrollToItem>>) =
         fun token (target: Xamarin.Forms.ListView) ->
-            let scrollToItem = value.GetValue(token)
-            let animate =
-                match scrollToItem.Animate with
-                | Animated -> true
-                | NotAnimated -> false
-            let itemOpt = (target.ItemsSource :?> ObservableCollection<ViewElementHolder>) |> Seq.tryItem scrollToItem.Index
-            match itemOpt with 
-            | None -> ()
-            | Some item -> target.ScrollTo(item, scrollToItem.Position, animate)
+            let trigger = value.GetValue(token)
+            if not trigger.IsNone then 
+                let scrollToItem = trigger.Value
+                let animate =
+                    match scrollToItem.Animate with
+                    | Animated -> true
+                    | NotAnimated -> false
+                let itemOpt = (target.ItemsSource :?> ObservableCollection<ViewElementHolder>) |> Seq.tryItem scrollToItem.Index
+                match itemOpt with 
+                | None -> ()
+                | Some item -> target.ScrollTo(item, scrollToItem.Position, animate)
 
 #if GROUPLIST
     /// Trigger ListViewGrouped.ScrollTo if needed, given the current values
@@ -570,14 +577,16 @@ module ViewUpdaters =
     /// Trigger Shell.GoToAsync if needed, given the current values
     ///
     /// TODO: consider what trigger means for adaptive
-    let triggerShellGoToAsync (curr: aval<(ShellNavigationState * AnimationKind)>) =
+    let triggerShellGoToAsync (value: aval<Trigger<ShellNavigationState * AnimationKind>>) =
         fun token (target: Xamarin.Forms.Shell) ->
-            let (navigationState, animationKind) = curr.GetValue(token)
-            let animated =
-                match animationKind with
-                | Animated -> true
-                | NotAnimated -> false
-            target.GoToAsync(navigationState, animated) |> ignore
+            let trigger = value.GetValue(token)
+            if not trigger.IsNone then 
+                let navigationState, animationKind = trigger.Value
+                let animated =
+                    match animationKind with
+                    | Animated -> true
+                    | NotAnimated -> false
+                target.GoToAsync(navigationState, animated) |> ignore
 
     let updatePageShellSearchHandler (element: ViewElement) =
         ViewElementUpdater.Create element id (fun (target: #NavigableElement) handler -> Shell.SetSearchHandler(target, handler))
@@ -711,10 +720,12 @@ module ViewUpdaters =
             | ValueNone -> ()
             | _ -> setUseSafeArea curr)
 
-    let triggerWebViewReload (value: aval<bool>) =
+    let triggerWebViewReload (value: aval<Trigger<unit>>) =
         fun token (target: Xamarin.Forms.WebView) ->
-            let curr = value.GetValue(token)
-            if curr = true then target.Reload()
+            let trigger = value.GetValue(token)
+            if not trigger.IsNone then 
+                let curr = trigger.Value
+                target.Reload()
     
     let updateEntryCursorPosition (value: aval<int>) =
         fun token (target: Xamarin.Forms.Entry) ->

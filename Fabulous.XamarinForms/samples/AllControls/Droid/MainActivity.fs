@@ -23,6 +23,9 @@ type MainActivity() =
         global.Xamarin.Forms.Forms.SetFlags([|"Shell_Experimental"; "CollectionView_Experimental"; "Visual_Experimental"|])
         
         Xamarin.Forms.Forms.Init (this, bundle)
+        Xamarin.FormsMaps.Init(this, bundle) 
+        OxyPlot.Xamarin.Forms.Platform.Android.PlotViewRenderer.Init()
+        //FFImageLoading.Forms.Platform.CachedImageRenderer.Init(enableFastRenderer=Nullable true)
 
         let app = new AllControls.App()
         this.LoadApplication(app)

@@ -10,6 +10,7 @@
     <RootNamespace>AllControls.Gtk</RootNamespace>
     <AssemblyName>AllControls.Gtk</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -77,9 +78,6 @@
     <Reference Include="webkit-sharp">
       <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Platform.GTK\lib\net45\webkit-sharp.dll</HintPath>
     </Reference>
-    <Reference Include="Xamarin.Forms.Platform.GTK">
-      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Platform.GTK\lib\net45\Xamarin.Forms.Platform.GTK.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\..\..\packages\gtkapp\FSharp.Core\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
@@ -89,12 +87,70 @@
     <Reference Include="Xamarin.Forms.Platform">
       <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms\lib\netstandard2.0\Xamarin.Forms.Platform.dll</HintPath>
     </Reference>
+    <Reference Include="Xamarin.Forms.Platform.GTK">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Platform.GTK\lib\net45\Xamarin.Forms.Platform.GTK.dll</HintPath>
+    </Reference>
     <Reference Include="Xamarin.Forms.Xaml">
       <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms\lib\netstandard2.0\Xamarin.Forms.Xaml.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\packages\gtkapp\Newtonsoft.Json\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\..\..\..\packages\gtkapp\SkiaSharp\lib\net45\SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Desktop">
+      <HintPath>..\..\..\..\packages\macosapp\SkiaSharp.Views\lib\net45\SkiaSharp.Views.Desktop.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Desktop.Common">
+      <HintPath>..\..\..\..\packages\gtkapp\SkiaSharp.Views.Desktop.Common\lib\net45\SkiaSharp.Views.Desktop.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Views.Gtk">
+      <HintPath>..\..\..\..\packages\gtkapp\SkiaSharp.Views.Gtk2\lib\net45\SkiaSharp.Views.Gtk.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Maps\lib\netstandard2.0\Xamarin.Forms.Maps.dll</HintPath>
+    </Reference>
+    <Reference Include="GMap.NET.Core">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Maps.GTK\lib\net45\GMap.NET.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="GMap.NET.GTK">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Maps.GTK\lib\net45\GMap.NET.GTK.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.Maps.GTK">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.Maps.GTK\lib\net45\Xamarin.Forms.Maps.GTK.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Forms.PancakeView">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.Forms.PancakeView\lib\netstandard2.0\Xamarin.Forms.PancakeView.dll</HintPath>
+    </Reference>
+    <!--
+    <Reference Include="Plugin.MediaManager">
+      <HintPath>..\..\..\..\packages\gtkapp\Plugin.MediaManager\lib\net45\MediaManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Plugin.MediaManager.Forms">
+      <HintPath>..\..\..\..\packages\gtkapp\Plugin.MediaManager.Forms\lib\net45\MediaManager.Forms.dll</HintPath>
+    </Reference>
+-->
+    <Reference Include="OxyPlot">
+      <HintPath>..\..\..\..\packages\gtkapp\OxyPlot.Core\lib\net45\OxyPlot.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Xamarin.Forms">
+      <HintPath>..\..\..\..\packages\gtkapp\OxyPlot.Xamarin.Forms\lib\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+Xamarin.iOS10\OxyPlot.Xamarin.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.GtkSharp ">
+      <HintPath>..\..\..\..\packages\gtkapp\OxyPlot.GtkSharp\lib\net45\OxyPlot.GtkSharp.dll</HintPath>
+    </Reference>
+<!--
+    <Reference Include="FFImageLoading">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.FFImageLoading\lib\netstandard1.0\FFImageLoading.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Platform">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.FFImageLoading\lib\netstandard1.0\FFImageLoading.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="FFImageLoading.Forms">
+      <HintPath>..\..\..\..\packages\gtkapp\Xamarin.FFImageLoading.Forms\lib\netstandard1.0\FFImageLoading.Forms.dll</HintPath>
+    </Reference>
+-->
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
@@ -112,7 +168,7 @@
       <Name>Fabulous.XamarinForms</Name>
     </ProjectReference>
     <ProjectReference Include="..\AllControls\AllControls.fsproj">
-      <Project>{13F140D6-2D21-41BE-AC90-4B14D8C16A47}</Project>
+      <Project>{AEBBB2CB-3D81-4DB0-8A64-70D80EDCBD38}</Project>
       <Name>AllControls</Name>
     </ProjectReference>
   </ItemGroup>
