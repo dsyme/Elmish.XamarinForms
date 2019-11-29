@@ -263,6 +263,9 @@
     <Reference Include="FSharp.Data">
       <HintPath>..\..\..\..\packages\androidapp\FSharp.Data\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\..\..\..\packages\androidapp\FSharp.Data\lib\netstandard2.0\FSharp.Data.dll</HintPath>
+    </Reference>
     <ProjectReference Include="..\AllControls\AllControls.fsproj">
       <Project>{13f140d6-2d21-41be-ac90-4b14d8c16a47}</Project>
       <Name>AllControls</Name>

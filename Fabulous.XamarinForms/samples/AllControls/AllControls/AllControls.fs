@@ -13,8 +13,6 @@ open AllControls.Effects
 
 type RootPageKind = 
     | Choice of bool
-    | SkiaCanvas
-    | SkiaCanvas2
     | Tabbed1 
     | Tabbed2 
     | Tabbed3 
@@ -30,6 +28,8 @@ type RootPageKind =
     | CarouselView
     | Effects
     | RefreshView
+    | SkiaCanvas
+    | SkiaCanvas2
 
 type Model = 
   { RootPageKind: RootPageKind
@@ -288,7 +288,6 @@ module App =
     
     let update msg (model: Model) =
         match msg with
-        | SKSurfaceTouched point -> { model with SKPoints = model.SKPoints.Add(point) }, Cmd.none
         | Increment -> { model with Count = model.Count + 1 }, Cmd.none
         | Decrement -> { model with Count = model.Count - 1}, Cmd.none
         | IncrementForSlider -> { model with CountForSlider = model.CountForSlider + model.StepForSlider }, Cmd.none
@@ -390,6 +389,7 @@ module App =
             { model with RefreshViewIsRefreshing = true }, refreshAsync ()
         | RefreshViewRefreshDone ->
             { model with RefreshViewIsRefreshing = false }, Cmd.none
+        | SKSurfaceTouched point -> { model with SKPoints = model.SKPoints.Add(point) }, Cmd.none
 
     let pickerItems = 
         [ ("Aqua", Color.Aqua); ("Black", Color.Black);
@@ -599,43 +599,6 @@ module App =
                        ])
            ])
 
-        | SkiaCanvas ->
-         return
-            View.ScrollingContentPage(c "SkiaCanvas", cs [ 
-                View.SKCanvasView(enableTouchEvents = c true, 
-                    paintSurface = c (fun args -> 
-                        let info = args.Info
-                        let surface = args.Surface
-                        let canvas = surface.Canvas
-
-                        canvas.Clear() 
-                        use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
-                        canvas.DrawCircle(float32 (info.Width / 2), float32 (info.Height / 2), 100.0f, paint)
-                    ),
-                    horizontalOptions = c LayoutOptions.FillAndExpand, 
-                    verticalOptions = c LayoutOptions.FillAndExpand, 
-                    touch = c (fun args -> 
-                        if args.InContact then
-                            dispatch (SKSurfaceTouched args.Location)
-                    ))
-
-                MainPageButton
-            ])
-        | SkiaCanvas2 ->
-         return
-            View.ScrollingContentPage(c "SkiaCanvas #2", cs [ 
-
-                View.SKCanvasView2(enableTouchEvents = c true, 
-                    shapes = alist { for p in model.SKPoints -> SKShape.Circle(p, 50.0f, 5.0f) },
-                    verticalOptions = c LayoutOptions.FillAndExpand, 
-                    horizontalOptions = c LayoutOptions.FillAndExpand, 
-                    touch = c (fun args -> 
-                        if args.InContact then
-                            dispatch (SKSurfaceTouched args.Location)
-                    ))
-                       
-                MainPageButton
-            ])
         | Tabbed1 ->
          return
            View.TabbedPage(
@@ -1219,6 +1182,43 @@ module App =
                     )
                 )
             )
+        | SkiaCanvas ->
+         return
+            View.ScrollingContentPage(c "SkiaCanvas", cs [ 
+                View.SKCanvasView(enableTouchEvents = c true, 
+                    paintSurface = c (fun args -> 
+                        let info = args.Info
+                        let surface = args.Surface
+                        let canvas = surface.Canvas
+
+                        canvas.Clear() 
+                        use paint = new SKPaint(Style = SKPaintStyle.Stroke, Color = Color.Red.ToSKColor(), StrokeWidth = 25.0f)
+                        canvas.DrawCircle(float32 (info.Width / 2), float32 (info.Height / 2), 100.0f, paint)
+                    ),
+                    horizontalOptions = c LayoutOptions.FillAndExpand, 
+                    verticalOptions = c LayoutOptions.FillAndExpand, 
+                    touch = c (fun args -> 
+                        if args.InContact then
+                            dispatch (SKSurfaceTouched args.Location)
+                    ))
+
+                MainPageButton
+            ])
+        | SkiaCanvas2 ->
+         return
+            View.ScrollingContentPage(c "SkiaCanvas #2", cs [ 
+
+                View.SKCanvasView2(enableTouchEvents = c true, 
+                    shapes = alist { for p in model.SKPoints -> SKShape.Circle(p, 50.0f, 5.0f) },
+                    verticalOptions = c LayoutOptions.FillAndExpand, 
+                    horizontalOptions = c LayoutOptions.FillAndExpand, 
+                    touch = c (fun args -> 
+                        if args.InContact then
+                            dispatch (SKSurfaceTouched args.Location)
+                    ))
+                       
+                MainPageButton
+            ])
         }
 
     let ainit (model: Model) : AdaptiveModel = 
@@ -1330,7 +1330,7 @@ module App =
             if model.RefreshViewIsRefreshing <> amodel.RefreshViewIsRefreshing.Value then 
                 amodel.RefreshViewIsRefreshing.Value <- model.RefreshViewIsRefreshing
             amodel.SKPoints.UpdateTo(model.SKPoints, id, (fun p _ -> p))
-            System.Diagnostics.Debug.WriteLine (sprintf "#points = %d" amodel.SKPoints.Count)
+            //System.Diagnostics.Debug.WriteLine (sprintf "#points = %d" amodel.SKPoints.Count)
             //amodel.SKPoints.UpdateTo(model.SKPoints)
         )
 
