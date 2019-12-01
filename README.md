@@ -22,13 +22,13 @@ let update msg model =
     match msg with
     | ButtonClicked -> { model with Text = "Thanks for using Fabulous!" }
 
-// Write the view with resept to the adaptive vesion of the model.
+// Write the view with respect to the adaptive version of the model.
 let view (amodel: AdaptiveModel) dispatch =
     View.ContentPage(
         View.StackLayout(
             children = cs [
                 View.Image(source = c (Path "fabulous.png"))
-                View.Label(text = model.Text, fontSize = c (FontSize 22.0))
+                View.Label(text = amodel.Text, fontSize = c (FontSize 22.0))
                 View.Button(text = c "Click me", command = c (fun () -> dispatch ButtonClicked))
             ]
         )
@@ -36,13 +36,13 @@ let view (amodel: AdaptiveModel) dispatch =
 ```
 You must also add the following boiler-plate code - see also the 'Adaptify' tool.
 ```fsharp
-/// An adaptive vesion of the model. 
+/// An adaptive version of the model. 
 type AdaptiveModel = { Text: cval<string> }
 
-/// Initialize an adaptive vesion of the model.
+/// Initialize an adaptive version of the model.
 let ainit (model: Model) = { Text = cval model.Text }
 
-/// Update an adaptive vesion of the model. 
+/// Update an adaptive version of the model. 
 let adelta (model: Model) (amodel: AdaptiveModel) =
     transact (fun () -> 
         if model.Text <> amodel.Text.Value then 
